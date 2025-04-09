@@ -1,10 +1,10 @@
 # EngineGL
 
-A simple OpenGL-based game engine framework written in C++.
+A simple OpenGL-based game engine framework using a custom entity-component system in C++.
 
 ## Features
 
-- Basic entity-component system (ECS)
+- EnTT inspired entity-component system (ECS)
 - OpenGL rendering pipeline
 - Assimp model loading
 - stb_image texture loading
