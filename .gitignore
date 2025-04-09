@@ -1,0 +1,41 @@
+# Build folders
+build/
+out/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# IDEs
+.vs/
+.vscode/
+*.sln
+*.vcxproj*
+*.user
+*.suo
+
+# Binaries and intermediates
+*.exe
+*.obj
+*.lib
+*.dll
+*.pdb
+*.ilk
+*.ipdb
+*.iobj
+*.tlog
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Vcpkg build artifacts
+vcpkg_installed/
+installed/
+
+# ImGui runtime state
+imgui.ini
+
+# Misc
+*.log
+*.tmp
