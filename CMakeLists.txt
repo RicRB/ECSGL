@@ -19,7 +19,7 @@ if (POLICY CMP0141)
 endif()
 
 project ("ECSGL")
-
+set(CMAKE_CXX_STANDARD 20)
 # Add source to this project's executable.
 add_executable (ECSGL ${ECSGL_SOURCES})
 
