@@ -7,10 +7,14 @@
             "generator": "Ninja",
             "binaryDir": "${sourceDir}/out/build/${presetName}",
             "installDir": "${sourceDir}/out/install/${presetName}",
-            "cacheVariables": {
-                "CMAKE_C_COMPILER": "cl.exe",
-                "CMAKE_CXX_COMPILER": "cl.exe"
-            },
+          "cacheVariables": {
+            "CMAKE_C_COMPILER": "cl.exe",
+            "CMAKE_CXX_COMPILER": "cl.exe",
+            "CMAKE_TOOLCHAIN_FILE": {
+              "type": "FILEPATH",
+              "value": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+            }
+          },
             "condition": {
                 "type": "equals",
                 "lhs": "${hostSystemName}",
@@ -27,7 +31,7 @@
             },
           "cacheVariables": {
             "CMAKE_BUILD_TYPE": "Debug",
-            "CMAKE_TOOLCHAIN_FILE": "C:/dev/vcpkg/scripts/buildsystems/vcpkg.cmake"
+            "VCPKG_FEATURE_FLAGS": "manifests"
           }
         },
         {
@@ -36,7 +40,7 @@
             "inherits": "x86-debug",
           "cacheVariables": {
             "CMAKE_BUILD_TYPE": "Release",
-            "CMAKE_TOOLCHAIN_FILE": "C:/dev/vcpkg/scripts/buildsystems/vcpkg.cmake"
+            "VCPKG_FEATURE_FLAGS": "manifests"
           }
         }
     ]
