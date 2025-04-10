@@ -1,11 +1,12 @@
 #include "Game.h"
 #include <iostream>
-
+#include <filesystem>
 Game::Game()
 {
 }
 void Game::Start()
 {
+	std::cout << "Working directory: " << std::filesystem::current_path() << std::endl;
 	defaultShader = ResourceManager::LoadShader("res/shaders/Basic.vert", "res/shaders/Basic.frag");
 	ResourceManager::InitShaders();
 	defaultMaterial = Material(*defaultShader.rendererID);

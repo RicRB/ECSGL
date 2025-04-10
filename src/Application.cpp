@@ -20,7 +20,7 @@ int main(void)
 {
     // hi
     GLFWwindow* window;
-
+    
     /* Initialize the library */
     if (!glfwInit())
         return -1;
