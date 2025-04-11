@@ -7,7 +7,6 @@
 #include "Texture.h"
 #include "Material.h"
 #include "Mesh.h"
-#include <assimp/scene.h>
 //class Model
 //{
 //public:

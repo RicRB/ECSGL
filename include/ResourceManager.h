@@ -7,9 +7,6 @@
 #include <unordered_map>
 #include <fstream>
 #include <string>
-#include <assimp/scene.h>
-#include <assimp/Importer.hpp>
-#include <assimp/postprocess.h>
 class ResourceManager
 {
 private:
@@ -44,8 +41,6 @@ private:
 	static unsigned int CompileShader(unsigned int type, const std::string& source);
 	static unsigned int CreateShader(const std::string& vertexShader, const std::string& fragmentShader);
 	// ENTITY LOADING
-	static void ProcessNode(aiNode* node, const aiScene* scene, const Entity entity);
-	static Mesh ProcessMesh(aiMesh* mesh, const aiScene* scene);
-	static std::vector<TextureData> LoadMaterialTextures(aiMaterial* mat, aiTextureType type, std::string typeName);
+	static Mesh ProcessMesh(std::fstream& fstream);
 
 };

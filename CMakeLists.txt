@@ -44,9 +44,8 @@ target_include_directories(ECSGL PRIVATE
 # Link libraries from vcpkg
 find_package(glfw3 CONFIG REQUIRED)
 find_package(GLEW CONFIG REQUIRED)
-find_package(assimp CONFIG REQUIRED)
 
-target_link_libraries(ECSGL PRIVATE glfw GLEW::GLEW assimp::assimp)
+target_link_libraries(ECSGL PRIVATE glfw GLEW::GLEW)
 
 # Copy the 'res' directory to the build directory
 add_custom_command(TARGET ECSGL POST_BUILD

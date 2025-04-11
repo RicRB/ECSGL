@@ -4,7 +4,6 @@
 #include "Lights.h"
 #include "GLDef.h"
 #include "VertexBufferLayout.h"
-
 Shader ResourceManager::LoadShader(const std::string& vertexShaderPath, const std::string& fragmentShaderPath)
 {
     ResourceManager::GetInstance().mShaders[vertexShaderPath + fragmentShaderPath] = ShaderData{};
@@ -44,17 +43,9 @@ Entity ResourceManager::LoadEntityFromOBJ(const std::string& filepath)
     Registry& reg = Registry::GetInstance();
     Entity mainEntity = reg.CreateEntity();
 
-    Assimp::Importer import;
-    const aiScene * scene = import.ReadFile(filepath, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_JoinIdenticalVertices);
-    if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
-    {
-        std::cout << "ERROR::ASSIMP::" << import.GetErrorString() << std::endl;
-        return Entity();
-    }
-    //GetInstance().mModels[filepath.substr(0, filepath.find_last_of('/'))].path = filepath;
-    
-    ProcessNode(scene->mRootNode, scene,mainEntity);
-
+    std::fstream fstream(filepath);
+    Mesh meshComponent = ProcessMesh(fstream);
+	reg.AssignComponent(mainEntity, meshComponent);
     return mainEntity;
 }
 Scene ResourceManager::ParseScene(const std::string& shaderPath)
@@ -199,74 +190,78 @@ unsigned int ResourceManager::CreateShader(const std::string& vertexShader, cons
     glDeleteShader(fs);
     return program;
 }
-// TODO:
-// 1. make it so if it has children it creates more meshes per entity
-void ResourceManager::ProcessNode(aiNode* node, const aiScene* scene, Entity parentEntity)
-{
-    Registry& reg = Registry::GetInstance();
-    // process all the node's meshes (if any)
-    if(node->mNumMeshes > 1)
-		std::cout << "ERROR::ASSIMP::NODE HAS MORE THAN 1 MESH" << std::endl;
-    //Entity entity;
-    if (node->mNumMeshes != 0)
-    {
-        aiMesh* mesh = scene->mMeshes[node->mMeshes[0]];
-        //entity = reg.CreateEntity(parentEntity);
-        reg.AssignComponent<Mesh>(parentEntity, ProcessMesh(mesh, scene));
-    }
-    else
-    {
-        std::cout << "ERROR::ASSIMP::NODE HAS NO MESH" << std::endl;
-        ProcessNode(node->mChildren[0], scene, parentEntity);
-        //entity = parentEntity;
-    }
 
-    // then do the same for each of its children
-    /*for (unsigned int i = 0; i < node->mNumChildren; i++)
-    {
-        ProcessNode(node->mChildren[i], scene, entity);
-    }*/
-}
-
-Mesh ResourceManager::ProcessMesh(aiMesh* mesh, const aiScene* scene)
+Mesh ResourceManager::ProcessMesh(std::fstream& fstream)
 {
+
+    std::string currentLine;
+
+	std::vector<glm::vec3> positions;
+    std::vector<glm::vec3> normals;
+	std::vector<glm::vec2> textCoords;
+    while (std::getline(fstream, currentLine))
+    {
+		if (currentLine.empty() || currentLine[0] == '#') continue;
+
+        // if vertex pos
+		if (currentLine.compare(0, 2, "v ") == 0)
+		{
+			std::istringstream ss(currentLine.substr(2));
+            glm::vec3 vertexPos;
+			ss >> vertexPos.x >> vertexPos.y >> vertexPos.z;
+			positions.push_back(vertexPos);
+		}
+        // if vertex normal
+        else if (currentLine.compare(0, 3, "vn ") == 0)
+        {
+			std::istringstream ss(currentLine.substr(3));
+			glm::vec3 vertexNormal;
+			ss >> vertexNormal.x >> vertexNormal.y >> vertexNormal.z;
+			normals.push_back(vertexNormal);
+        }
+		// if vertex texture coords
+        else if (currentLine.compare(0, 3, "vt ") == 0)
+        {
+            std::istringstream ss(currentLine.substr(3));
+			glm::vec2 vertexTextCoords;
+			ss >> vertexTextCoords.x >> vertexTextCoords.y;
+			textCoords.push_back(vertexTextCoords);
+		}
+    }
+    // compile all arrays into vertices with indices
     std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
-    //std::vector<Material> material;
-    for (unsigned int i = 0; i < mesh->mNumVertices; i++)
+    fstream.clear();
+	fstream.seekg(0, std::ios::beg);
+    while (std::getline(fstream, currentLine))
     {
-        Vertex vertex;
-        glm::vec3 position(mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z);
-        vertex.position = position;
-        glm::vec3 normal(mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z);
-        vertex.normal = normal;
-        if (mesh->mTextureCoords[0])
-        {
-            auto length = mesh->mTextureCoords[1];
-            glm::vec2 textCoords(mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y);
-            vertex.textCoords = textCoords;
-        }
-        else
-            vertex.textCoords = glm::vec2(0.0f, 0.0f);
-        vertices.push_back(vertex);
-    }
-    for (unsigned int i = 0; i < mesh->mNumFaces; i++)
-    {
-        aiFace face = mesh->mFaces[i];
-        for (unsigned int j = 0; j < face.mNumIndices; j++)
-            indices.push_back(face.mIndices[j]);
-    }
-    // TODO: ADD TEXTURE LOADIGN AND MATERIAL LOADING
-    /*if (mesh->mMaterialIndex >= 0)
-    {
-        aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
-        std::vector<Texture> diffuseMaps = LoadMaterialTextures(material,
-            aiTextureType_DIFFUSE);
+        if (currentLine.compare(0, 2, "f ") == 0)
+		{
+			std::istringstream ss(currentLine.substr(2));
+            std::string vertexData;
+            for (int i = 0; i < 3; i++)
+            {
+                ss >> vertexData;
+                std::istringstream vs(vertexData);
+                std::string v, vt, vn;
 
-        std::vector<Texture> specularMaps = LoadMaterialTextures(material,
-            aiTextureType_SPECULAR);
-    }*/
+                std::getline(vs, v, '/');
+                std::getline(vs, vt, '/');
+                std::getline(vs, vn, '/');
 
+                unsigned int vertexIndex = std::stoi(v);
+                unsigned int texIndex = std::stoi(vt);
+                unsigned int normIndex = std::stoi(vn);
+
+                Vertex vertex;
+				vertex.position = positions[vertexIndex - 1];
+				vertex.normal = normals[normIndex - 1];
+				vertex.textCoords = textCoords[texIndex - 1];
+				vertices.push_back(vertex);
+				indices.push_back(vertices.size() - 1);
+            }
+		}
+    }
     // creating the mesh
 
     // generate vertex Buffer
@@ -278,6 +273,7 @@ Mesh ResourceManager::ProcessMesh(aiMesh* mesh, const aiScene* scene)
     unsigned int vertexArray;
     GLCall(glGenVertexArrays(1, &vertexArray));
     
+    // generate buffer layout
     VertexBufferLayout layout;
     layout.Push<Vertex>(1);
     // ADD BUFFER TO ARRAY
@@ -305,10 +301,6 @@ Mesh ResourceManager::ProcessMesh(aiMesh* mesh, const aiScene* scene)
 
 }
 
-std::vector<TextureData> ResourceManager::LoadMaterialTextures(aiMaterial* mat, aiTextureType type, std::string typeName)
-{
-    return std::vector<TextureData>();
-}
 
 
 /////////////////////////////////////////
