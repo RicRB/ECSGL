@@ -1,8 +1,4 @@
 #pragma once
-
-#include "VertexArray.h"
-#include "IndexBuffer.h"
-
 //class Mesh {
 //private:
 //	VertexArray *m_Vertices;
