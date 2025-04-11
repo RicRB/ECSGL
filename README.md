@@ -18,7 +18,6 @@ A simple OpenGL-based game engine framework using a custom entity-component syst
 
 - [GLFW](https://www.glfw.org/)
 - [GLEW](http://glew.sourceforge.net/)
-- [Assimp](https://github.com/assimp/assimp)
 
 ### Included in the repository:
 
@@ -31,5 +30,13 @@ A simple OpenGL-based game engine framework using a custom entity-component syst
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/Guarded0/EngineGL.git
-cd EngineGL
+git clone https://github.com/Guarded0/ECSGL.git
+cd ECSGL
+```
+2. Build the project (THROUGH VS STUDIO 2022 RECOMMENDED)
+   - use cmake + vcpkg that comes with visual studio or your own
+   - create your own build dir if needed
+```bash
+cmake --preset x64-debug
+cmake --build buildDir
+```
