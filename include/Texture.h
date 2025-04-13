@@ -38,7 +38,7 @@ struct TextureData
 };
 struct Texture
 {
-	const unsigned int rendererID;
+	 unsigned int rendererID;
 	Texture(unsigned int ID)
 		: rendererID(ID) 
 	{}

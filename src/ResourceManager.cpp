@@ -16,6 +16,11 @@ Shader ResourceManager::LoadShader(const std::string& vertexShaderPath, const st
 
 Texture ResourceManager::LoadTexture(const std::string& path)
 {
+    auto textureInfo = GetInstance().mTextures.find(path);
+    if (textureInfo != GetInstance().mTextures.end())
+    {
+        return Texture(textureInfo->second.mRendererID);
+    }
     TextureData texInfo;
     stbi_set_flip_vertically_on_load(1); // play with it if upside down
     texInfo.mLocalBuffer = stbi_load(path.c_str(), &texInfo.mWidth, &texInfo.mHeight, &texInfo.mBPP, 4);

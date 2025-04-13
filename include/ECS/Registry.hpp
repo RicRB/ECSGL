@@ -7,12 +7,7 @@
 #include <queue>
 #include <memory>
 #include <typeindex>
-#include <any>	
-//struct TypeInfoHash {
-//	std::size_t operator()(const std::type_info& info) const {
-//		return info.hash_code();
-//	}
-//};
+#include <iostream>
 class Registry
 {
 private:
@@ -204,9 +199,7 @@ public:
 			entity = entities[destroyed.front()];
 			destroyed.pop();
 		}
-
-
-
+		ParentEntity(entity, parent);
 		return entity;
 	}
 
@@ -215,6 +208,7 @@ public:
 		destroyed.push(entity.entityID);
 		entities[entity.entityID].entityID = ECS_INVALID_ID;
 		entities[entity.entityID].version++;
+		// TODO: Get Children and delete aswell
 		for (auto& pool : pools)
 		{
 			pool.second->RemoveComponent(entity);
@@ -227,10 +221,42 @@ public:
 	{
 		if (parent.entityID == child.entityID)
 		{
-			throw std::exception("EntityID is the same");
+			std::cout << "Entity ID is the same" << "\n";
+			return;
 		}
-		sceneGraph[parent.entityID].children.push_back(child);
-		sceneGraph[child.entityID].parent = parent;
+
+		HierarchyData* childData = &sceneGraph[child.entityID];
+		// remove from previous parent child list
+		if (childData->parent != ECS_INVALID_ID)
+		{
+			sceneGraph[childData->parent].removeChild(child.entityID);
+		}
+		// add to parent's child list
+		if (parent.entityID != ECS_INVALID_ID)
+		{
+			HierarchyData* parentData = &sceneGraph[parent.entityID];
+			if (parentData->parent == child.entityID)
+			{
+				std::cout << "Parent cannot be child" << "\n";
+				return;
+			}
+			sceneGraph[parent.entityID].children.push_back(child.entityID);
+		}
+		// parent
+		childData->parent = parent.entityID;
+	}
+	Entity GetParent(Entity child)
+	{
+		return entities[sceneGraph[child.entityID].parent];
+	}
+	std::vector<Entity> GetChildren(Entity parent)
+	{
+		std::vector<Entity> children;
+		for (auto entityID : sceneGraph[parent.entityID].children)
+		{
+			children.push_back(entities[entityID]);
+		}
+		return children;
 	}
 	void Clear()
 	{

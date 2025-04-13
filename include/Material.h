@@ -15,10 +15,10 @@ struct MaterialVariable
 	VariableType type;
 	union
 	{
-		Texture *texture;
+		Texture texture;
 		glm::vec3 vec3;
 	};
-	MaterialVariable(Texture *texture)
+	MaterialVariable(Texture texture)
 		:type(VariableType::TEXTURE), texture(texture)
 	{}
 	MaterialVariable(const glm::vec3& vec3)
@@ -55,11 +55,11 @@ struct Material {
 		:shaderID(shaderID), diffuse(diffuse), specular(specular), shininess(shininess) {}
 	Material(unsigned int shader, const glm::vec3& diffuse, const glm::vec3& specular, const float shininess)
 		:shaderID(shader), diffuse(diffuse), specular(specular), shininess(shininess) {}
-	Material(unsigned int shader, Texture *diffuse, const glm::vec3& specular, const float shininess)
+	Material(unsigned int shader, Texture diffuse, const glm::vec3& specular, const float shininess)
 		:shaderID(shader), diffuse(diffuse), specular(specular), shininess(shininess) {}
-	Material(unsigned int shader, const glm::vec3& diffuse, Texture *specular, const float shininess)
+	Material(unsigned int shader, const glm::vec3& diffuse, Texture specular, const float shininess)
 		:shaderID(shader), diffuse(diffuse), specular(specular), shininess(shininess) {}
-	Material(unsigned int shader, Texture *diffuse, Texture *specular, const float shininess)
+	Material(unsigned int shader, Texture diffuse, Texture specular, const float shininess)
 		:shaderID(shader), diffuse(diffuse), specular(specular), shininess(shininess) {}
 };
 #endif
