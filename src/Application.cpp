@@ -12,6 +12,7 @@
 #include "ECS/ECS.hpp"
 #include "Input.hpp"
 #include "Time.hpp"
+#include "SceneGraph.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_glfw.h"
@@ -82,22 +83,22 @@ int main(void)
         Game& game = Game::GetInstance();
         game.Start();
         Registry& registry = Registry::GetInstance();
-        //Entity entity = ResourceManager::LoadEntityFromOBJ("res/models/cube.obj");
-        //Transform transform = Transform(glm::vec3(0.0f,0.0f,-10.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f));
-        //
-        //Shader shader = ResourceManager::LoadShader("res/shaders/Basic.vert", "res/shaders/Basic.frag")
 
         Entity camera = GameEngine::CreateEmptyEntity();
         registry.AssignComponent<Camera>(camera, Camera());
+        registry.AssignComponent<Transform>(camera, Transform());
+
         Entity entity = GameEngine::CreateObject();
         Texture texture = ResourceManager::LoadTexture("res/Images/container2.png");
         registry.GetComponent<Material>(entity).diffuse = MaterialVariable(texture);
-        Entity entity2 = GameEngine::CreateObject();
+        Entity entity2 = GameEngine::CreateObject(Transform(glm::vec3(-1.0f, 0,0)));
+		Scenegraph::ParentEntity(entity2, entity);
         Entity light = GameEngine::CreateDirLight();
         Entity pLight = GameEngine::CreatePointLight();
 
         GameEngine::SetCamera(camera);
         auto& transformView = registry.GetComponent<Transform>(entity);
+        auto& transformView2 = registry.GetComponent<Transform>(entity2);
         auto& materialView = registry.GetComponent<Material>(entity);
 		auto& cameraTransformView = registry.GetComponent<Transform>(camera);
 		cameraTransformView.position = glm::vec3(0.0f, 0.0f, -10.0f);
@@ -135,6 +136,7 @@ int main(void)
                ImGui::DragFloat3("Rotation", &transformView.rotation.x);
                ImGui::DragFloat3("Color", &materialView.diffuse.vec3.x);
                ImGui::DragFloat3("camera Position", &cameraTransformView.position.x);
+               ImGui::DragFloat3("Position2", &transformView2.position.x);
                 ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
                 ImGui::End();
             }

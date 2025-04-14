@@ -14,7 +14,7 @@ struct Entity
 };
 struct HierarchyData
 {
-	uint32_t parent;
+	uint32_t parent = ECS_INVALID_ID;
 	std::vector<uint32_t> children;
 	void removeChild(uint32_t childID)
 	{

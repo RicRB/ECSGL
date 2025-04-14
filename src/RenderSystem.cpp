@@ -1,4 +1,5 @@
 #include "RenderSystem.h"
+#include "SceneGraph.hpp"
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include "Lights.h"
@@ -75,12 +76,12 @@ void RenderSystem::DrawElements()
 		//glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, -10.0f));
 		glm::mat4 view = cameraTransform.viewMatrix();
 		Transform* entityTransform = std::get<1>(entity);
-
-		glm::mat3 normal = glm::mat3(glm::transpose(glm::inverse(entityTransform->matrix())));
+		glm::mat4x4 localToWorld = Scenegraph::GetLocalToWorldMatrix(std::get<0>(entity));
+		glm::mat3 normal = glm::mat3(glm::transpose(glm::inverse(localToWorld * entityTransform->matrix())));
 
 		shader::SetUniformMat4f(shaderID, "u_Projection", proj);
 		shader::SetUniformMat4f(shaderID, "u_View", view);
-		shader::SetUniformMat4f(shaderID, "u_Model", entityTransform->matrix());
+		shader::SetUniformMat4f(shaderID, "u_Model", localToWorld * entityTransform->matrix());
 		shader::SetUniformMat3f(shaderID, "u_Normal", normal);
 		
 		// SETTING LIGHT UNIFORMS

@@ -39,11 +39,10 @@ Scene Game::GetScene()
 
 
 
-Entity GameEngine::CreateEmptyEntity(Transform transform)
+Entity GameEngine::CreateEmptyEntity()
 {
 	Entity entity = Registry::GetInstance().CreateEntity();
 	Registry& reg = Registry::GetInstance();
-	reg.AssignComponent(entity, transform);
 	return entity;
 }
 Entity GameEngine::CreateObject(Transform transform, Mesh mesh, Material material)

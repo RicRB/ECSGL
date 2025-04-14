@@ -1,16 +1,17 @@
-# EngineGL
+# ECSGL
 
-A simple OpenGL-based game engine framework using a custom entity-component system in C++.
+A simple OpenGL-based game engine using a custom entity-component system in C++. This project is purely made for my own enjoyment.
 
 ## Features
 
 - EnTT inspired entity-component system (ECS)
 - OpenGL rendering pipeline
-- Assimp model loading
-- stb_image texture loading
+- OBJ loading
+- basic shader that can use textures or vector as color
 - Dear ImGui UI integration
 - Resource management system
 - Configurable rendering system
+- Scene graph for parent-child transformation (AND ONLY FOR THAT)
 - And more to come..
 ## Dependencies
 

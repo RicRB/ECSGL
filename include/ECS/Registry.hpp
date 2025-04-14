@@ -8,13 +8,13 @@
 #include <memory>
 #include <typeindex>
 #include <iostream>
+
 class Registry
 {
 private:
 	static Registry instance;
 	std::unordered_map<std::type_index, std::shared_ptr<PoolBase>> pools;
 	dense_array<Entity, MAX_ENTITIES> entities;
-	std::array<HierarchyData, MAX_ENTITIES> sceneGraph;
 	std::queue<unsigned int> destroyed;
 
 public:
@@ -41,7 +41,7 @@ private:
 	~Registry() = default;
 
 	Registry(Registry const&);
-	void operator=(Registry const&);
+	void operator=(Registry const&) = delete;
 public:
 	template <typename ComponentType>
 	void AssignComponent(Entity entity, ComponentType component)
@@ -64,8 +64,6 @@ public:
 		}
 	}
 
-
-
 	template <typename ComponentType>
 	ComponentType& GetComponent(Entity entity)
 	{
@@ -79,26 +77,6 @@ public:
 			throw std::exception("Component does not exist");
 		}
 	}
-
-	//template <typename Type>
-	//View<Type> GetComponents()
-	//{
-	//	// Initialize pool Sizes queue
-	//	auto poolSizes = std::queue<std::pair<unsigned int, type_info>>();
-	//	// View 
-	//	View<Type> view;
-	//	// Check if entities have all the components and then store them in the view
-	//	using tupleType = std::tuple<std::vector<Entity>, std::vector<Type>>;
-	//	tupleType componentTuples;
-	//	for (auto& element : GetPool<Type>()->GetComponents())
-	//	{
-	//		// Add Entity and its components to tuple
-	//		std::get<0>(componentTuples).push_back(element.first);
-	//		std::get<1>(componentTuples).push_back(element.second);
-	//	}
-	//	view.SetData(componentTuples);
-	//	return view;
-	//}
 
 	template <typename Type, typename... OtherTypes>
 	View<Type, OtherTypes...> GetView()
@@ -184,7 +162,7 @@ public:
 		}
 		return activeEntities;
 	}
-	Entity CreateEntity(Entity parent = Entity())
+	Entity CreateEntity()
 	{
 		Entity entity;
 		if (destroyed.empty())
@@ -199,7 +177,6 @@ public:
 			entity = entities[destroyed.front()];
 			destroyed.pop();
 		}
-		ParentEntity(entity, parent);
 		return entity;
 	}
 
@@ -213,50 +190,6 @@ public:
 		{
 			pool.second->RemoveComponent(entity);
 		}
-	}
-	/**
-	* @brief sets the parent of the first entity to the second entity. leave second parameter empty for no parent
-	**/
-	void ParentEntity(Entity child, Entity parent = Entity())
-	{
-		if (parent.entityID == child.entityID)
-		{
-			std::cout << "Entity ID is the same" << "\n";
-			return;
-		}
-
-		HierarchyData* childData = &sceneGraph[child.entityID];
-		// remove from previous parent child list
-		if (childData->parent != ECS_INVALID_ID)
-		{
-			sceneGraph[childData->parent].removeChild(child.entityID);
-		}
-		// add to parent's child list
-		if (parent.entityID != ECS_INVALID_ID)
-		{
-			HierarchyData* parentData = &sceneGraph[parent.entityID];
-			if (parentData->parent == child.entityID)
-			{
-				std::cout << "Parent cannot be child" << "\n";
-				return;
-			}
-			sceneGraph[parent.entityID].children.push_back(child.entityID);
-		}
-		// parent
-		childData->parent = parent.entityID;
-	}
-	Entity GetParent(Entity child)
-	{
-		return entities[sceneGraph[child.entityID].parent];
-	}
-	std::vector<Entity> GetChildren(Entity parent)
-	{
-		std::vector<Entity> children;
-		for (auto entityID : sceneGraph[parent.entityID].children)
-		{
-			children.push_back(entities[entityID]);
-		}
-		return children;
 	}
 	void Clear()
 	{
