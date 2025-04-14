@@ -10,6 +10,8 @@
 #include "ResourceManager.h"
 #include "Game.h"
 #include "ECS/ECS.hpp"
+#include "Input.hpp"
+#include "Time.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_glfw.h"
@@ -70,13 +72,10 @@ int main(void)
         bool show_demo_window = false;
         bool show_another_window = false;
         ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
-        // add light component to object
-        //auto scene = std::make_unique<Scene>(Scene());
-        /*
-        game.SetRenderer(renderer);
-        game.SetScene(); // this does absolutely nothing but fuck you 
-        game.Start(); 
-        */
+
+        // setup Input system
+        Input::Init(window);
+		Time::Init();
         /* Loop until the user closes the window */
 
         RenderSystem renderer;
@@ -102,12 +101,27 @@ int main(void)
         auto& materialView = registry.GetComponent<Material>(entity);
 		auto& cameraTransformView = registry.GetComponent<Transform>(camera);
 		cameraTransformView.position = glm::vec3(0.0f, 0.0f, -10.0f);
+
+        double currentFrame;
+		double lastFrame = 0.0f;
+		double deltaTime = 0.0f;
         while (!glfwWindowShouldClose(window))
         {
+            
             /* Render here */
             GLCall(glClearColor(0.1f, 0.1f, 0.1f, 1.0f););
             renderer.Clear();
 
+            Time::Update();
+
+			if (Input::GetKeyPressed(Key::A))
+			{
+				cameraTransformView.position.x -= 10.0f * Time::deltaTime;
+			}
+            if (Input::GetKeyPressed(Key::D))
+            {
+                cameraTransformView.position.x += 10.0f * Time::deltaTime;
+            }
             renderer.DrawElements();
 
             ImGui_ImplOpenGL3_NewFrame();
