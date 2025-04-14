@@ -91,6 +91,8 @@ int main(void)
         Entity camera = GameEngine::CreateEmptyEntity();
         registry.AssignComponent<Camera>(camera, Camera());
         Entity entity = GameEngine::CreateObject();
+        Texture texture = ResourceManager::LoadTexture("res/Images/container2.png");
+        registry.GetComponent<Material>(entity).diffuse = MaterialVariable(texture);
         Entity entity2 = GameEngine::CreateObject();
         Entity light = GameEngine::CreateDirLight();
         Entity pLight = GameEngine::CreatePointLight();

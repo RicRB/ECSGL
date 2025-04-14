@@ -41,7 +41,7 @@ void RenderSystem::DrawElements()
 		{
 			shader::SetUniform1b(shaderID, "u_Material.diffuseIsMap", true);
 			GLCall(glActiveTexture(GL_TEXTURE0 + textureIndex));
-			GLCall(glBindTexture(GL_TEXTURE_2D, material->diffuse.texture->rendererID));
+			GLCall(glBindTexture(GL_TEXTURE_2D, material->diffuse.texture.rendererID));
 			textureIndex++;
 		}
 		else
@@ -54,7 +54,7 @@ void RenderSystem::DrawElements()
 		{
 			shader::SetUniform1b(shaderID, "u_Material.specularIsMap", true);
 			GLCall(glActiveTexture(GL_TEXTURE0 + textureIndex));
-			GLCall(glBindTexture(GL_TEXTURE_2D, material->specular.texture->rendererID));
+			GLCall(glBindTexture(GL_TEXTURE_2D, material->specular.texture.rendererID));
 			textureIndex++;
 		}
 		else

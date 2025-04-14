@@ -1,7 +1,7 @@
 #pragma once
 #include "ECSDef.h"
 #include <cstdint>
-#include <list>
+#include <vector>
 struct Entity
 {
 	uint32_t entityID = ECS_INVALID_ID;
@@ -14,6 +14,10 @@ struct Entity
 };
 struct HierarchyData
 {
-	Entity parent;
-	std::list<Entity> children;
+	uint32_t parent;
+	std::vector<uint32_t> children;
+	void removeChild(uint32_t childID)
+	{
+		children.erase(std::remove(children.begin(), children.end(), childID), children.end());
+	}
 };
