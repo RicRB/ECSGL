@@ -4,7 +4,7 @@
 #include "GLDef.h"
 #include "Material.h"
 #include "Mesh.h"
-#include "Game.h"
+#include "GameEngine.h"
 
 class RenderSystem : public System
 {

@@ -8,7 +8,7 @@
 #include "Transform.h"
 #include "RenderSystem.h"
 #include "ResourceManager.h"
-#include "Game.h"
+#include "GameEngine.h"
 #include "ECS/ECS.hpp"
 #include "Input.hpp"
 #include "Time.hpp"
@@ -80,7 +80,8 @@ int main(void)
         /* Loop until the user closes the window */
 
         RenderSystem renderer;
-        Game& game = Game::GetInstance();
+        Engine game;
+        GameEngine::SetCurrentEngine(&game);
         game.Start();
         Registry& registry = Registry::GetInstance();
 
