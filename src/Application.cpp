@@ -98,8 +98,8 @@ int main(void)
         GameEngine::SetCamera(camera);
         auto& transformView = registry.GetComponent<Transform>(entity);
         auto& materialView = registry.GetComponent<Material>(entity);
-        Transform cameraTransform = Transform();
-
+		auto& cameraTransformView = registry.GetComponent<Transform>(camera);
+		cameraTransformView.position = glm::vec3(0.0f, 0.0f, -10.0f);
         while (!glfwWindowShouldClose(window))
         {
             /* Render here */
@@ -111,29 +111,14 @@ int main(void)
             ImGui_ImplOpenGL3_NewFrame();
             ImGui_ImplGlfw_NewFrame();
             ImGui::NewFrame();
-            // we want to move this shit into game or gui render type of thing
+            // GUI
             {
                ImGui::Begin("Hello, world!");
                ImGui::DragFloat3("Position ", &transformView.position.x);
                ImGui::DragFloat3("Scale", &transformView.scale.x);
                ImGui::DragFloat3("Rotation", &transformView.rotation.x);
                ImGui::DragFloat3("Color", &materialView.diffuse.vec3.x);
-               if (ImGui::Button("Create/Destroy", ImVec2(50, 40))) {
-                   registry.DestroyEntity(entity);
-               }
-               // Create a window called "Hello, world!" and append into it.
-                //for (unsigned int i = 0; i < objects.size(); i++)
-                //{
-                //    std::string objectTitle = "Object #" + std::to_string(i) + " Settings";
-                //    ImGui::Text(objectTitle.c_str());
-                //    ImGui::DragFloat3("Position " + i, &objects[i]->GetPosition().x);
-                //    ImGui::DragFloat3("Rotation " + i, &objects[i]->GetRotation().x);
-                //    ImGui::DragFloat3("Scale " + i, &objects[i]->GetScale().x);
-                //    //ImGui::SliderFloat3("Position " + i, &objects[i]->GetPosition().x, -480.0f, 480.0f);
-                //    //ImGui::SliderFloat3("Rotation " + i, &objects[i]->GetRotation().x, -180.0f, 180.0f);
-                //    //ImGui::SliderFloat3("Scale " + i, &objects[i]->GetScale().x, 0.0f, 5.0f);
-                //    ImGui::NewLine();
-                //}
+               ImGui::DragFloat3("camera Position", &cameraTransformView.position.x);
                 ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
                 ImGui::End();
             }

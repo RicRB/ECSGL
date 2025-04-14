@@ -72,7 +72,8 @@ void RenderSystem::DrawElements()
 		
 		glm::mat4 proj = GameEngine::GetCamera().projection;
 		// manual camera for now
-		glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, -10.0f));
+		//glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, -10.0f));
+		glm::mat4 view = cameraTransform.viewMatrix();
 		Transform* entityTransform = std::get<1>(entity);
 
 		glm::mat3 normal = glm::mat3(glm::transpose(glm::inverse(entityTransform->matrix())));
