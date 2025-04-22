@@ -1,8 +1,6 @@
 #pragma once
 #include "Pool.hpp"
 #include "View.hpp"
-#include "ECSDef.h"
-#include "System.h"
 #include <unordered_map>
 #include <queue>
 #include <memory>

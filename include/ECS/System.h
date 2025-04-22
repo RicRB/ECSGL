@@ -1,4 +1,5 @@
 #pragma once
+class Registry;
 // functions as base class to store systems
 class System
 {

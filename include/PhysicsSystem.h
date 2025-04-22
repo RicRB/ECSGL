@@ -1,5 +1,5 @@
 #pragma once
-#include "ECS/System.h"
+#include "ECS/ECS.hpp"
 #include "PhysicsBody.h"
 #include "Transform.h"
 class PhysicsSystem : public System

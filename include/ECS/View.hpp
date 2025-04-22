@@ -1,6 +1,5 @@
 #pragma once
-#include "ECS/Entity.h"
-#include "ECSDef.h"
+#include "Entity.h"
 #include <vector>
 
 template <typename... ComponentTypes>

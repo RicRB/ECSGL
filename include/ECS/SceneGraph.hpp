@@ -1,7 +1,6 @@
 #pragma once
-#include "ECSDef.h"
+#include "ECS/ECS.hpp"
 #include "Transform.h"
-#include "Registry.hpp"
 #include <array>
 #include "glm/glm.hpp"
 #include <iostream>
