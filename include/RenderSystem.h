@@ -13,8 +13,8 @@ class RenderSystem : public System
 public:
 	RenderSystem();
 	~RenderSystem();
-	void Start() override {};
-	void Update() override {};
+	void Start(Registry& registry) override {};
+	void Update(Registry& registry, const double deltaTime) override {};
 	void Run();
 	void DrawElements();
 	void Clear() const;

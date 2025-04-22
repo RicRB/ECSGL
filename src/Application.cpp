@@ -119,8 +119,6 @@ int main(void)
 		double deltaTime = 0.0f;
         while (!glfwWindowShouldClose(window))
         {
-            
-            /* Render here */
             GLCall(glClearColor(0.1f, 0.1f, 0.1f, 1.0f););
             renderer.Clear();
 

@@ -5,6 +5,6 @@ class System
 public:
 	System() = default;
 	virtual ~System() = default;
-	virtual void Start() = 0;
-	virtual void Update() = 0;
+	virtual void Start(Registry& registry) = 0;
+	virtual void Update(Registry& registry, const double deltaTime) = 0;
 };
