@@ -66,12 +66,11 @@ std::string& ResourceManager::SaveScene()
 // TODO : CREATE SHADER WITH THE LIGHT TYPES AND AMOUNTS !!!!!!!!!!!!!
 void ResourceManager::InitShaders()
 {
-    
+    Registry& reg = Registry::GetInstance();
     for (auto& shader : GetInstance().mShaders)
 	{
         // TODO: GET LIGHTS 
         // Get Lights from current renderer in game
-        Registry& reg = Registry::GetInstance();
         auto& res = GetInstance();
         auto viewDir = reg.GetView<DirectionalLight>();
         auto viewPoint = reg.GetView<PointLight>();

@@ -12,12 +12,18 @@
 #include "ECS/ECS.hpp"
 #include "Input.hpp"
 #include "Time.hpp"
+#include "Event.hpp"
 #include "SceneGraph.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_glfw.h"
 #include "imgui//imgui_impl_opengl3.h"
 //#include "yaml-cpp/yaml.h"
+void PrintMessage(int i) {
+    std::cout << i << "\n";
+}
+
+
 #define GLM_ENABLE_EXPERIMENTAL
 int main(void)
 {
@@ -83,6 +89,10 @@ int main(void)
         Engine game;
         GameEngine::SetCurrentEngine(&game);
         game.Start();
+        Event<int> event;
+		event.AddListener(PrintMessage);
+		event.RemoveListener(PrintMessage);
+		event.Invoke(5);
         Registry& registry = Registry::GetInstance();
 
         Entity camera = GameEngine::CreateEmptyEntity();
