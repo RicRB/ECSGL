@@ -1,6 +1,8 @@
 #pragma once
+#include "SceneGraph.hpp"
 #include "Pool.hpp"
 #include "View.hpp"
+
 #include <unordered_map>
 #include <queue>
 #include <memory>
@@ -9,24 +11,15 @@
 
 class Registry
 {
+public:
+	SceneGraph scenegraph;
 private:
-	static Registry instance;
 	std::unordered_map<std::type_index, std::shared_ptr<PoolBase>> pools;
 	dense_array<Entity, MAX_ENTITIES> entities;
 	std::queue<unsigned int> destroyed;
 
 public:
-	// CONSTRUCTORS AND STATIC HANDLING
-	static Registry& GetInstance()
-	{
-		static Registry instance;
-		return instance;
-	}
 
-	//Registry(Registry const&) = delete;
-	//void operator=(Registry const&) = delete;
-private:
-	// Constructor
 	Registry()
 	{
 		for (auto& entity : entities.array)
@@ -38,8 +31,11 @@ private:
 	// Deconstructor 
 	~Registry() = default;
 
-	Registry(Registry const&);
+	Registry(Registry const&) = default;
 	void operator=(Registry const&) = delete;
+private:
+	// Constructor
+
 public:
 	template <typename ComponentType>
 	void AssignComponent(Entity entity, ComponentType component)

@@ -11,6 +11,8 @@ class Engine
 {
 public:
 	//std::unique_ptr<Scene> currentScene;
+	Registry registry;
+	ResourceManager resourceManager;
 	Shader defaultShader;
 	Material defaultMaterial;
 	Mesh defaultMesh;
@@ -20,7 +22,7 @@ public:
 public:
 	Engine();
 	void Start();
-	void Run();
+	void Update(const double deltaTime);
 	void LoadScene(const std::string& scenePath);
 	void SetCamera(Entity camera);
 	Scene GetScene();
@@ -33,8 +35,8 @@ private:
 
 namespace GameEngine
 {
-	static Engine* currentEngine;
-	void SetCurrentEngine(Engine* engine);
+	extern Engine* currentEngine;
+	void SetCurrentEngine(Engine& engine);
 	Entity CreateEmptyEntity();
 	Entity CreateObject(Transform transform = Transform(), Mesh mesh = {}, Material material = {});
 	Entity CreateDirLight(const glm::vec3 direction = glm::vec3(0.0f), const glm::vec3 ambient = glm::vec3(0.0f), const glm::vec3 diffuse = glm::vec3(1.0f), const glm::vec3 specular = glm::vec3(0.2f), const float intensity = 2.0f);
@@ -42,4 +44,5 @@ namespace GameEngine
 	void SetCamera(Entity entity);
 	Entity GetCameraEntity();
 	Camera GetCamera();
+	Registry& GetRegistry();
 };

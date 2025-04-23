@@ -6,8 +6,8 @@
 #include "VertexBufferLayout.h"
 Shader ResourceManager::LoadShader(const std::string& vertexShaderPath, const std::string& fragmentShaderPath)
 {
-    ResourceManager::GetInstance().mShaders[vertexShaderPath + fragmentShaderPath] = ShaderData{};
-    ShaderData& shader = ResourceManager::GetInstance().mShaders[vertexShaderPath + fragmentShaderPath];
+    mShaders[vertexShaderPath + fragmentShaderPath] = ShaderData{};
+    ShaderData& shader = mShaders[vertexShaderPath + fragmentShaderPath];
     Shader returnShader;
     returnShader.rendererID = &shader.rendererID;
 	ParseShader(shader ,vertexShaderPath, fragmentShaderPath);
@@ -16,8 +16,8 @@ Shader ResourceManager::LoadShader(const std::string& vertexShaderPath, const st
 
 Texture ResourceManager::LoadTexture(const std::string& path)
 {
-    auto textureInfo = GetInstance().mTextures.find(path);
-    if (textureInfo != GetInstance().mTextures.end())
+    auto textureInfo = mTextures.find(path);
+    if (textureInfo != mTextures.end())
     {
         return Texture(textureInfo->second.mRendererID);
     }
@@ -39,19 +39,15 @@ Texture ResourceManager::LoadTexture(const std::string& path)
     if (texInfo.mLocalBuffer)
         stbi_image_free(texInfo.mLocalBuffer);
 
-    GetInstance().mTextures[path] = texInfo;
+    mTextures[path] = texInfo;
     return Texture(texInfo.mRendererID);
 }
 
-Entity ResourceManager::LoadEntityFromOBJ(const std::string& filepath)
+Mesh ResourceManager::LoadOBJ(const std::string& filepath)
 {
-    Registry& reg = Registry::GetInstance();
-    Entity mainEntity = reg.CreateEntity();
-
     std::fstream fstream(filepath);
     Mesh meshComponent = ProcessMesh(fstream);
-	reg.AssignComponent(mainEntity, meshComponent);
-    return mainEntity;
+    return meshComponent;
 }
 Scene ResourceManager::ParseScene(const std::string& shaderPath)
 {
@@ -64,16 +60,14 @@ std::string& ResourceManager::SaveScene()
     return hey;
 }
 // TODO : CREATE SHADER WITH THE LIGHT TYPES AND AMOUNTS !!!!!!!!!!!!!
-void ResourceManager::InitShaders()
+void ResourceManager::InitShaders(Registry& registry)
 {
-    Registry& reg = Registry::GetInstance();
-    for (auto& shader : GetInstance().mShaders)
+    for (auto& shader : mShaders)
 	{
         // TODO: GET LIGHTS 
         // Get Lights from current renderer in game
-        auto& res = GetInstance();
-        auto viewDir = reg.GetView<DirectionalLight>();
-        auto viewPoint = reg.GetView<PointLight>();
+        auto viewDir = registry.GetView<DirectionalLight>();
+        auto viewPoint = registry.GetView<PointLight>();
         int dirLightCount = viewDir.size();
         int pointLightCount = viewPoint.size();
         // make sure the counters cant be below 1
@@ -92,9 +86,8 @@ void ResourceManager::InitShaders()
 
 int ResourceManager::GetUniformLocation(const unsigned int rendererID, const std::string& name)
 {
-    auto& res = GetInstance();
-    if (res.mUniformLocationCache[rendererID].find(name) != res.mUniformLocationCache[rendererID].end())
-        return res.mUniformLocationCache[rendererID][name];
+    if (mUniformLocationCache[rendererID].find(name) != mUniformLocationCache[rendererID].end())
+        return mUniformLocationCache[rendererID][name];
     else
         printf("Warning: uniform '%s' doesn't exist!\n", name.c_str());
 
@@ -150,8 +143,8 @@ void ResourceManager::CompileUniforms(const unsigned int programID)
     {
         glGetActiveUniform(programID, (GLuint)i, bufSize, &length, &size, &type, name);
         int location = glGetUniformLocation(programID, name);
-        GetInstance().mUniformLocationCache[programID].insert(std::pair<std::string, int>(name, location));
-        GetInstance().mUniforms[programID].insert(std::pair<std::string, GLenum>(name, type));
+        mUniformLocationCache[programID].insert(std::pair<std::string, int>(name, location));
+        mUniforms[programID].insert(std::pair<std::string, GLenum>(name, type));
         //printf("Uniform #%d Type: %u Name: %s\n", i, type, name);
     }
 }

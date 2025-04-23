@@ -13,7 +13,6 @@
 #include "Input.hpp"
 #include "Time.hpp"
 #include "Event.hpp"
-#include "SceneGraph.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_glfw.h"
@@ -87,23 +86,22 @@ int main(void)
 
         RenderSystem renderer;
         Engine game;
-        GameEngine::SetCurrentEngine(&game);
+        GameEngine::SetCurrentEngine(game);
         game.Start();
         Event<int> event;
 		event.AddListener(PrintMessage);
 		event.RemoveListener(PrintMessage);
 		event.Invoke(5);
-        Registry& registry = Registry::GetInstance();
-
+        Registry& registry = game.registry;
         Entity camera = GameEngine::CreateEmptyEntity();
         registry.AssignComponent<Camera>(camera, Camera());
         registry.AssignComponent<Transform>(camera, Transform());
 
         Entity entity = GameEngine::CreateObject();
-        Texture texture = ResourceManager::LoadTexture("res/Images/container2.png");
+        Texture texture = game.resourceManager.LoadTexture("res/Images/container2.png");
         registry.GetComponent<Material>(entity).diffuse = MaterialVariable(texture);
         Entity entity2 = GameEngine::CreateObject(Transform(glm::vec3(-1.0f, 0,0)));
-		Scenegraph::ParentEntity(entity2, entity);
+		game.registry.scenegraph.ParentEntity(entity2, entity);
         Entity light = GameEngine::CreateDirLight();
         Entity pLight = GameEngine::CreatePointLight();
 
@@ -132,7 +130,7 @@ int main(void)
             {
                 cameraTransformView.position.x += 10.0f * Time::deltaTime;
             }
-            renderer.DrawElements();
+            renderer.Update(registry, deltaTime);
 
             ImGui_ImplOpenGL3_NewFrame();
             ImGui_ImplGlfw_NewFrame();

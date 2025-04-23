@@ -1,5 +1,4 @@
 #include "RenderSystem.h"
-#include "SceneGraph.hpp"
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include "Lights.h"
@@ -13,12 +12,13 @@ RenderSystem::~RenderSystem()
 
 void RenderSystem::Run()
 {
-	DrawElements();
 }
-
-void RenderSystem::DrawElements()
+void RenderSystem::Update(Registry& registry, const double deltaTime)
 {
-	Registry& registry = Registry::GetInstance();
+	DrawElements(registry);
+}
+void RenderSystem::DrawElements(Registry& registry)
+{
 	currentView = registry.GetView<Transform, Mesh, Material>();
 	for (size_t i = 0; i < currentView.size(); i++)
 	{
@@ -76,7 +76,7 @@ void RenderSystem::DrawElements()
 		//glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, -10.0f));
 		glm::mat4 view = cameraTransform.viewMatrix();
 		Transform* entityTransform = std::get<1>(entity);
-		glm::mat4x4 localToWorld = Scenegraph::GetLocalToWorldMatrix(std::get<0>(entity));
+		glm::mat4x4 localToWorld = registry.scenegraph.GetLocalToWorldMatrix(registry, std::get<0>(entity));
 		glm::mat3 normal = glm::mat3(glm::transpose(glm::inverse(localToWorld * entityTransform->matrix())));
 
 		shader::SetUniformMat4f(shaderID, "u_Projection", proj);

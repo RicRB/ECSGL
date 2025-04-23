@@ -14,9 +14,9 @@ public:
 	RenderSystem();
 	~RenderSystem();
 	void Start(Registry& registry) override {};
-	void Update(Registry& registry, const double deltaTime) override {};
+	void Update(Registry& registry, const double deltaTime) override;
 	void Run();
-	void DrawElements();
+	void DrawElements(Registry& registry);
 	void Clear() const;
 	inline void DrawEntity(const Entity entity);
 };

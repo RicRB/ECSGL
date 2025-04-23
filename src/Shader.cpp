@@ -1,8 +1,8 @@
 #include "Shader.h"
-#include "ResourceManager.h"
+#include "GameEngine.h"
 int shader::GetShaderUniformLocation(const unsigned int shaderID, const std::string& name)
 {
-	return ResourceManager::GetUniformLocation(shaderID, name);
+	return GameEngine::currentEngine->resourceManager.GetUniformLocation(shaderID, name);
 }
 void shader::SetUniform1b(const unsigned int shaderID, const std::string& name, bool value)
 {

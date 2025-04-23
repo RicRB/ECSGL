@@ -9,38 +9,31 @@
 #include <string>
 class ResourceManager
 {
+public:
+	ResourceManager() = default;
+	~ResourceManager() = default;
 private:
 	std::unordered_map<std::string, ShaderData> mShaders;
 	std::unordered_map<unsigned int, std::unordered_map<std::string, int>> mUniformLocationCache;
 	std::unordered_map<unsigned int, std::unordered_map<std::string, GLenum>> mUniforms;
 	std::unordered_map<std::string, TextureData> mTextures;
-	ResourceManager() = default;
-	~ResourceManager() = default;
-public: 
-	static Shader LoadShader(const std::string& vertexShaderPath, const std::string& fragmentShaderPath);
-	static Texture LoadTexture(const std::string& path);
-	static Entity LoadEntityFromOBJ(const std::string& filepath);
-	static Scene ParseScene(const std::string& shaderPath);
-	static std::string& SaveScene();
-	static void InitShaders();
-	static int GetUniformLocation(const unsigned int rendererID, const std::string& name);
-private:
-	ResourceManager(const ResourceManager&) = delete;
-	ResourceManager& operator=(const ResourceManager&) = delete;
 
-	// static instance
-	static ResourceManager& GetInstance()
-	{
-		static ResourceManager instance;
-		return instance;
-	}
+public: 
+	Shader LoadShader(const std::string& vertexShaderPath, const std::string& fragmentShaderPath);
+	Texture LoadTexture(const std::string& path);
+	Mesh LoadOBJ(const std::string& filepath);
+	Scene ParseScene(const std::string& shaderPath);
+	std::string& SaveScene();
+	void InitShaders(Registry& registry);
+	int GetUniformLocation(const unsigned int rendererID, const std::string& name);
+private:
 
 	// SHADER STUFFS
-	static void ParseShader(ShaderData& shader, const std::string& vertex, const std::string& fragment);
-	static void CompileUniforms(const unsigned int rendererID);
-	static unsigned int CompileShader(unsigned int type, const std::string& source);
-	static unsigned int CreateShader(const std::string& vertexShader, const std::string& fragmentShader);
+	void ParseShader(ShaderData& shader, const std::string& vertex, const std::string& fragment);
+	void CompileUniforms(const unsigned int rendererID);
+	unsigned int CompileShader(unsigned int type, const std::string& source);
+	unsigned int CreateShader(const std::string& vertexShader, const std::string& fragmentShader);
 	// ENTITY LOADING
-	static Mesh ProcessMesh(std::fstream& fstream);
+	Mesh ProcessMesh(std::fstream& fstream);
 
 };

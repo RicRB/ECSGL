@@ -1,25 +1,24 @@
 #include "GameEngine.h"
 #include <iostream>
 #include <filesystem>
+
+
 Engine::Engine()
 {
 }
 void Engine::Start()
 {
 	std::cout << "Working directory: " << std::filesystem::current_path() << std::endl;
-	defaultShader = ResourceManager::LoadShader("res/shaders/Basic.vert", "res/shaders/Basic.frag");
-	ResourceManager::InitShaders();
+	defaultShader = resourceManager.LoadShader("res/shaders/Basic.vert", "res/shaders/Basic.frag");
+	resourceManager.InitShaders(registry);
 	defaultMaterial = Material(*defaultShader.rendererID);
-	Entity defaultEntity = ResourceManager::LoadEntityFromOBJ("res/models/cube.obj");
-	Registry& reg = Registry::GetInstance();
-	defaultMesh = reg.GetComponent<Mesh>(defaultEntity);
-	reg.DestroyEntity(defaultEntity);
+	defaultMesh = resourceManager.LoadOBJ("res/models/cube.obj");
 	printf("Game started");
 }
 
-void Engine::Run()
+void Engine::Update(const double deltaTime)
 {
-
+	
 }
 
 void Engine::LoadScene(const std::string& scenePath)
@@ -37,16 +36,16 @@ Scene Engine::GetScene()
 
 
 namespace GameEngine {
-
-	void GameEngine::SetCurrentEngine(Engine* engine)
+	Engine* currentEngine = nullptr;
+	void GameEngine::SetCurrentEngine(Engine& engine)
 	{
-		currentEngine = engine;
+		currentEngine = &engine;
 	}
 
 	Entity GameEngine::CreateEmptyEntity()
 	{
-		Entity entity = Registry::GetInstance().CreateEntity();
-		Registry& reg = Registry::GetInstance();
+		Entity entity = currentEngine->registry.CreateEntity();
+		Registry& reg = currentEngine->registry;
 		return entity;
 	}
 	Entity GameEngine::CreateObject(Transform transform, Mesh mesh, Material material)
@@ -59,7 +58,7 @@ namespace GameEngine {
 		{
 			material = currentEngine->defaultMaterial;
 		}
-		Registry& registry = Registry::GetInstance();
+		Registry& registry = currentEngine->registry;
 		Entity entity = registry.CreateEntity();
 		transform.position = glm::vec3(1.0f);
 		registry.AssignComponent(entity, transform);
@@ -70,7 +69,7 @@ namespace GameEngine {
 
 	Entity GameEngine::CreateDirLight(const glm::vec3 direction, const glm::vec3 ambient, const glm::vec3 diffuse, const glm::vec3 specular, const float intensity)
 	{
-		Registry& registry = Registry::GetInstance();
+		Registry& registry = currentEngine->registry;
 		Entity entity = registry.CreateEntity();
 		registry.AssignComponent(entity, Transform());
 		registry.AssignComponent(entity, DirectionalLight(direction, ambient, diffuse, specular, intensity));
@@ -79,7 +78,7 @@ namespace GameEngine {
 
 	Entity GameEngine::CreatePointLight(const glm::vec3 ambient, const glm::vec3 diffuse, const glm::vec3 specular, const float intensity, const float constant, const float linear, const float quadratic)
 	{
-		Registry& registry = Registry::GetInstance();
+		Registry& registry = currentEngine->registry;
 		Entity entity = registry.CreateEntity();
 		registry.AssignComponent(entity, Transform());
 		registry.AssignComponent(entity, PointLight(ambient, diffuse, specular, intensity, constant, linear, quadratic));
@@ -88,7 +87,7 @@ namespace GameEngine {
 	void GameEngine::SetCamera(Entity entity)
 	{
 		currentEngine->currentCameraEntity = entity;
-		Registry& reg = Registry::GetInstance();
+		Registry& reg = currentEngine->registry;
 		currentEngine->currentCamera = reg.GetComponent<Camera>(entity);
 	}
 	Entity GameEngine::GetCameraEntity()
@@ -98,6 +97,10 @@ namespace GameEngine {
 	Camera GameEngine::GetCamera()
 	{
 		return currentEngine->currentCamera;
+	}
+	Registry& GetRegistry()
+	{
+		return currentEngine->registry;
 	}
 }
 
