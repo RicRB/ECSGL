@@ -16,9 +16,9 @@ void Engine::Start()
 	printf("Game started");
 }
 
-void Engine::Update(const double deltaTime)
+void Engine::Update()
 {
-	
+	registry.UpdateSystems();
 }
 
 void Engine::LoadScene(const std::string& scenePath)

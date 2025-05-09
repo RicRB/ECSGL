@@ -14,7 +14,7 @@ public:
 	RenderSystem();
 	~RenderSystem();
 	void Start(Registry& registry) override {};
-	void Update(Registry& registry, const double deltaTime) override;
+	void Update(Registry& registry) override;
 	void Run();
 	void DrawElements(Registry& registry);
 	void Clear() const;

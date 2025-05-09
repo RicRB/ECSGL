@@ -6,7 +6,7 @@ class PhysicsSystem : public System
 {
 private:
 	
-	void Update(Registry& registry, const double deltaTime) override;
+	void Update(Registry& registry) override;
 
 	void MoveBody(Transform transform, PhysicsBody body);
 };

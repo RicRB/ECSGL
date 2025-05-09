@@ -22,7 +22,7 @@ public:
 public:
 	Engine();
 	void Start();
-	void Update(const double deltaTime);
+	void Update();
 	void LoadScene(const std::string& scenePath);
 	void SetCamera(Entity camera);
 	Scene GetScene();

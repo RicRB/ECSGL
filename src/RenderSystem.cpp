@@ -13,7 +13,7 @@ RenderSystem::~RenderSystem()
 void RenderSystem::Run()
 {
 }
-void RenderSystem::Update(Registry& registry, const double deltaTime)
+void RenderSystem::Update(Registry& registry)
 {
 	DrawElements(registry);
 }
