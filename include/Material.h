@@ -1,9 +1,7 @@
 #pragma once
-#ifndef MATERIAL_H
-#define MATERIAL_H
 #include "glm/glm.hpp"
-#include "Shader.h"
-#include "Texture.h"
+#include "shader.h"
+#include "texture.h"
 enum class VariableType
 {
 	TEXTURE,
@@ -62,4 +60,3 @@ struct Material {
 	Material(unsigned int shader, Texture diffuse, Texture specular, const float shininess)
 		:shaderID(shader), diffuse(diffuse), specular(specular), shininess(shininess) {}
 };
-#endif

@@ -1,18 +1,18 @@
 #pragma once
-#include "ECS/ECS.hpp"
-#include "Transform.h"
-#include "GLDef.h"
-#include "Material.h"
-#include "Mesh.h"
-#include "GameEngine.h"
+#include "ecs/ecs.hpp"
+#include "transform.h"
+#include "gl_def.h"
+#include "material.h"
+#include "mesh.h"
+#include "engine.h"
 
-class RenderSystem : public System
+class Renderer : public System
 {
 	View<Transform, Mesh, Material> currentView;
 	
 public:
-	RenderSystem();
-	~RenderSystem();
+	Renderer();
+	~Renderer();
 	void Start(Registry& registry) override {};
 	void Update(Registry& registry, const double deltaTime) override;
 	void Run();

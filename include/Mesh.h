@@ -1,18 +1,4 @@
 #pragma once
-//class Mesh {
-//private:
-//	VertexArray *m_Vertices;
-//	IndexBuffer *m_Index;
-//
-//public:
-//	Mesh(VertexArray& va, IndexBuffer& ib);
-//	~Mesh();
-//	//Mesh(const Mesh&) = delete;
-//	unsigned int GetVertexCount() const { return m_Index->GetCount(); }
-//	void Bind() const;
-//	void UnBind() const;
-//private:
-//};
 
 struct Mesh
 {

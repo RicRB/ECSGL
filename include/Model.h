@@ -1,12 +1,9 @@
 #pragma once
-#ifndef MODEL_H
-#define MODEL_H
-
 
 #include <vector>
-#include "Texture.h"
-#include "Material.h"
-#include "Mesh.h"
+#include "texture.h"
+#include "material.h"
+#include "mesh.h"
 //class Model
 //{
 //public:
@@ -35,4 +32,3 @@ struct ModelData
 {
 	std::string path;
 };
-#endif // !MODEL_H

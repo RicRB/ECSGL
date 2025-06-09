@@ -1,4 +1,4 @@
-#include "GLDef.h"
+#include "gl_def.h"
 // Clears errors
 void GLClearError()
 {

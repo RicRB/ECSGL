@@ -1,6 +1,6 @@
 #pragma once
-#include "Entity.h"
-#include "Transform.h"
+#include "entity.h"
+#include "transform.h"
 #include <array>
 #include "glm/glm.hpp"
 #include <iostream>

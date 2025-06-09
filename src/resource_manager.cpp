@@ -1,9 +1,9 @@
-#include "ResourceManager.h"
+#include "resource_manager.h"
 #include <sstream>
 #include "stb_image/stb_image.h"
-#include "Lights.h"
-#include "GLDef.h"
-#include "VertexBufferLayout.h"
+#include "lights.h"
+#include "gl_def.h"
+#include "vertex_buffer_layout.h"
 Shader ResourceManager::LoadShader(const std::string& vertexShaderPath, const std::string& fragmentShaderPath)
 {
     mShaders[vertexShaderPath + fragmentShaderPath] = ShaderData{};

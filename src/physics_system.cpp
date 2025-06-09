@@ -1,5 +1,5 @@
-#include "PhysicsSystem.h"
-#include "ECS/ECS.hpp"
+#include "physics_system.h"
+#include "ecs/ecs.hpp"
 
 void PhysicsSystem::Update(Registry& registry, const double deltaTime)
 {

@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include "glm/glm.hpp"
 #include <GL/glew.h>
-#include "GLDef.h"
+#include "gl_def.h"
 
 
 struct ShaderUniformMetaData

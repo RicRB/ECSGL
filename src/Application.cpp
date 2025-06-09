@@ -3,20 +3,21 @@
 #include <string>
 #include <sstream>
 #include <vector>
-#include "GLDef.h"
-#include "Shader.h"
-#include "Transform.h"
-#include "RenderSystem.h"
-#include "ResourceManager.h"
-#include "GameEngine.h"
-#include "ECS/ECS.hpp"
-#include "Input.hpp"
-#include "Time.hpp"
-#include "Event.hpp"
+#include "gl_def.h"
+#include "shader.h"
+#include "transform.h"
+#include "renderer.h"
+#include "resource_manager.h"
+#include "engine.h"
+#include "ecs/ecs.hpp"
+#include "input.hpp"
+#include "time.hpp"
+#include "event.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_glfw.h"
 #include "imgui//imgui_impl_opengl3.h"
+
 //#include "yaml-cpp/yaml.h"
 void PrintMessage(int i) {
     std::cout << i << "\n";
@@ -45,7 +46,7 @@ int main(void)
     /* Make the window's context current */
     glfwMakeContextCurrent(window);
 
-    glfwSwapInterval(1);
+    glfwSwapInterval(0);
     glewInit();
 
     if (glewInit() != GLEW_OK)
@@ -84,28 +85,28 @@ int main(void)
 		Time::Init();
         /* Loop until the user closes the window */
 
-        RenderSystem renderer;
+        Renderer renderer;
         Engine game;
-        GameEngine::SetCurrentEngine(game);
+        engine::SetCurrentEngine(game);
         game.Start();
         Event<int> event;
 		event.AddListener(PrintMessage);
 		event.RemoveListener(PrintMessage);
 		event.Invoke(5);
         Registry& registry = game.registry;
-        Entity camera = GameEngine::CreateEmptyEntity();
+        Entity camera = engine::CreateEmptyEntity();
         registry.AssignComponent<Camera>(camera, Camera());
         registry.AssignComponent<Transform>(camera, Transform());
 
-        Entity entity = GameEngine::CreateObject();
+        Entity entity = engine::CreateObject();
         Texture texture = game.resourceManager.LoadTexture("res/Images/container2.png");
         registry.GetComponent<Material>(entity).diffuse = MaterialVariable(texture);
-        Entity entity2 = GameEngine::CreateObject(Transform(glm::vec3(-1.0f, 0,0)));
+        Entity entity2 = engine::CreateObject(Transform(glm::vec3(-1.0f, 0,0)));
 		game.registry.scenegraph.ParentEntity(entity2, entity);
-        Entity light = GameEngine::CreateDirLight();
-        Entity pLight = GameEngine::CreatePointLight();
+        Entity light = engine::CreateDirLight();
+        Entity pLight = engine::CreatePointLight();
 
-        GameEngine::SetCamera(camera);
+        engine::SetCamera(camera);
         auto& transformView = registry.GetComponent<Transform>(entity);
         auto& transformView2 = registry.GetComponent<Transform>(entity2);
         auto& materialView = registry.GetComponent<Material>(entity);

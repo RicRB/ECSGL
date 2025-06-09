@@ -1,7 +1,7 @@
 #pragma once
-#include "SceneGraph.hpp"
-#include "Pool.hpp"
-#include "View.hpp"
+#include "scenegraph.hpp"
+#include "pool.hpp"
+#include "view.hpp"
 
 #include <unordered_map>
 #include <queue>

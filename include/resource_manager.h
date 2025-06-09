@@ -1,9 +1,9 @@
 #pragma once
-#include "Shader.h"
-#include "Texture.h"
-#include "Scene.h"
-#include "Mesh.h"
-#include "ECS/ECS.hpp"
+#include "shader.h"
+#include "texture.h"
+#include "scene.h"
+#include "mesh.h"
+#include "ecs/ecs.hpp"
 #include <unordered_map>
 #include <fstream>
 #include <string>

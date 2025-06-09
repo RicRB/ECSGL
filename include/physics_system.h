@@ -1,7 +1,7 @@
 #pragma once
-#include "ECS/ECS.hpp"
-#include "PhysicsBody.h"
-#include "Transform.h"
+#include "ecs/ecs.hpp"
+#include "physics_body.h"
+#include "transform.h"
 class PhysicsSystem : public System
 {
 private:
