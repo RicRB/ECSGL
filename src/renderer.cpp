@@ -14,7 +14,7 @@ Renderer::~Renderer()
 void Renderer::Run()
 {
 }
-void Renderer::Update(Registry& registry, const double deltaTime)
+void Renderer::Update(Registry& registry)
 {
 	DrawElements(registry);
 }

@@ -131,7 +131,7 @@ int main(void)
             {
                 cameraTransformView.position.x += 10.0f * Time::deltaTime;
             }
-            renderer.Update(registry, deltaTime);
+            renderer.Update(registry);
 
             ImGui_ImplOpenGL3_NewFrame();
             ImGui_ImplGlfw_NewFrame();

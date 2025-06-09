@@ -8,7 +8,6 @@
 #include <memory>
 #include <typeindex>
 #include <iostream>
-
 class Registry
 {
 public:
@@ -17,7 +16,6 @@ private:
 	std::unordered_map<std::type_index, std::shared_ptr<PoolBase>> pools;
 	dense_array<Entity, MAX_ENTITIES> entities;
 	std::queue<unsigned int> destroyed;
-
 public:
 
 	Registry()
