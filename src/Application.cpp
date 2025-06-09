@@ -17,7 +17,7 @@
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_glfw.h"
 #include "imgui//imgui_impl_opengl3.h"
-
+#include "renderer/vulkan.h"
 //#include "yaml-cpp/yaml.h"
 void PrintMessage(int i) {
     std::cout << i << "\n";
@@ -72,8 +72,6 @@ int main(void)
 
         // Setup Dear ImGui style
         ImGui::StyleColorsDark();
-
-
         ImGui_ImplGlfw_InitForOpenGL(window, true);
         ImGui_ImplOpenGL3_Init("#version 130");
         bool show_demo_window = false;
@@ -84,6 +82,11 @@ int main(void)
         Input::Init(window);
 		Time::Init();
         /* Loop until the user closes the window */
+
+        VulkanRenderer vulkan;
+        vulkan.init();
+
+
 
         Renderer renderer;
         Engine game;
