@@ -26,6 +26,10 @@ A simple OpenGL-based game engine using a custom entity-component system in C++.
 - [Dear ImGui](https://github.com/ocornut/imgui) (in `vendor/imgui`)
 - [stb_image](https://github.com/nothings/stb) (in `vendor/stb_image`)
 
+## Needed
+
+- Vulkan installed in your machine with environemnt values set (should be set automatically if already installed) with gpu supporting vulkan API
+
 ## Build Instructions
 
 1. Clone the repository:
