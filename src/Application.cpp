@@ -56,7 +56,7 @@ int main(void)
     std::cout << glGetString(GL_VERSION) << std::endl;
 
     VulkanRenderer vulkan;
-    vulkan.init();
+    vulkan.init(window);
     {
         glEnable(GL_BLEND);
         GLCall(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));

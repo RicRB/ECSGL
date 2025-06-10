@@ -1,16 +1,9 @@
 #include "renderer/vulkan.h"
 #include <map>
 
-void VulkanRenderer::init()
+void VulkanRenderer::init(GLFWwindow* window)
 {
-
-	//const uint32_t WIDTH = 800;
-	//const uint32_t HEIGHT = 600;
-
-	const std::vector<const char*> validationLayers = {
-		"VK_LAYER_KHRONOS_validation"
-	};
-
+	this->window = window;
 	// create instance
 	VkApplicationInfo appInfo{};
 	appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -72,10 +65,10 @@ void VulkanRenderer::init()
 		}
 	}
 #endif
-
+	createSurface();
 	setupDebugMessenger();
 	pickPhysicsalDevice();
-
+	createLogicalDevice();
 }
 
 std::vector<const char*> VulkanRenderer::getRequiredExtensions()
@@ -96,6 +89,8 @@ std::vector<const char*> VulkanRenderer::getRequiredExtensions()
 
 void VulkanRenderer::cleanup()
 {
+	vkDestroyDevice(device, nullptr);
+
 	if (enableValidationLayers) {
 		// destroy messenger function
 		auto destroyDebugUtilsMessengerEXTFunction = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
@@ -103,7 +98,7 @@ void VulkanRenderer::cleanup()
 			destroyDebugUtilsMessengerEXTFunction(instance, debugMessenger, nullptr);
 		}
 	}
-
+	vkDestroySurfaceKHR(instance, surface, nullptr);
 	vkDestroyInstance(instance, nullptr);
 }
 
@@ -147,10 +142,7 @@ void VulkanRenderer::setupDebugMessenger()
 
 void VulkanRenderer::pickPhysicsalDevice()
 {
-	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
-
 	uint32_t deviceCount = 0;
-	std::vector<VkPhysicalDevice> devices(deviceCount);
 	vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
 
 	if (deviceCount == 0) {
@@ -158,14 +150,21 @@ void VulkanRenderer::pickPhysicsalDevice()
 	}
 	// check if device is suitable
 	// Use an ordered map to automatically sort candidates by increasing score
+
+	std::vector<VkPhysicalDevice> devices(deviceCount);
+	vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
+
 	std::multimap<int, VkPhysicalDevice> candidates;
 	for (const auto& device : devices) {
-		int score;
+		int score = 0;
 		if (isPhysicalDeviceSuitable(device, &score)) {
+			std::cout << "Device score: " << score << "\n";
 			candidates.insert(std::make_pair(score, device));
 		}
 	}
-	
+	if (candidates.empty()) {
+		throw std::runtime_error("failed to find a suitable GPU!");
+	}
 	if (candidates.rbegin()->first > 0) {
 		// Get the device with the highest score
 		physicalDevice = candidates.rbegin()->second;
@@ -187,7 +186,7 @@ bool VulkanRenderer::isPhysicalDeviceSuitable(VkPhysicalDevice device, int* scor
 	{
 		if (score) {
 			*score += 1000; // arbitrary score for discrete GPU
-			score += deviceProperties.limits.maxImageDimension2D; // add max image dimension to score
+			*score += deviceProperties.limits.maxImageDimension2D; // add max image dimension to score
 		}
 	}
 	return isSuitable; // check if the device supports geometry shaders
@@ -215,4 +214,49 @@ QueueFamilyIndices VulkanRenderer::findQueueFamilies(VkPhysicalDevice device)
 	}
 
 	return indices;
+}
+
+void VulkanRenderer::createLogicalDevice()
+{
+	QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
+
+	VkDeviceQueueCreateInfo queueCreateInfo{};
+	queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+	queueCreateInfo.queueFamilyIndex = indices.graphicsFamily.value();
+	queueCreateInfo.queueCount = 1;
+
+	float queuePriority = 1.0f;
+	queueCreateInfo.pQueuePriorities = &queuePriority;
+
+	VkPhysicalDeviceFeatures deviceFeatures{};
+	VkDeviceCreateInfo createInfo{};
+	createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+
+	createInfo.pQueueCreateInfos = &queueCreateInfo;
+	createInfo.queueCreateInfoCount = 1;
+
+	createInfo.pEnabledFeatures = &deviceFeatures;
+
+	createInfo.enabledExtensionCount = 0;
+
+	if (enableValidationLayers) {
+		createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
+		createInfo.ppEnabledLayerNames = validationLayers.data();
+	}
+	else {
+		createInfo.enabledLayerCount = 0;
+	}
+
+	if (vkCreateDevice(physicalDevice, &createInfo, nullptr, &device) != VK_SUCCESS) {
+		throw std::runtime_error("failed to create logical device!");
+	}
+
+	vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &graphicsQueue);
+}
+
+void VulkanRenderer::createSurface()
+{
+	if (glfwCreateWindowSurface(instance, window, nullptr, &surface) != VK_SUCCESS) {
+		throw std::runtime_error("failed to create window surface!");
+	}
 }
