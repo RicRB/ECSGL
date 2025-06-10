@@ -55,6 +55,8 @@ int main(void)
     }
     std::cout << glGetString(GL_VERSION) << std::endl;
 
+    VulkanRenderer vulkan;
+    vulkan.init();
     {
         glEnable(GL_BLEND);
         GLCall(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
@@ -82,9 +84,6 @@ int main(void)
         Input::Init(window);
 		Time::Init();
         /* Loop until the user closes the window */
-
-        VulkanRenderer vulkan;
-        vulkan.init();
 
 
 
@@ -161,6 +160,8 @@ int main(void)
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
 
+	vulkan.cleanup();
+    glfwDestroyWindow(window);
     glfwTerminate();
 
     return 0;
