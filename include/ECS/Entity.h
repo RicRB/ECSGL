@@ -1,5 +1,5 @@
 #pragma once
-#include "ECSDef.h"
+#include "ecs_def.h"
 #include <cstdint>
 #include <vector>
 struct Entity

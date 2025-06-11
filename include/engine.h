@@ -1,12 +1,18 @@
 #pragma once
-#include "ECS/ECS.hpp"
-#include "Shader.h"
-#include "Transform.h"
-#include "Mesh.h"
-#include "Material.h"
-#include "ResourceManager.h"
-#include "Lights.h"
-#include "Camera.h"
+#include "ecs/ecs.hpp"
+#include "shader.h"
+#include "transform.h"
+#include "mesh.h"
+#include "material.h"
+#include "resource_manager.h"
+#include "lights.h"
+#include "camera.h"
+
+enum class RendererType {
+	VULKAN = 0,
+	OPENGL = 1
+};
+
 class Engine
 {
 public:
@@ -33,9 +39,10 @@ private:
 };
 // do an if guard
 
-namespace GameEngine
+namespace engine
 {
 	extern Engine* currentEngine;
+	extern RendererType currentRendererType;
 	void SetCurrentEngine(Engine& engine);
 	Entity CreateEmptyEntity();
 	Entity CreateObject(Transform transform = Transform(), Mesh mesh = {}, Material material = {});

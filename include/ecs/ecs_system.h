@@ -1,8 +1,7 @@
 #pragma once
-class Registry;
+#include "registry.hpp"
 // functions as base class to store systems
-class System
-{
+class System{
 public:
 	System() = default;
 	virtual ~System() = default;

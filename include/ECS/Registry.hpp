@@ -1,14 +1,13 @@
 #pragma once
-#include "SceneGraph.hpp"
-#include "Pool.hpp"
-#include "View.hpp"
+#include "scenegraph.hpp"
+#include "pool.hpp"
+#include "view.hpp"
 
 #include <unordered_map>
 #include <queue>
 #include <memory>
 #include <typeindex>
 #include <iostream>
-
 class Registry
 {
 public:
@@ -17,8 +16,6 @@ private:
 	std::unordered_map<std::type_index, std::shared_ptr<PoolBase>> pools;
 	dense_array<Entity, MAX_ENTITIES> entities;
 	std::queue<unsigned int> destroyed;
-	std::vector<System&> systems;
-
 public:
 
 	Registry()
@@ -184,28 +181,6 @@ public:
 		for (auto& pool : pools)
 		{
 			pool.second->RemoveComponent(entity);
-		}
-	}
-	void RegisterSystem(System& system)
-	{
-		systems.push_back(system);
-	}
-
-	void RemoveSystem(System& systemToRemove)
-	{
-		for (size_t i = 0; i < systems.size(); i++)
-		{
-			if (&systemToRemove == &systems[i])
-			{
-				systems.erase(systems.begin() + i - 1);
-			}
-		}
-	}
-	void UpdateSystems()
-	{
-		for (System& system : systems)
-		{
-			system.Update(*this);
 		}
 	}
 	void Clear()

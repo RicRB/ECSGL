@@ -1,23 +1,24 @@
-#include "RenderSystem.h"
+#include "renderer.h"
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
-#include "Lights.h"
-RenderSystem::RenderSystem()
+#include "lights.h"
+
+Renderer::Renderer()
 {
 }
 
-RenderSystem::~RenderSystem()
+Renderer::~Renderer()
 {
 }
 
-void RenderSystem::Run()
+void Renderer::Run()
 {
 }
-void RenderSystem::Update(Registry& registry)
+void Renderer::Update(Registry& registry)
 {
 	DrawElements(registry);
 }
-void RenderSystem::DrawElements(Registry& registry)
+void Renderer::DrawElements(Registry& registry)
 {
 	currentView = registry.GetView<Transform, Mesh, Material>();
 	for (size_t i = 0; i < currentView.size(); i++)
@@ -68,10 +69,10 @@ void RenderSystem::DrawElements(Registry& registry)
 		// SETTING MATRIX UNIFORMS CAMERA & OBJECT
 
 		// fetch camera and transform information
-		Entity camera = GameEngine::GetCameraEntity();
+		Entity camera = engine::GetCameraEntity();
 		Transform cameraTransform = registry.GetComponent<Transform>(camera);
 		
-		glm::mat4 proj = GameEngine::GetCamera().projection;
+		glm::mat4 proj = engine::GetCamera().projection;
 		// manual camera for now
 		//glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, -10.0f));
 		glm::mat4 view = cameraTransform.viewMatrix();
@@ -116,7 +117,7 @@ void RenderSystem::DrawElements(Registry& registry)
 	}
 }
 
-void RenderSystem::Clear() const
+void Renderer::Clear() const
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }

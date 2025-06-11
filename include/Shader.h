@@ -4,9 +4,7 @@
 #include <string>
 #include <unordered_map>
 #include "glm/glm.hpp"
-#include <GL/glew.h>
-#include "GLDef.h"
-
+#include "gl_def.h"
 
 struct ShaderUniformMetaData
 {
@@ -30,7 +28,6 @@ struct Shader
 {
 	unsigned int* rendererID;
 };
-
 namespace shader
 {
 	int GetShaderUniformLocation(const unsigned int shaderID, const std::string& name);

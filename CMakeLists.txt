@@ -39,14 +39,19 @@ endif()
 target_include_directories(ECSGL PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${CMAKE_CURRENT_SOURCE_DIR}/include/ECS
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/renderer
     ${CMAKE_CURRENT_SOURCE_DIR}/vendor
+    ${Vulkan_INCLUDE_DIRS}
 )
 # Link libraries from vcpkg
+
+find_package(Vulkan REQUIRED)
+find_package(unofficial-shaderc CONFIG REQUIRED)
 find_package(glfw3 CONFIG REQUIRED)
 find_package(GLEW CONFIG REQUIRED)
+target_link_libraries(ECSGL PRIVATE glfw GLEW::GLEW Vulkan::Vulkan unofficial::shaderc::shaderc)
 
-target_link_libraries(ECSGL PRIVATE glfw GLEW::GLEW)
-
+message(STATUS "Vulkan include: ${Vulkan_INCLUDE_DIRS}")
 # Copy the 'res' directory to the build directory
 add_custom_command(TARGET ECSGL POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory

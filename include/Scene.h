@@ -1,4 +1,4 @@
 #pragma once
-#include "ECS/ECS.hpp"
+#include "ecs/ecs.hpp"
 struct Scene {
 };

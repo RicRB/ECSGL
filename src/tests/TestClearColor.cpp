@@ -1,6 +1,6 @@
-#include "TestClearColor.h"
+#include "test_clear_color.h"
 #include <GL/glew.h>
-#include "GLDef.h"
+#include "gl_def.h"
 #include "imgui/imgui.h"
 test::TestClearColor::TestClearColor()
 	: m_ClearColor{0.2f, 0.3f, 0.8f, 1.0f}

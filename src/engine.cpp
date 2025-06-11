@@ -1,4 +1,4 @@
-#include "GameEngine.h"
+#include "engine.h"
 #include <iostream>
 #include <filesystem>
 
@@ -18,7 +18,6 @@ void Engine::Start()
 
 void Engine::Update()
 {
-	registry.UpdateSystems();
 }
 
 void Engine::LoadScene(const std::string& scenePath)
@@ -35,20 +34,20 @@ Scene Engine::GetScene()
 
 
 
-namespace GameEngine {
+namespace engine {
 	Engine* currentEngine = nullptr;
-	void GameEngine::SetCurrentEngine(Engine& engine)
+	void engine::SetCurrentEngine(Engine& engine)
 	{
 		currentEngine = &engine;
 	}
 
-	Entity GameEngine::CreateEmptyEntity()
+	Entity engine::CreateEmptyEntity()
 	{
 		Entity entity = currentEngine->registry.CreateEntity();
 		Registry& reg = currentEngine->registry;
 		return entity;
 	}
-	Entity GameEngine::CreateObject(Transform transform, Mesh mesh, Material material)
+	Entity engine::CreateObject(Transform transform, Mesh mesh, Material material)
 	{
 		if (mesh.indexID == 0)
 		{
@@ -67,7 +66,7 @@ namespace GameEngine {
 		return entity;
 	}
 
-	Entity GameEngine::CreateDirLight(const glm::vec3 direction, const glm::vec3 ambient, const glm::vec3 diffuse, const glm::vec3 specular, const float intensity)
+	Entity engine::CreateDirLight(const glm::vec3 direction, const glm::vec3 ambient, const glm::vec3 diffuse, const glm::vec3 specular, const float intensity)
 	{
 		Registry& registry = currentEngine->registry;
 		Entity entity = registry.CreateEntity();
@@ -76,7 +75,7 @@ namespace GameEngine {
 		return entity;
 	}
 
-	Entity GameEngine::CreatePointLight(const glm::vec3 ambient, const glm::vec3 diffuse, const glm::vec3 specular, const float intensity, const float constant, const float linear, const float quadratic)
+	Entity engine::CreatePointLight(const glm::vec3 ambient, const glm::vec3 diffuse, const glm::vec3 specular, const float intensity, const float constant, const float linear, const float quadratic)
 	{
 		Registry& registry = currentEngine->registry;
 		Entity entity = registry.CreateEntity();
@@ -84,17 +83,17 @@ namespace GameEngine {
 		registry.AssignComponent(entity, PointLight(ambient, diffuse, specular, intensity, constant, linear, quadratic));
 		return entity;
 	}
-	void GameEngine::SetCamera(Entity entity)
+	void engine::SetCamera(Entity entity)
 	{
 		currentEngine->currentCameraEntity = entity;
 		Registry& reg = currentEngine->registry;
 		currentEngine->currentCamera = reg.GetComponent<Camera>(entity);
 	}
-	Entity GameEngine::GetCameraEntity()
+	Entity engine::GetCameraEntity()
 	{
 		return currentEngine->currentCameraEntity;
 	}
-	Camera GameEngine::GetCamera()
+	Camera engine::GetCamera()
 	{
 		return currentEngine->currentCamera;
 	}

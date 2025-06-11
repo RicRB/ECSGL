@@ -24,7 +24,7 @@ Makefile
 *.ipdb
 *.iobj
 *.tlog
-
+!vendor/**/lib/*.lib
 # OS
 .DS_Store
 Thumbs.db
