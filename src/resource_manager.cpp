@@ -4,23 +4,13 @@
 #include "lights.h"
 #include "gl_def.h"
 #include "vertex_buffer_layout.h"
-#include "engine.h"
-#include <filesystem>
 Shader ResourceManager::LoadShader(const std::string& vertexShaderPath, const std::string& fragmentShaderPath)
 {
     Shader returnShader;
-    switch (engine::currentRendererType) {
-    case RendererType::VULKAN:
-
-        break;
-	case RendererType::OPENGL:
-            mShaders[vertexShaderPath + fragmentShaderPath] = ShaderData{};
-            ShaderData& shader = mShaders[vertexShaderPath + fragmentShaderPath];
-            Shader returnShader;
-            returnShader.rendererID = &shader.rendererID;
-            ParseShader(shader, vertexShaderPath, fragmentShaderPath);
-		break;
-    }
+    mShaders[vertexShaderPath + fragmentShaderPath] = ShaderData{};
+    ShaderData& shader = mShaders[vertexShaderPath + fragmentShaderPath];
+    returnShader.rendererID = &shader.rendererID;
+    ParseShader(shader, vertexShaderPath, fragmentShaderPath);
 
 	return returnShader;
 }
@@ -103,35 +93,6 @@ int ResourceManager::GetUniformLocation(const unsigned int rendererID, const std
         printf("Warning: uniform '%s' doesn't exist!\n", name.c_str());
 
     return -1;
-}
-std::vector<uint32_t> ResourceManager::compileShaderGLSLToSPIRV(
-    const std::string& sourcePath,
-    shaderc_shader_kind kind,
-    bool optimize = false) {
-
-	const std::string name = std::filesystem::path(sourcePath).filename().string();
-
-    std::ifstream file(sourcePath, std::ios::in);
-	if (!file.is_open()) {
-		std::cerr << "Failed to open file: " << sourcePath << std::endl;
-		return std::vector<uint32_t>();
-	}
-	
-	std::ostringstream buffer;
-	buffer << file.rdbuf();
-
-    shaderc::Compiler compiler;
-    shaderc::CompileOptions options;
-    if (optimize) {
-        options.SetOptimizationLevel(shaderc_optimization_level_performance);
-    }
-    shaderc::SpvCompilationResult result = compiler.CompileGlslToSpv(buffer.str(), kind, name.c_str(), options);
-
-    if (result.GetCompilationStatus() != shaderc_compilation_status_success) {
-        std::cerr << result.GetErrorMessage();
-        return std::vector<uint32_t>();
-    }
-    return { result.cbegin(), result.cend() };
 }
 
 /////////////////////// PRIVATE ///////////////////////

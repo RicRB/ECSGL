@@ -4,9 +4,7 @@
 #include <string>
 #include <unordered_map>
 #include "glm/glm.hpp"
-#include <GL/glew.h>
 #include "gl_def.h"
-
 
 struct ShaderUniformMetaData
 {

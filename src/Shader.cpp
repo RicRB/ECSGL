@@ -1,5 +1,6 @@
 #include "shader.h"
 #include "engine.h"
+
 int shader::GetShaderUniformLocation(const unsigned int shaderID, const std::string& name)
 {
 	return engine::currentEngine->resourceManager.GetUniformLocation(shaderID, name);

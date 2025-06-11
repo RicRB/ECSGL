@@ -1,10 +1,12 @@
+#pragma once
 #define VK_USE_PLATFORM_WIN32_KHR
 #define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
 
+#include <GLFW/glfw3.h>
 #include <vulkan/vulkan.h>
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
+#include <shaderc/shaderc.hpp>
 #include <iostream>
 #include <vector>
 #include <optional>
@@ -12,7 +14,7 @@
 #include <cstdint> // Necessary for uint32_t
 #include <algorithm> // Necessary for std::clamp
 #include <limits> // Necessary for std::numeric_limits
-#include "resource_manager.h"
+
 
 #ifdef max
 #undef max
@@ -45,8 +47,10 @@ private:
 	std::vector<VkImage> swapChainImages;
 	VkFormat swapChainImageFormat;
 	VkExtent2D swapChainExtent;
-
 	std::vector<VkImageView> swapChainImageViews;
+	VkRenderPass renderPass;
+	VkPipelineLayout pipelineLayout;
+	VkPipeline graphicsPipeline;
 
 	bool enableValidationLayers = true;
 
@@ -82,4 +86,7 @@ private:
 	void createImageViews();
 	void createGraphicsPipeline();
 	VkShaderModule createShaderModule(const std::vector<uint32_t>& code);
+	void createRenderPass();
+
+	std::vector<uint32_t> compileShaderGLSLToSPIRV(const std::string& sourcePath, shaderc_shader_kind kind, bool optimize);
 };

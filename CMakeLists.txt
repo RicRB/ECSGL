@@ -46,10 +46,10 @@ target_include_directories(ECSGL PRIVATE
 # Link libraries from vcpkg
 
 find_package(Vulkan REQUIRED)
+find_package(unofficial-shaderc CONFIG REQUIRED)
 find_package(glfw3 CONFIG REQUIRED)
 find_package(GLEW CONFIG REQUIRED)
-
-target_link_libraries(ECSGL PRIVATE glfw GLEW::GLEW Vulkan::Vulkan)
+target_link_libraries(ECSGL PRIVATE glfw GLEW::GLEW Vulkan::Vulkan unofficial::shaderc::shaderc)
 
 message(STATUS "Vulkan include: ${Vulkan_INCLUDE_DIRS}")
 # Copy the 'res' directory to the build directory
