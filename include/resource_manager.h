@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <fstream>
 #include <string>
+#include <shaderc/shaderc.hpp>
 class ResourceManager
 {
 public:
@@ -26,6 +27,8 @@ public:
 	std::string& SaveScene();
 	void InitShaders(Registry& registry);
 	int GetUniformLocation(const unsigned int rendererID, const std::string& name);
+	static std::vector<uint32_t> compileShaderGLSLToSPIRV(const std::string& sourcePath, shaderc_shader_kind kind, bool optimize);
+
 private:
 
 	// SHADER STUFFS

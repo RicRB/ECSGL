@@ -30,7 +30,6 @@ struct Shader
 {
 	unsigned int* rendererID;
 };
-
 namespace shader
 {
 	int GetShaderUniformLocation(const unsigned int shaderID, const std::string& name);

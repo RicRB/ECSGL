@@ -4,13 +4,24 @@
 #include "lights.h"
 #include "gl_def.h"
 #include "vertex_buffer_layout.h"
+#include "engine.h"
+#include <filesystem>
 Shader ResourceManager::LoadShader(const std::string& vertexShaderPath, const std::string& fragmentShaderPath)
 {
-    mShaders[vertexShaderPath + fragmentShaderPath] = ShaderData{};
-    ShaderData& shader = mShaders[vertexShaderPath + fragmentShaderPath];
     Shader returnShader;
-    returnShader.rendererID = &shader.rendererID;
-	ParseShader(shader ,vertexShaderPath, fragmentShaderPath);
+    switch (engine::currentRendererType) {
+    case RendererType::VULKAN:
+
+        break;
+	case RendererType::OPENGL:
+            mShaders[vertexShaderPath + fragmentShaderPath] = ShaderData{};
+            ShaderData& shader = mShaders[vertexShaderPath + fragmentShaderPath];
+            Shader returnShader;
+            returnShader.rendererID = &shader.rendererID;
+            ParseShader(shader, vertexShaderPath, fragmentShaderPath);
+		break;
+    }
+
 	return returnShader;
 }
 
@@ -93,7 +104,35 @@ int ResourceManager::GetUniformLocation(const unsigned int rendererID, const std
 
     return -1;
 }
+std::vector<uint32_t> ResourceManager::compileShaderGLSLToSPIRV(
+    const std::string& sourcePath,
+    shaderc_shader_kind kind,
+    bool optimize = false) {
 
+	const std::string name = std::filesystem::path(sourcePath).filename().string();
+
+    std::ifstream file(sourcePath, std::ios::in);
+	if (!file.is_open()) {
+		std::cerr << "Failed to open file: " << sourcePath << std::endl;
+		return std::vector<uint32_t>();
+	}
+	
+	std::ostringstream buffer;
+	buffer << file.rdbuf();
+
+    shaderc::Compiler compiler;
+    shaderc::CompileOptions options;
+    if (optimize) {
+        options.SetOptimizationLevel(shaderc_optimization_level_performance);
+    }
+    shaderc::SpvCompilationResult result = compiler.CompileGlslToSpv(buffer.str(), kind, name.c_str(), options);
+
+    if (result.GetCompilationStatus() != shaderc_compilation_status_success) {
+        std::cerr << result.GetErrorMessage();
+        return std::vector<uint32_t>();
+    }
+    return { result.cbegin(), result.cend() };
+}
 
 /////////////////////// PRIVATE ///////////////////////
 
@@ -161,7 +200,7 @@ unsigned int ResourceManager::CompileShader(unsigned int type, const std::string
     {
         int length;
         glGetShaderiv(id, GL_INFO_LOG_LENGTH, &length);
-        char* message = (char*)alloca(length * sizeof(char));
+        char* message = (char*)_malloca(length * sizeof(char));
         glGetShaderInfoLog(id, length, &length, message);
         std::cout << "Failed to compile" << (type == GL_VERTEX_SHADER ? "vertex" : "fragment") << "shader!" << std::endl;
         std::cout << message << std::endl;
@@ -172,6 +211,8 @@ unsigned int ResourceManager::CompileShader(unsigned int type, const std::string
 
     return id;
 }
+
+
 
 unsigned int ResourceManager::CreateShader(const std::string& vertexShader, const std::string& fragmentShader)
 {

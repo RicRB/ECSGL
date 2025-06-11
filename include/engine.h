@@ -7,6 +7,12 @@
 #include "resource_manager.h"
 #include "lights.h"
 #include "camera.h"
+
+enum class RendererType {
+	VULKAN = 0,
+	OPENGL = 1
+};
+
 class Engine
 {
 public:
@@ -36,6 +42,7 @@ private:
 namespace engine
 {
 	extern Engine* currentEngine;
+	extern RendererType currentRendererType;
 	void SetCurrentEngine(Engine& engine);
 	Entity CreateEmptyEntity();
 	Entity CreateObject(Transform transform = Transform(), Mesh mesh = {}, Material material = {});
