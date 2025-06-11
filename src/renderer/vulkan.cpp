@@ -203,7 +203,7 @@ bool VulkanRenderer::isPhysicalDeviceSuitable(VkPhysicalDevice device, int* scor
 	}
 
 	bool isSuitable = 
-		deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU 
+		(deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU || deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU)
 		&& deviceFeatures.geometryShader
 		&& indices.isComplete() 
 		&& extensionsSupported
@@ -690,7 +690,6 @@ std::vector<uint32_t> VulkanRenderer::compileShaderGLSLToSPIRV(const std::string
 		options.SetOptimizationLevel(shaderc_optimization_level_performance);
 	}
 	shaderc::SpvCompilationResult result = compiler.CompileGlslToSpv(buffer.str(), kind, name.c_str(), options);
-
 	if (result.GetCompilationStatus() != shaderc_compilation_status_success) {
 		std::cerr << result.GetErrorMessage();
 		return std::vector<uint32_t>();
