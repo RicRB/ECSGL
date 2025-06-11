@@ -44,8 +44,11 @@ int main(void)
     }
 
     VulkanRenderer vulkan;
-    vulkan.init(window);
 
+    glfwSetWindowUserPointer(window, &vulkan);
+    glfwSetFramebufferSizeCallback(window, vulkan.framebufferResizeCallback);
+
+    vulkan.init(window);
 
     /* Make the window's context current */
     //glfwMakeContextCurrent(window);
@@ -122,6 +125,7 @@ int main(void)
 		//double deltaTime = 0.0f;
         while (!glfwWindowShouldClose(window))
         {
+            vulkan.drawFrame();
             //GLCall(glClearColor(0.1f, 0.1f, 0.1f, 1.0f););
             /*renderer.Clear();
 
@@ -161,7 +165,7 @@ int main(void)
     //ImGui_ImplOpenGL3_Shutdown();
     //ImGui_ImplGlfw_Shutdown();
     //ImGui::DestroyContext();
-
+	vkDeviceWaitIdle(vulkan.device);
 	vulkan.cleanup();
     glfwDestroyWindow(window);
     glfwTerminate();

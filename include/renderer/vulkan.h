@@ -7,13 +7,10 @@
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
 #include <shaderc/shaderc.hpp>
-#include <iostream>
 #include <vector>
 #include <optional>
-#include <set>
-#include <cstdint> // Necessary for uint32_t
-#include <algorithm> // Necessary for std::clamp
-#include <limits> // Necessary for std::numeric_limits
+#include <string>
+
 
 
 #ifdef max
@@ -34,12 +31,14 @@ struct SwapChainSupportDetails {
 };
 
 class VulkanRenderer {
+public:
+	VkDevice device;
 private:
 	GLFWwindow* window;
 	VkInstance instance;
 	VkDebugUtilsMessengerEXT debugMessenger;
 	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
-	VkDevice device;
+
 	VkQueue graphicsQueue;
 	VkSurfaceKHR surface;
 	VkQueue presentQueue;
@@ -51,6 +50,9 @@ private:
 	VkRenderPass renderPass;
 	VkPipelineLayout pipelineLayout;
 	VkPipeline graphicsPipeline;
+	std::vector<VkFramebuffer> swapChainFramebuffers;
+	VkCommandPool commandPool;
+	std::vector<VkCommandBuffer> commandBuffers;
 
 	bool enableValidationLayers = true;
 
@@ -60,10 +62,21 @@ private:
 	const std::vector<const char*> deviceExtensions = {
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME
 	};
+
+	std::vector<VkSemaphore> imageAvailableSemaphores;
+	std::vector<VkSemaphore> renderFinishedSemaphores;
+	std::vector<VkFence> inFlightFences;
+
+	const int MAX_FRAMES_IN_FLIGHT = 2;
+	uint32_t currentFrame = 0;
+	bool framebufferResized = false;
+
 public:
 	void init(GLFWwindow* window);
+	void drawFrame();
 	std::vector<const char*> getRequiredExtensions();
 	void cleanup();
+	static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
 private:
 	static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
 		VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -87,6 +100,12 @@ private:
 	void createGraphicsPipeline();
 	VkShaderModule createShaderModule(const std::vector<uint32_t>& code);
 	void createRenderPass();
-
 	std::vector<uint32_t> compileShaderGLSLToSPIRV(const std::string& sourcePath, shaderc_shader_kind kind, bool optimize);
+	void createFramebuffers();
+	void createCommandPool();
+	void createCommandBuffers();
+	void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
+	void createSyncObjects();
+	void cleanupSwapChain();
+	void recreateSwapChain();
 };
