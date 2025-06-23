@@ -18,7 +18,6 @@
 #include "imgui/imgui_impl_glfw.h"
 #include "imgui//imgui_impl_opengl3.h"
 #include "renderer/vulkan.h"
-//#include "yaml-cpp/yaml.h"
 void PrintMessage(int i) {
     std::cout << i << "\n";
 }

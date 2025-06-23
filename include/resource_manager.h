@@ -12,12 +12,14 @@
 class ResourceManager
 {
 public:
-	ResourceManager() = default;
+	ResourceManager();
 	~ResourceManager() = default;
 private:
-	std::unordered_map<std::string, ShaderData> mShaders;
-	std::unordered_map<unsigned int, std::unordered_map<std::string, int>> mUniformLocationCache;
-	std::unordered_map<unsigned int, std::unordered_map<std::string, GLenum>> mUniforms;
+	bool initialized = false;
+	std::vector<ShaderData> mShaders;
+	// TODO: add a map string -> ShaderID to avoid copies
+	std::unordered_map<ShaderID, std::unordered_map<std::string, int>> mUniformLocationCache;
+	std::unordered_map<ShaderID, std::unordered_map<std::string, GLenum>> mUniforms;
 	std::unordered_map<std::string, TextureData> mTextures;
 
 public: 

@@ -11,7 +11,7 @@ void Engine::Start()
 	std::cout << "Working directory: " << std::filesystem::current_path() << std::endl;
 	defaultShader = resourceManager.LoadShader("res/shaders/Basic.vert", "res/shaders/Basic.frag");
 	resourceManager.InitShaders(registry);
-	defaultMaterial = Material(*defaultShader.rendererID);
+	defaultMaterial = Material(*defaultShader.id);
 	defaultMesh = resourceManager.LoadOBJ("res/models/cube.obj");
 	printf("Game started");
 }
@@ -36,9 +36,11 @@ Scene Engine::GetScene()
 
 namespace engine {
 	Engine* currentEngine = nullptr;
+	RendererType* currentRendererType = nullptr;
 	void engine::SetCurrentEngine(Engine& engine)
 	{
 		currentEngine = &engine;
+		currentRendererType = &engine.rendererType;
 	}
 
 	Entity engine::CreateEmptyEntity()

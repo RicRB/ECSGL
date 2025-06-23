@@ -5,6 +5,9 @@
 #include <unordered_map>
 #include "glm/glm.hpp"
 #include "gl_def.h"
+#include "vk_def.h"
+
+using ShaderID = unsigned int;
 
 struct ShaderUniformMetaData
 {
@@ -14,20 +17,26 @@ struct ShaderUniformMetaData
 	uint16_t size = 0;
 	uint16_t uniformCount = 0;
 };
-struct ShaderProgramSource
+struct ShaderData
 {
+	ShaderID id;
+	// opengl
+	unsigned int programID;
+
+	// vulkan
+	VkPipeline pipeline;
+	VkPipelineLayout pipelineLayout;
+
+	// sources
 	std::string VertexSource;
 	std::string FragmentSource;
 };
-struct ShaderData
-{
-	unsigned int rendererID;
-	ShaderProgramSource source;
-};
 struct Shader
 {
-	unsigned int* rendererID;
+	ShaderID id;
+	ShaderData* data;
 };
+
 namespace shader
 {
 	int GetShaderUniformLocation(const unsigned int shaderID, const std::string& name);

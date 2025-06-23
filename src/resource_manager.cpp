@@ -4,12 +4,25 @@
 #include "lights.h"
 #include "gl_def.h"
 #include "vertex_buffer_layout.h"
+
+ResourceManager::ResourceManager()
+{
+	if (!initialized)
+	{
+		initialized = true;
+		// Initialize shaders
+		mShaders = std::vector<ShaderData>(256);
+		mShaders.reserve(256); // reserve space for 256 shaders to avoid reallocations
+		mTextures.reserve(256); // reserve space for 256 textures to avoid reallocations
+	}
+}
+
 Shader ResourceManager::LoadShader(const std::string& vertexShaderPath, const std::string& fragmentShaderPath)
 {
     Shader returnShader;
-    mShaders[vertexShaderPath + fragmentShaderPath] = ShaderData{};
-    ShaderData& shader = mShaders[vertexShaderPath + fragmentShaderPath];
-    returnShader.rendererID = &shader.rendererID;
+    ShaderData& shader = mShaders.emplace_back();
+    returnShader.id = shader.id;
+	returnShader.data = &shader;
     ParseShader(shader, vertexShaderPath, fragmentShaderPath);
 
 	return returnShader;
@@ -78,8 +91,8 @@ void ResourceManager::InitShaders(Registry& registry)
             pointLightCount = 1;
         std::string shaderVersion = "#version 330 core\n";
         std::string fragmentArraySizes = "const int MAX_POINT_LIGHTS = " + std::to_string(dirLightCount) + ";\nconst int MAX_DIR_LIGHTS = " + std::to_string(pointLightCount) + ";\n";
-        shader.second.source.FragmentSource = shaderVersion + fragmentArraySizes + shader.second.source.FragmentSource;
-		shader.second.rendererID = CreateShader(shader.second.source.VertexSource, shader.second.source.FragmentSource);
+        shader.second.FragmentSource = shaderVersion + fragmentArraySizes + shader.second.FragmentSource;
+		shader.second.id = CreateShader(shader.second.VertexSource, shader.second.FragmentSource);
 	}
 }
 
@@ -120,8 +133,8 @@ void ResourceManager::ParseShader(ShaderData& shader, const std::string& vertex,
         ss[1] << line << '\n';
     }
     fragmentStream.close();
-    shader.source.VertexSource = ss[0].str();
-    shader.source.FragmentSource = ss[1].str();
+    shader.VertexSource = ss[0].str();
+    shader.FragmentSource = ss[1].str();
 }
 
 void ResourceManager::CompileUniforms(const unsigned int programID)

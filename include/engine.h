@@ -24,6 +24,7 @@ public:
 	Mesh defaultMesh;
 	Camera currentCamera;
 	Entity currentCameraEntity;
+	RendererType rendererType = RendererType::OPENGL;
 	
 public:
 	Engine();
@@ -42,7 +43,7 @@ private:
 namespace engine
 {
 	extern Engine* currentEngine;
-	extern RendererType currentRendererType;
+	extern RendererType* currentRendererType;
 	void SetCurrentEngine(Engine& engine);
 	Entity CreateEmptyEntity();
 	Entity CreateObject(Transform transform = Transform(), Mesh mesh = {}, Material material = {});
