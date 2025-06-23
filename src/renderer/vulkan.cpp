@@ -585,9 +585,9 @@ void Vulkan::createImageViews() {
 	}
 }
 
-void Vulkan::createGraphicsPipeline() {
-	auto vertShaderCode = compileShaderGLSLToSPIRV("res/shaders/vulkan-triangle.vert", shaderc_shader_kind::shaderc_glsl_vertex_shader, false);
-	auto fragShaderCode = compileShaderGLSLToSPIRV("res/shaders/vulkan-triangle.frag", shaderc_shader_kind::shaderc_glsl_fragment_shader, false);
+void Vulkan::createGraphicsPipeline(const char* name, const std::string& vertexSource, const std::string& fragmentSource, VkPipeline* pipeline, VkPipelineLayout* pipelineLayout) {
+	auto vertShaderCode = compileShaderGLSLToSPIRV(vertexSource, shaderc_shader_kind::shaderc_glsl_vertex_shader, false);
+	auto fragShaderCode = compileShaderGLSLToSPIRV(fragmentSource, shaderc_shader_kind::shaderc_glsl_fragment_shader, false);
 	VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
 	VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
 
@@ -707,12 +707,9 @@ void Vulkan::createGraphicsPipeline() {
 	pipelineLayoutInfo.pushConstantRangeCount = 0; // Optional
 	pipelineLayoutInfo.pPushConstantRanges = nullptr; // Optional
 
-	if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
+	if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, pipelineLayout) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create pipeline layout!");
 	}
-
-
-
 
 	VkGraphicsPipelineCreateInfo pipelineInfo{};
 	pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -726,13 +723,13 @@ void Vulkan::createGraphicsPipeline() {
 	pipelineInfo.pDepthStencilState = nullptr; // Optional
 	pipelineInfo.pColorBlendState = &colorBlending;
 	pipelineInfo.pDynamicState = &dynamicState;
-	pipelineInfo.layout = pipelineLayout;
+	pipelineInfo.layout = *pipelineLayout;
 	pipelineInfo.renderPass = renderPass;
 	pipelineInfo.subpass = 0;
 	pipelineInfo.basePipelineHandle = VK_NULL_HANDLE; // Optional
 	pipelineInfo.basePipelineIndex = -1; // Optional
 
-	if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline) != VK_SUCCESS) {
+	if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, pipeline) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create graphics pipeline!");
 	}
 	vkDestroyShaderModule(device, fragShaderModule, nullptr);
@@ -828,6 +825,25 @@ std::vector<uint32_t> Vulkan::compileShaderGLSLToSPIRV(const std::string& source
 		return std::vector<uint32_t>();
 	}
 	return { result.cbegin(), result.cend() };
+}
+
+std::vector<uint32_t> Vulkan::compileShaderGLSLToSPIRV(const char* name, const std::string& source, shaderc_shader_kind kind, bool optimize)
+{
+	shaderc::Compiler compiler;
+	shaderc::CompileOptions options;
+	if (optimize) {
+		options.SetOptimizationLevel(shaderc_optimization_level_performance);
+	}
+	options.SetTargetEnvironment(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_2);
+	options.SetTargetSpirv(shaderc_spirv_version_1_0); // Or 1_5 for newer Vulkan
+	shaderc::SpvCompilationResult result = compiler.CompileGlslToSpv(source, kind, name, options);
+	std::cerr << result.GetErrorMessage();
+	if (result.GetCompilationStatus() != shaderc_compilation_status_success) {
+		std::cerr << result.GetErrorMessage();
+		return std::vector<uint32_t>();
+	}
+	return { result.cbegin(), result.cend() };
+	return std::vector<uint32_t>();
 }
 
 
@@ -1212,6 +1228,6 @@ void Vulkan::createDescriptorSets()
 	}
 }
 
-void Vulkan::createShader(const char* vertexSource, const char* fragmentSource, const ShaderData* shaderData) {
-	
+void Vulkan::createShader(const char* name, const std::string& vertexSource, const std::string& fragmentSource, ShaderData* shaderData) {
+	createGraphicsPipeline(name, vertexSource, fragmentSource, &shaderData->pipeline, &shaderData->pipelineLayout);
 }

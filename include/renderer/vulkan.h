@@ -151,10 +151,11 @@ private:
 	VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
 	void createSwapChain();
 	void createImageViews();
-	void createGraphicsPipeline();
+	void createGraphicsPipeline(const char* name, const std::string& vertexSource, const std::string& fragmentSource, VkPipeline* pipeline, VkPipelineLayout* pipelineLayout);
 	VkShaderModule createShaderModule(const std::vector<uint32_t>& code);
 	void createRenderPass();
 	std::vector<uint32_t> compileShaderGLSLToSPIRV(const std::string& sourcePath, shaderc_shader_kind kind, bool optimize);
+	std::vector<uint32_t> compileShaderGLSLToSPIRV(const char* name, const std::string& source, shaderc_shader_kind kind, bool optimize);
 	void createFramebuffers();
 	void createCommandPool();
 	void createCommandBuffers();
@@ -173,5 +174,5 @@ private:
 	void createDescriptorPool();
 	void createDescriptorSets();
 
-	void createShader(const char* vertexSource, const char* fragmentSource, const ShaderData* shaderData) override;
+	void createShader(const char* name, const std::string& vertexSource, const std::string& fragmentSource, ShaderData* shaderData) override;
 };

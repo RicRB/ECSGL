@@ -1,6 +1,6 @@
 #pragma once
 #include "shader.h"
-
+#include <string>
 class GraphicsAPI {
 public:
 	virtual ~GraphicsAPI() = default;
@@ -13,5 +13,5 @@ public:
 	// Get the name of the graphics API
 	virtual const char* getName() const = 0;
 	// create Shader
-	virtual void createShader(const char* vertexSource, const char* fragmentSource, const ShaderData* shaderData) = 0;
+	virtual void createShader(const char* name, const std::string& vertexSource, const std::string& fragmentSource, const ShaderData* shaderData) = 0;
 };
