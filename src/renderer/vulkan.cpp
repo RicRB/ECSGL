@@ -8,7 +8,7 @@
 #include <limits> // Necessary for std::numeric_limits
 #include <set>
 #include <glm/gtc/matrix_transform.hpp>
-void VulkanRenderer::init(GLFWwindow* window)
+void Vulkan::init(GLFWwindow* window)
 {
 	this->window = window;
 	// create instance
@@ -95,7 +95,7 @@ void VulkanRenderer::init(GLFWwindow* window)
 	createSyncObjects();
 }
 
-void VulkanRenderer::drawFrame()
+void Vulkan::drawFrame()
 {
 	vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
@@ -165,7 +165,7 @@ void VulkanRenderer::drawFrame()
 	currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 
-std::vector<const char*> VulkanRenderer::getRequiredExtensions()
+std::vector<const char*> Vulkan::getRequiredExtensions()
 {
 	uint32_t glfwExtensionCount = 0;
 	const char** glfwExtensions;
@@ -180,7 +180,7 @@ std::vector<const char*> VulkanRenderer::getRequiredExtensions()
 	return extensions;
 }
 
-void VulkanRenderer::cleanup()
+void Vulkan::cleanup()
 {
 	cleanupSwapChain();
 
@@ -223,14 +223,14 @@ void VulkanRenderer::cleanup()
 	vkDestroyInstance(instance, nullptr);
 }
 
-void VulkanRenderer::framebufferResizeCallback(GLFWwindow* window, int width, int height)
+void Vulkan::framebufferResizeCallback(GLFWwindow* window, int width, int height)
 {
-	auto app = reinterpret_cast<VulkanRenderer*>(glfwGetWindowUserPointer(window));
+	auto app = reinterpret_cast<Vulkan*>(glfwGetWindowUserPointer(window));
 	app->framebufferResized = true;
 	std::cout << "Framebuffer resized: " << width << "x" << height << std::endl;
 }
 
-VKAPI_ATTR VkBool32 VKAPI_CALL VulkanRenderer::debugCallback(
+VKAPI_ATTR VkBool32 VKAPI_CALL Vulkan::debugCallback(
 	VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, 
 	VkDebugUtilsMessageTypeFlagsEXT messageType, 
 	const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, 
@@ -242,7 +242,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL VulkanRenderer::debugCallback(
 	return VK_FALSE;
 }
 
-void VulkanRenderer::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo)
+void Vulkan::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo)
 {
 	createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
 	createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
@@ -251,7 +251,7 @@ void VulkanRenderer::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreat
 	createInfo.pUserData = nullptr; // Optional
 }
 
-void VulkanRenderer::setupDebugMessenger()
+void Vulkan::setupDebugMessenger()
 {
 	if (!enableValidationLayers) return;
 	VkDebugUtilsMessengerCreateInfoEXT createInfo{};
@@ -268,7 +268,7 @@ void VulkanRenderer::setupDebugMessenger()
 	}
 }
 
-void VulkanRenderer::pickPhysicsalDevice()
+void Vulkan::pickPhysicsalDevice()
 {
 	uint32_t deviceCount = 0;
 	vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
@@ -301,7 +301,7 @@ void VulkanRenderer::pickPhysicsalDevice()
 	}
 }
 
-bool VulkanRenderer::isPhysicalDeviceSuitable(VkPhysicalDevice device, int* score)
+bool Vulkan::isPhysicalDeviceSuitable(VkPhysicalDevice device, int* score)
 {
 	VkPhysicalDeviceProperties deviceProperties;
 	VkPhysicalDeviceFeatures deviceFeatures;
@@ -334,7 +334,7 @@ bool VulkanRenderer::isPhysicalDeviceSuitable(VkPhysicalDevice device, int* scor
 	return isSuitable; // check if the device supports geometry shaders
 }
 
-bool VulkanRenderer::checkDeviceExtensionSupport(VkPhysicalDevice device)
+bool Vulkan::checkDeviceExtensionSupport(VkPhysicalDevice device)
 {
 	uint32_t extensionCount;
 	vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
@@ -351,7 +351,7 @@ bool VulkanRenderer::checkDeviceExtensionSupport(VkPhysicalDevice device)
 	return requiredExtensions.empty();
 }
 
-QueueFamilyIndices VulkanRenderer::findQueueFamilies(VkPhysicalDevice device)
+QueueFamilyIndices Vulkan::findQueueFamilies(VkPhysicalDevice device)
 {
 	QueueFamilyIndices indices;
 
@@ -381,7 +381,7 @@ QueueFamilyIndices VulkanRenderer::findQueueFamilies(VkPhysicalDevice device)
 	return indices;
 }
 
-void VulkanRenderer::createLogicalDevice()
+void Vulkan::createLogicalDevice()
 {
 	QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
 
@@ -433,14 +433,14 @@ void VulkanRenderer::createLogicalDevice()
 	vkGetDeviceQueue(device, indices.presentFamily.value(), 0, &presentQueue);
 }
 
-void VulkanRenderer::createSurface()
+void Vulkan::createSurface()
 {
 	if (glfwCreateWindowSurface(instance, window, nullptr, &surface) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create window surface!");
 	}
 }
 
-SwapChainSupportDetails VulkanRenderer::querySwapChainSupport(VkPhysicalDevice device) {
+SwapChainSupportDetails Vulkan::querySwapChainSupport(VkPhysicalDevice device) {
 	SwapChainSupportDetails details;
 	// capabilities
 	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
@@ -466,7 +466,7 @@ SwapChainSupportDetails VulkanRenderer::querySwapChainSupport(VkPhysicalDevice d
 	return details;
 }
 
-VkSurfaceFormatKHR VulkanRenderer::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)
+VkSurfaceFormatKHR Vulkan::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)
 {
 	for (const auto& availableFormat : availableFormats) {
 		if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
@@ -475,7 +475,7 @@ VkSurfaceFormatKHR VulkanRenderer::chooseSwapSurfaceFormat(const std::vector<VkS
 	}
 	return availableFormats[0];
 }
-VkPresentModeKHR VulkanRenderer::chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes) {
+VkPresentModeKHR Vulkan::chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes) {
 	for (const auto& availablePresentMode : availablePresentModes) {
 		if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
 			return availablePresentMode;
@@ -484,7 +484,7 @@ VkPresentModeKHR VulkanRenderer::chooseSwapPresentMode(const std::vector<VkPrese
 
 	return VK_PRESENT_MODE_FIFO_KHR;
 }
-VkExtent2D VulkanRenderer::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) {
+VkExtent2D Vulkan::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) {
 	if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
 		return capabilities.currentExtent;
 	}
@@ -504,7 +504,7 @@ VkExtent2D VulkanRenderer::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capa
 	}
 }
 
-void VulkanRenderer::createSwapChain() {
+void Vulkan::createSwapChain() {
 	SwapChainSupportDetails swapChainSupport = querySwapChainSupport(physicalDevice);
 
 	VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
@@ -559,7 +559,7 @@ void VulkanRenderer::createSwapChain() {
 	swapChainImageFormat = surfaceFormat.format;
 	swapChainExtent = extent;
 }
-void VulkanRenderer::createImageViews() {
+void Vulkan::createImageViews() {
 	swapChainImageViews.resize(swapChainImages.size());
 	for (size_t i = 0; i < swapChainImages.size(); i++) {
 		VkImageViewCreateInfo createInfo{};
@@ -585,7 +585,7 @@ void VulkanRenderer::createImageViews() {
 	}
 }
 
-void VulkanRenderer::createGraphicsPipeline() {
+void Vulkan::createGraphicsPipeline() {
 	auto vertShaderCode = compileShaderGLSLToSPIRV("res/shaders/vulkan-triangle.vert", shaderc_shader_kind::shaderc_glsl_vertex_shader, false);
 	auto fragShaderCode = compileShaderGLSLToSPIRV("res/shaders/vulkan-triangle.frag", shaderc_shader_kind::shaderc_glsl_fragment_shader, false);
 	VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
@@ -739,7 +739,7 @@ void VulkanRenderer::createGraphicsPipeline() {
 	vkDestroyShaderModule(device, vertShaderModule, nullptr);
 }
 
-VkShaderModule VulkanRenderer::createShaderModule(const std::vector<uint32_t>& code)
+VkShaderModule Vulkan::createShaderModule(const std::vector<uint32_t>& code)
 {
 	VkShaderModuleCreateInfo createInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
@@ -753,7 +753,7 @@ VkShaderModule VulkanRenderer::createShaderModule(const std::vector<uint32_t>& c
 	return shaderModule;
 }
 
-void VulkanRenderer::createRenderPass() {
+void Vulkan::createRenderPass() {
 	// attachment description
 	VkAttachmentDescription colorAttachment{};
 	colorAttachment.format = swapChainImageFormat;
@@ -800,7 +800,7 @@ void VulkanRenderer::createRenderPass() {
 	}
 }
 
-std::vector<uint32_t> VulkanRenderer::compileShaderGLSLToSPIRV(const std::string& sourcePath, shaderc_shader_kind kind, bool optimize)
+std::vector<uint32_t> Vulkan::compileShaderGLSLToSPIRV(const std::string& sourcePath, shaderc_shader_kind kind, bool optimize)
 {
 
 	const std::string name = std::filesystem::path(sourcePath).filename().string();
@@ -830,7 +830,9 @@ std::vector<uint32_t> VulkanRenderer::compileShaderGLSLToSPIRV(const std::string
 	return { result.cbegin(), result.cend() };
 }
 
-void VulkanRenderer::createFramebuffers()
+
+
+void Vulkan::createFramebuffers()
 {
 	swapChainFramebuffers.resize(swapChainImageViews.size());
 	for (size_t i = 0; i < swapChainImageViews.size(); i++) {
@@ -853,7 +855,7 @@ void VulkanRenderer::createFramebuffers()
 	}
 }
 
-void VulkanRenderer::createCommandPool()
+void Vulkan::createCommandPool()
 {
 	QueueFamilyIndices queueFamilyIndices = findQueueFamilies(physicalDevice);
 
@@ -867,7 +869,7 @@ void VulkanRenderer::createCommandPool()
 	}
 }
 
-void VulkanRenderer::createCommandBuffers()
+void Vulkan::createCommandBuffers()
 {
 	commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
 
@@ -882,7 +884,7 @@ void VulkanRenderer::createCommandBuffers()
 	}
 }
 
-void VulkanRenderer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) {
+void Vulkan::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) {
 	VkCommandBufferBeginInfo beginInfo{};
 	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 	beginInfo.flags = 0; // Optional
@@ -935,7 +937,7 @@ void VulkanRenderer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t
 	}
 }
 
-void VulkanRenderer::createSyncObjects()
+void Vulkan::createSyncObjects()
 {
 	imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
 	renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
@@ -958,7 +960,7 @@ void VulkanRenderer::createSyncObjects()
 	}
 }
 
-void VulkanRenderer::cleanupSwapChain()
+void Vulkan::cleanupSwapChain()
 {
 	for (auto framebuffer : swapChainFramebuffers) {
 		vkDestroyFramebuffer(device, framebuffer, nullptr);
@@ -971,7 +973,7 @@ void VulkanRenderer::cleanupSwapChain()
 	vkDestroySwapchainKHR(device, swapChain, nullptr);
 }
 
-void VulkanRenderer::recreateSwapChain()
+void Vulkan::recreateSwapChain()
 {
 	int width = 0, height = 0;
 	glfwGetFramebufferSize(window, &width, &height);
@@ -987,7 +989,7 @@ void VulkanRenderer::recreateSwapChain()
 	createFramebuffers();
 }
 
-void VulkanRenderer::createVertexBuffer() {
+void Vulkan::createVertexBuffer() {
 	VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
 
 	VkBuffer stagingBuffer;
@@ -1007,7 +1009,7 @@ void VulkanRenderer::createVertexBuffer() {
 	vkFreeMemory(device, stagingBufferMemory, nullptr);
 }
 
-void VulkanRenderer::createIndexBuffer()
+void Vulkan::createIndexBuffer()
 {
 	VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
 
@@ -1028,7 +1030,7 @@ void VulkanRenderer::createIndexBuffer()
 	vkFreeMemory(device, stagingBufferMemory, nullptr);
 }
 
-uint32_t VulkanRenderer::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)
+uint32_t Vulkan::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)
 {
 	VkPhysicalDeviceMemoryProperties memProperties;
 	vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
@@ -1041,7 +1043,7 @@ uint32_t VulkanRenderer::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFla
 	throw std::runtime_error("failed to find suitable memory type!");
 }
 
-void VulkanRenderer::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory)
+void Vulkan::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory)
 {
 	VkBufferCreateInfo bufferInfo{};
 	bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -1068,7 +1070,7 @@ void VulkanRenderer::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, V
 	vkBindBufferMemory(device, buffer, bufferMemory, 0);
 }
 
-void VulkanRenderer::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
+void Vulkan::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
 {
 	VkCommandBufferAllocateInfo allocInfo{};
 	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -1105,7 +1107,7 @@ void VulkanRenderer::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDevice
 	vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
 }
 
-void VulkanRenderer::createDescriptorSetLayout()
+void Vulkan::createDescriptorSetLayout()
 {
 	VkDescriptorSetLayoutBinding uboLayoutBinding{};
 	uboLayoutBinding.binding = 0;
@@ -1124,7 +1126,7 @@ void VulkanRenderer::createDescriptorSetLayout()
 	}
 }
 
-void VulkanRenderer::createUniformBuffers()
+void Vulkan::createUniformBuffers()
 {
 	VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 
@@ -1139,7 +1141,7 @@ void VulkanRenderer::createUniformBuffers()
 	}
 }
 
-void VulkanRenderer::updateUniformBuffer(uint32_t currentImage)
+void Vulkan::updateUniformBuffer(uint32_t currentImage)
 {
 	static auto startTime = std::chrono::high_resolution_clock::now();
 
@@ -1155,7 +1157,7 @@ void VulkanRenderer::updateUniformBuffer(uint32_t currentImage)
 	memcpy(uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 }
 
-void VulkanRenderer::createDescriptorPool()
+void Vulkan::createDescriptorPool()
 {
 	VkDescriptorPoolSize poolSize{};
 	poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -1173,7 +1175,7 @@ void VulkanRenderer::createDescriptorPool()
 	}
 }
 
-void VulkanRenderer::createDescriptorSets()
+void Vulkan::createDescriptorSets()
 {
 	std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, descriptorSetLayout);
 	VkDescriptorSetAllocateInfo allocInfo{};
@@ -1208,4 +1210,8 @@ void VulkanRenderer::createDescriptorSets()
 
 		vkUpdateDescriptorSets(device, 1, &descriptorWrite, 0, nullptr);
 	}
+}
+
+void Vulkan::createShader(const char* vertexSource, const char* fragmentSource, const ShaderData* shaderData) {
+	
 }

@@ -42,7 +42,7 @@ int main(void)
         return -1;
     }
 
-    VulkanRenderer vulkan;
+    Vulkan vulkan;
 
     glfwSetWindowUserPointer(window, &vulkan);
     glfwSetFramebufferSizeCallback(window, vulkan.framebufferResizeCallback);

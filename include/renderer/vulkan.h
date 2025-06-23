@@ -12,7 +12,7 @@
 #include <string>
 #include <glm/glm.hpp>
 #include <array>
-
+#include "graphics_api.h"
 #ifdef max
 #undef max
 #endif
@@ -64,7 +64,7 @@ struct UniformBufferObject {
 	alignas(16) glm::mat4 proj;
 };
 
-class VulkanRenderer {
+class Vulkan : GraphicsAPI {
 public:
 	VkDevice device;
 private:
@@ -172,4 +172,6 @@ private:
 	void updateUniformBuffer(uint32_t currentImage);
 	void createDescriptorPool();
 	void createDescriptorSets();
+
+	void createShader(const char* vertexSource, const char* fragmentSource, const ShaderData* shaderData) override;
 };

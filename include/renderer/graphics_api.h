@@ -1,4 +1,5 @@
-
+#pragma once
+#include "shader.h"
 
 class GraphicsAPI {
 public:
@@ -11,4 +12,6 @@ public:
 	virtual void cleanup() = 0;
 	// Get the name of the graphics API
 	virtual const char* getName() const = 0;
+	// create Shader
+	virtual void createShader(const char* vertexSource, const char* fragmentSource, const ShaderData* shaderData) = 0;
 };
