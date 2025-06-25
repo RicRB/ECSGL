@@ -80,7 +80,6 @@ void Vulkan::init(GLFWwindow* window)
 	createImageViews();
 	createRenderPass();
 	createDescriptorSetLayout();
-	createGraphicsPipeline();
 	createFramebuffers();
 	createCommandPool();
 
