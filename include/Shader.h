@@ -26,6 +26,7 @@ struct ShaderData
 	// vulkan
 	VkPipeline pipeline;
 	VkPipelineLayout pipelineLayout;
+	
 
 	// sources
 	std::string VertexSource;

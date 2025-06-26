@@ -58,12 +58,27 @@ struct VkVertex {
 	}
 };
 
-struct UniformBufferObject {
+struct GlobalUniformBufferObject{
 	alignas(16) glm::mat4 model;
 	alignas(16) glm::mat4 view;
 	alignas(16) glm::mat4 proj;
 };
+struct VkMaterialUBO {
+	alignas(16) glm::vec3 diffuseColor;
+	alignas(16) glm::vec3 specularColor;
+	alignas(16) glm::vec3 ambientColor;
+	float shininess;
+	int diffuseTextureIndex = -1; // -1 means no texture
+	int specularTextureIndex = -1; // -1 means no texture
+	int normalTextureIndex = -1; // -1 means no texture
+};
 
+struct VkUniformBuffer {
+	VkBuffer buffer;
+	VkDeviceMemory memory;
+	void* mapped = nullptr;
+
+};
 class Vulkan : GraphicsAPI {
 public:
 	VkDevice device;
@@ -174,5 +189,8 @@ private:
 	void createDescriptorPool();
 	void createDescriptorSets();
 
-	void createShader(const char* name, const std::string& vertexSource, const std::string& fragmentSource, ShaderData* shaderData) override;
+	void createUniformBuffer(VkUniformBuffer* buffer);
+	void createDescriptorSet(MaterialData* materialData);
+	void loadShader(const char* name, const std::string& vertexSource, const std::string& fragmentSource, ShaderData* shaderData) override;
+	void loadMaterial(const char* name, const ShaderData& shaderData, MaterialData* materialData) override;
 };

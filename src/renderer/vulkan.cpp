@@ -112,6 +112,7 @@ void Vulkan::drawFrame()
 	// Only reset the fence if we are submitting work
 	vkResetFences(device, 1, &inFlightFences[currentFrame]);
 
+	// get new uniforms
 	updateUniformBuffer(currentFrame);
 
 	// recording command buffer
@@ -138,6 +139,7 @@ void Vulkan::drawFrame()
 		throw std::runtime_error("failed to submit draw command buffer!");
 	}
 
+	// present queue
 	VkPresentInfoKHR presentInfo{};
 	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 
@@ -909,6 +911,7 @@ void Vulkan::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIn
 		throw std::runtime_error("failed to begin recording command buffer!");
 	}
 
+	// render pass
 	VkRenderPassBeginInfo renderPassInfo{};
 	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 	renderPassInfo.renderPass = renderPass;
@@ -921,6 +924,7 @@ void Vulkan::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIn
 	renderPassInfo.pClearValues = &clearColor;
 
 	vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+	// bind pipeline (TO CHANGE)
 	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
 
 	// this is dynamic state we have to specify every time
@@ -1143,7 +1147,7 @@ void Vulkan::createDescriptorSetLayout()
 
 void Vulkan::createUniformBuffers()
 {
-	VkDeviceSize bufferSize = sizeof(UniformBufferObject);
+	VkDeviceSize bufferSize = sizeof(GlobalUniformBufferObject);
 
 	uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
 	uniformBuffersMemory.resize(MAX_FRAMES_IN_FLIGHT);
@@ -1163,7 +1167,7 @@ void Vulkan::updateUniformBuffer(uint32_t currentImage)
 	auto currentTime = std::chrono::high_resolution_clock::now();
 	float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
-	UniformBufferObject ubo{};
+	GlobalUniformBufferObject ubo{};
 	ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 	ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 	ubo.proj = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10.0f);
@@ -1208,7 +1212,7 @@ void Vulkan::createDescriptorSets()
 		VkDescriptorBufferInfo bufferInfo{};
 		bufferInfo.buffer = uniformBuffers[i];
 		bufferInfo.offset = 0;
-		bufferInfo.range = sizeof(UniformBufferObject);
+		bufferInfo.range = sizeof(GlobalUniformBufferObject);
 
 		VkWriteDescriptorSet descriptorWrite{};
 		descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -1227,6 +1231,22 @@ void Vulkan::createDescriptorSets()
 	}
 }
 
-void Vulkan::createShader(const char* name, const std::string& vertexSource, const std::string& fragmentSource, ShaderData* shaderData) {
+
+
+void Vulkan::createUniformBuffer(VkUniformBuffer* buffer)
+{
+	VkDeviceSize bufferSize = sizeof(VkMaterialUBO) * MAX_FRAMES_IN_FLIGHT;
+
+	createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, buffer->buffer, buffer->memory);
+	vkMapMemory(device, buffer->memory, 0, bufferSize, 0, &buffer->mapped);
+}
+
+void Vulkan::loadShader(const char* name, const std::string& vertexSource, const std::string& fragmentSource, ShaderData* shaderData) {
 	createGraphicsPipeline(name, vertexSource, fragmentSource, &shaderData->pipeline, &shaderData->pipelineLayout);
+}
+
+void Vulkan::loadMaterial(const char* name, const ShaderData& shaderData, MaterialData* materialData) {
+	materialData->shaderID = shaderData.id;
+	createUniformBuffer(&materialData->uniformBuffer);
+
 }
