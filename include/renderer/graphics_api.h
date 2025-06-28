@@ -1,13 +1,16 @@
 #pragma once
 #include "material.h"
+#include "mesh.h"
+#include "transform.h"
 #include <string>
+#include <vector>
 class GraphicsAPI {
 public:
 	virtual ~GraphicsAPI() = default;
 	// Initialize the graphics API
 	virtual void initialize() = 0;
 	// Render a frame
-	virtual void renderFrame() = 0;
+	virtual void drawFrame(const glm::mat4 viewProjection, const int entityCount, const std::vector<Transform*> transforms, const std::vector<Mesh*> meshes, const std::vector<Material*> materials, const std::vector<ShaderData>* shaders) = 0;
 	// Cleanup resources
 	virtual void cleanup() = 0;
 	// Get the name of the graphics API

@@ -76,7 +76,7 @@ public:
 		int _[] = { 0, ((std::get<ComponentTypes*>(result) = std::get<std::vector<ComponentTypes*>>(components)[index]), 0)... };
 		return result;
 	}
-	const size_t size() const
+	size_t size() const
 	{
 		return std::get<0>(components).size();
 	}

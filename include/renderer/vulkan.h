@@ -79,6 +79,11 @@ struct VkUniformBuffer {
 	void* mapped = nullptr;
 
 };
+
+struct PushConstants {
+	glm::mat4 mvp;
+	float time;
+};
 class Vulkan : GraphicsAPI {
 public:
 	VkDevice device;
@@ -142,7 +147,7 @@ private:
 
 public:
 	void init(GLFWwindow* window);
-	void drawFrame();
+	void drawFrame(const glm::mat4 viewProjection,const int entityCount, const std::vector<Transform*> transforms, const std::vector<Mesh*> meshes, const std::vector<Material*> materials, const std::vector<ShaderData>* shaders) override;
 	std::vector<const char*> getRequiredExtensions();
 	void cleanup();
 	static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
