@@ -167,6 +167,7 @@ void Vulkan::drawFrame(const glm::mat4 viewProjection, const int entityCount, co
 			lastPipeline = shader.pipeline;
 			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shader.pipeline);
 		}
+
 		VkBuffer vertexBuffers[] = { meshes[i]->vertexBuffer };
 		VkDeviceSize offsets[] = { 0 };
 
@@ -180,7 +181,6 @@ void Vulkan::drawFrame(const glm::mat4 viewProjection, const int entityCount, co
 		vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstants), &pushConstants);
 		vkCmdDrawIndexed(commandBuffer, meshes[i]->vertexCount, 1, 0, 0, 0);
 	}
-
 
 	vkCmdEndRenderPass(commandBuffer);
 

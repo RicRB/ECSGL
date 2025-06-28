@@ -113,7 +113,7 @@ void Renderer::DrawElements(Registry& registry)
 			shader::SetUniform3f(shaderID, "pointLights[" + index + "].specular", pointLight->specular.x, pointLight->specular.y, pointLight->specular.z);
 		}
 
-		GLCall(glDrawElements(GL_TRIANGLES, std::get<2>(entity)->count, GL_UNSIGNED_INT, nullptr));
+		GLCall(glDrawElements(GL_TRIANGLES, std::get<2>(entity)->vertexCount, GL_UNSIGNED_INT, nullptr));
 	}
 }
 
