@@ -18,4 +18,5 @@ public:
 	// create Shader
 	virtual void loadShader(const char* name, const std::string& vertexSource, const std::string& fragmentSource, ShaderData* shaderData) = 0;
 	virtual void loadMaterial(const char* name, const ShaderData& shaderData, MaterialData* materialData) = 0;
+	virtual void loadMesh(const std::string& name, const std::vector<Vertex>& vertices, const std::vector<uint16_t>& indices, Mesh* mesh) = 0;
 };

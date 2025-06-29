@@ -8,6 +8,7 @@
 #include <limits> // Necessary for std::numeric_limits
 #include <set>
 #include <glm/gtc/matrix_transform.hpp>
+#include <unordered_set>
 void Vulkan::init(GLFWwindow* window)
 {
 	this->window = window;
@@ -114,7 +115,12 @@ void Vulkan::drawFrame(const glm::mat4 viewProjection, const int entityCount, co
 
 	// get new uniforms
 	updateUniformBuffer(currentFrame);
-
+	std::unordered_set<MaterialID> updatedMaterials;
+	for (auto material : materials) {
+		if (updatedMaterials.contains(material->id)) continue;
+		updatedMaterials.insert(material->id);
+		updateUniformBufferData(&material->data->uniformBuffer, &material->data->ubo);
+	}
 	// recording command buffer
 	vkResetCommandBuffer(commandBuffers[currentFrame], 0);
 
@@ -174,6 +180,7 @@ void Vulkan::drawFrame(const glm::mat4 viewProjection, const int entityCount, co
 		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 		vkCmdBindIndexBuffer(commandBuffer, meshes[i]->indexBuffer, 0, VK_INDEX_TYPE_UINT16);
 
+		uint32_t dynamicOffset = currentFrame * materials[i]->data->uniformBuffer.bufferSize;
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shader.pipelineLayout, 0, 1, &materials[i]->data->descriptorSet, 0, nullptr);
 		PushConstants pushConstants;
 		pushConstants.mvp = viewProjection * transforms[i]->matrix();
@@ -230,8 +237,6 @@ void Vulkan::drawFrame(const glm::mat4 viewProjection, const int entityCount, co
 	else if (result != VK_SUCCESS) {
 		throw std::runtime_error("failed to present swap chain image!");
 	}
-
-
 
 	currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
@@ -977,65 +982,6 @@ void Vulkan::createCommandBuffers()
 	}
 }
 
-void Vulkan::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) {
-	VkCommandBufferBeginInfo beginInfo{};
-	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-	beginInfo.flags = 0; // Optional
-	beginInfo.pInheritanceInfo = nullptr; // Optional useful for secondary bufferse specify which state to inherit from the calling primary buffer
-
-	if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
-		throw std::runtime_error("failed to begin recording command buffer!");
-	}
-
-	// render pass
-	VkRenderPassBeginInfo renderPassInfo{};
-	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-	renderPassInfo.renderPass = renderPass;
-	renderPassInfo.framebuffer = swapChainFramebuffers[imageIndex];
-	renderPassInfo.renderArea.offset = { 0, 0 };
-	renderPassInfo.renderArea.extent = swapChainExtent;
-
-	VkClearValue clearColor = { {{0.0f, 0.0f, 0.0f, 1.0f}} };
-	renderPassInfo.clearValueCount = 1;
-	renderPassInfo.pClearValues = &clearColor;
-
-	vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-	// bind pipeline (TO CHANGE)
-	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
-
-	// this is dynamic state we have to specify every time
-	VkViewport viewport{};
-	viewport.x = 0.0f;
-	viewport.y = 0.0f;
-	viewport.width = static_cast<float>(swapChainExtent.width);
-	viewport.height = static_cast<float>(swapChainExtent.height);
-	viewport.minDepth = 0.0f;
-	viewport.maxDepth = 1.0f;
-	vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
-
-	VkRect2D scissor{};
-	scissor.offset = { 0, 0 };
-	scissor.extent = swapChainExtent;
-	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
-
-	VkBuffer vertexBuffers[] = { vertexBuffer };
-	VkDeviceSize offsets[] = { 0 };
-	vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-	vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT16);
-
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[currentFrame], 0, nullptr);
-
-	PushConstants pushConstants;
-	vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstants), &pushConstant);
-	
-	vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
-	vkCmdEndRenderPass(commandBuffer);
-
-	if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
-		throw std::runtime_error("failed to record command buffer!");
-	}
-}
-
 void Vulkan::createSyncObjects()
 {
 	imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
@@ -1210,7 +1156,7 @@ void Vulkan::createDescriptorSetLayout()
 {
 	VkDescriptorSetLayoutBinding uboLayoutBinding{};
 	uboLayoutBinding.binding = 0;
-	uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
 	uboLayoutBinding.descriptorCount = 1;
 	uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT; // add frag for fragment uniforms
 	uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
@@ -1312,12 +1258,42 @@ void Vulkan::createDescriptorSets()
 
 
 
-void Vulkan::createUniformBuffer(VkUniformBuffer* buffer)
+void Vulkan::createUniformBuffer(VkUniformBuffer* buffer, const VkDeviceSize bufferSize)
 {
-	VkDeviceSize bufferSize = sizeof(VkMaterialUBO) * MAX_FRAMES_IN_FLIGHT;
+	buffer->bufferSize = bufferSize;
+	createBuffer(bufferSize * MAX_FRAMES_IN_FLIGHT, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, buffer->buffer, buffer->memory);
+	vkMapMemory(device, buffer->memory, 0, bufferSize * MAX_FRAMES_IN_FLIGHT, 0, &buffer->mapped);
+}
 
-	createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, buffer->buffer, buffer->memory);
-	vkMapMemory(device, buffer->memory, 0, bufferSize, 0, &buffer->mapped);
+void Vulkan::createDescriptorSet(VkUniformBuffer* buffer, VkDescriptorSet* descriptorSet) {
+	VkDescriptorSetAllocateInfo allocInfo{};
+	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	allocInfo.descriptorPool = descriptorPool;
+	allocInfo.descriptorSetCount = 1;
+	allocInfo.pSetLayouts = &descriptorSetLayout;
+	if (vkAllocateDescriptorSets(device, &allocInfo, descriptorSet) != VK_SUCCESS) {
+		throw std::runtime_error("failed to allocate descriptor sets!");
+	}
+
+	VkDescriptorBufferInfo bufferInfo{};
+	bufferInfo.buffer = buffer->buffer;
+	bufferInfo.offset = 0;
+	bufferInfo.range = buffer->bufferSize;
+
+	VkWriteDescriptorSet descriptorWrite{};
+	descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	descriptorWrite.dstSet = *descriptorSet;
+	descriptorWrite.dstBinding = 0;
+	descriptorWrite.dstArrayElement = 0;
+
+	descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+	descriptorWrite.descriptorCount = 1;
+
+	descriptorWrite.pBufferInfo = &bufferInfo;
+	descriptorWrite.pImageInfo = nullptr; // Optional
+	descriptorWrite.pTexelBufferView = nullptr; // Optional
+
+	vkUpdateDescriptorSets(device, 1, &descriptorWrite, 0, nullptr);
 }
 
 void Vulkan::loadShader(const char* name, const std::string& vertexSource, const std::string& fragmentSource, ShaderData* shaderData) {
@@ -1326,6 +1302,12 @@ void Vulkan::loadShader(const char* name, const std::string& vertexSource, const
 
 void Vulkan::loadMaterial(const char* name, const ShaderData& shaderData, MaterialData* materialData) {
 	materialData->shaderID = shaderData.id;
-	createUniformBuffer(&materialData->uniformBuffer);
+	createUniformBuffer(&materialData->uniformBuffer, sizeof(VkMaterialUBO));
 
+}
+
+inline void Vulkan::updateUniformBufferData(VkUniformBuffer* buffer, const void* data)
+{
+	size_t frameOffset = currentFrame % MAX_FRAMES_IN_FLIGHT;
+	memcpy(static_cast<char*>(buffer->mapped) + frameOffset, &data, buffer->bufferSize);
 }

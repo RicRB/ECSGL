@@ -1,6 +1,6 @@
 #pragma once
 
-#include "shader.h"
+#include "material.h"
 #include "texture.h"
 #include "scene.h"
 #include "mesh.h"
@@ -17,6 +17,7 @@ public:
 private:
 	bool initialized = false;
 	std::vector<ShaderData> mShaders;
+	std::vector<MaterialData> mMaterials;
 	// TODO: add a map string -> ShaderID to avoid copies
 	std::unordered_map<ShaderID, std::unordered_map<std::string, int>> mUniformLocationCache;
 	std::unordered_map<ShaderID, std::unordered_map<std::string, GLenum>> mUniforms;

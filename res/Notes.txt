@@ -1,6 +1,8 @@
 TODO: 
 - SORT BY MATERIALS/MESHES SO WE CAN EFFICIENTLY RENDER AND AVOID SWITCHING PIPELINES AS OFTEN AS POSSIBLE
-
+- UUID SYSTEM FOR EVERYTHING. PLS
 IMMEDIATE TODO :
 - meshes. populate meshes when loading... LOADING MESHES BASICALLY???
-
+- attach both descriptors rather than just 1 we need per frame, per mat
+Questions??
+should i update current frame uniform buffer or the opposite?

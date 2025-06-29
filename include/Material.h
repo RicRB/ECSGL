@@ -7,6 +7,7 @@ enum class VariableType
 	TEXTURE,
 	VEC3
 };
+using MaterialID = unsigned int;
 // FIXME: find a better thing to do here, waste of memory
 struct MaterialVariable
 {
@@ -34,6 +35,7 @@ struct MaterialData {
 	float shininess;
 };
 struct Material {
+	MaterialID id;
 	ShaderID shaderID;
 	MaterialData* data;
 };
