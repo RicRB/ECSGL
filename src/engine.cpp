@@ -1,17 +1,40 @@
 #include "engine.h"
 #include <iostream>
 #include <filesystem>
+#include "renderer/vulkan.h"
 
-
-Engine::Engine()
+Engine::Engine(const GraphicsAPIType graphicsAPIType)
 {
+	rendererType = graphicsAPIType;
+	switch (graphicsAPIType)
+	{
+	case GRAPHICS_API_OPENGL:
+		//graphicsAPI = std::make_unique<OpenGL>();
+		break;
+	case GRAPHICS_API_VULKAN:
+		graphicsAPI = std::make_unique<Vulkan>();
+		break;
+	default:
+		std::cerr << "Unknown graphics API type!" << std::endl;
+		exit(EXIT_FAILURE);
+	}
+}
+void Engine::initialize(GLFWwindow* window)
+{
+	engine::SetCurrentEngine(*this);
+	this->window = window; // Store the window pointer for later use
+	if (graphicsAPI == nullptr)
+	{
+		std::cerr << "Graphics API not initialized!" << std::endl;
+		exit(EXIT_FAILURE);
+	}
+	graphicsAPI->initialize(window); // Pass the window if needed
 }
 void Engine::Start()
 {
 	std::cout << "Working directory: " << std::filesystem::current_path() << std::endl;
 	defaultShader = resourceManager.LoadShader("res/shaders/Basic.vert", "res/shaders/Basic.frag");
 	resourceManager.InitShaders(registry);
-	defaultMaterial = Material(*defaultShader.id);
 	defaultMesh = resourceManager.LoadOBJ("res/models/cube.obj");
 	printf("Game started");
 }
@@ -31,12 +54,20 @@ Scene Engine::GetScene()
 	return Scene();
 }
 
+Engine::~Engine()
+{
+	if (graphicsAPI)
+	{
+		graphicsAPI->cleanup();
+		graphicsAPI.reset();
+	}
+}
 
 
 
 namespace engine {
 	Engine* currentEngine = nullptr;
-	RendererType* currentRendererType = nullptr;
+	GraphicsAPIType* currentRendererType = nullptr;
 	void engine::SetCurrentEngine(Engine& engine)
 	{
 		currentEngine = &engine;
@@ -51,14 +82,6 @@ namespace engine {
 	}
 	Entity engine::CreateObject(Transform transform, Mesh mesh, Material material)
 	{
-		if (mesh.indexID == 0)
-		{
-			mesh = currentEngine->defaultMesh;
-		}
-		if (material.shaderID == 0)
-		{
-			material = currentEngine->defaultMaterial;
-		}
 		Registry& registry = currentEngine->registry;
 		Entity entity = registry.CreateEntity();
 		transform.position = glm::vec3(1.0f);

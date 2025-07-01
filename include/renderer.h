@@ -5,10 +5,11 @@
 #include "material.h"
 #include "mesh.h"
 #include "engine.h"
-
+#include "renderer/graphics_api.h"
 class Renderer : public System
 {
 	View<Transform, Mesh, Material> currentView;
+	GraphicsAPI* graphicsAPI = nullptr;
 	
 public:
 	Renderer();

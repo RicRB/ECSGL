@@ -14,6 +14,8 @@ ResourceManager::ResourceManager()
 		mShaders = std::vector<ShaderData>(256);
 		mShaders.reserve(256); // reserve space for 256 shaders to avoid reallocations
 		mTextures.reserve(256); // reserve space for 256 textures to avoid reallocations
+		mMaterials.reserve(256); // reserve space for 256 materials to avoid reallocations
+		mMeshes.reserve(256); // reserve space for 256 meshes to avoid reallocations
 	}
 }
 
@@ -21,11 +23,39 @@ Shader ResourceManager::LoadShader(const std::string& vertexShaderPath, const st
 {
     Shader returnShader;
     ShaderData& shader = mShaders.emplace_back();
+	shader.id = static_cast<ShaderID>(mShaders.size() - 1); // Assign a unique ID based on the index
     returnShader.id = shader.id;
 	returnShader.data = &shader;
     ParseShader(shader, vertexShaderPath, fragmentShaderPath);
 
+	engine::currentEngine->graphicsAPI->loadShader(
+		std::to_string(shader.id).c_str(),
+		shader.VertexSource,
+		shader.FragmentSource,
+		&shader
+	);
+
 	return returnShader;
+}
+
+Material ResourceManager::LoadMaterial(const ShaderID shaderID)
+{
+	Material returnMaterial;
+	MaterialData& material = mMaterials.emplace_back();
+	material.shaderID = shaderID;
+	material.id = static_cast<MaterialID>(mMaterials.size() - 1); // Assign a unique ID based on the index
+	material.ubo.ambientColor = glm::vec4(0.1f, 0.1f, 0.1f, 1.0f);
+	material.ubo.diffuseColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+	material.ubo.specularColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+	returnMaterial.id = material.id;
+
+	engine::currentEngine->graphicsAPI->loadMaterial(
+		std::to_string(material.id).c_str(),
+		mShaders[shaderID],
+		&material
+	);
+
+    return returnMaterial;
 }
 
 Texture ResourceManager::LoadTexture(const std::string& path)
@@ -205,7 +235,6 @@ unsigned int ResourceManager::CreateShader(const std::string& vertexShader, cons
 
 Mesh ResourceManager::ProcessMesh(std::fstream& fstream)
 {
-
     std::string currentLine;
 
 	std::vector<glm::vec3> positions;
@@ -274,8 +303,18 @@ Mesh ResourceManager::ProcessMesh(std::fstream& fstream)
             }
 		}
     }
-    // creating the mesh
+    MeshData& meshData = mMeshes.emplace_back();
+	meshData.vertices = vertices;
+	meshData.indices = indices;
+    meshData.vertexCount = vertices.size();
+	meshData.id = mMeshes.size() - 1; // TODO : UUID????
 
+	Mesh meshComponent;
+	meshComponent.id = meshData.id;
+    return meshComponent;
+}
+
+/*  THIS IS HOW TO SAVE MESH ON OPENGL
     // generate vertex Buffer
     unsigned int vertexBuffer;
     GLCall(glGenBuffers(1, &vertexBuffer));
@@ -284,7 +323,7 @@ Mesh ResourceManager::ProcessMesh(std::fstream& fstream)
     // generate vertex array
     unsigned int vertexArray;
     GLCall(glGenVertexArrays(1, &vertexArray));
-    
+
     // generate buffer layout
     VertexBufferLayout layout;
     layout.Push<Vertex>(1);
@@ -307,13 +346,9 @@ Mesh ResourceManager::ProcessMesh(std::fstream& fstream)
     GLCall(glGenBuffers(1, &indexBuffer));
     GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer));
     GLCall(glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW));
-    
+
     Mesh meshComponent(vertexArray, indexBuffer, indices.size());
-    return meshComponent;
-
-}
-
-
+*/
 
 /////////////////////////////////////////
 // TEXTURE STUFF ////////////////////////

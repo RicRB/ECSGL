@@ -18,6 +18,7 @@
 #include "imgui/imgui_impl_glfw.h"
 #include "imgui//imgui_impl_opengl3.h"
 #include "renderer/vulkan.h"
+#include "renderer/graphics_api.h"
 void PrintMessage(int i) {
     std::cout << i << "\n";
 }
@@ -47,7 +48,8 @@ int main(void)
     glfwSetWindowUserPointer(window, &vulkan);
     glfwSetFramebufferSizeCallback(window, vulkan.framebufferResizeCallback);
 
-    vulkan.init(window);
+    vulkan.initialize(window);
+    Engine engine(GRAPHICS_API_VULKAN);
 
     /* Make the window's context current */
     //glfwMakeContextCurrent(window);

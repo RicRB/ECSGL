@@ -7,11 +7,9 @@
 #include "resource_manager.h"
 #include "lights.h"
 #include "camera.h"
-
-enum class RendererType {
-	VULKAN = 0,
-	OPENGL = 1
-};
+#include "renderer/graphics_api.h"
+#include "renderer.h"
+#include <memory>
 
 class Engine
 {
@@ -24,16 +22,19 @@ public:
 	Mesh defaultMesh;
 	Camera currentCamera;
 	Entity currentCameraEntity;
-	RendererType rendererType = RendererType::OPENGL;
+	GraphicsAPIType rendererType;
+	std::unique_ptr<GraphicsAPI> graphicsAPI;
+	GLFWwindow* window;
 	
 public:
-	Engine();
+	Engine(const GraphicsAPIType graphicsAPIType);
+	void initialize(GLFWwindow* window);
 	void Start();
 	void Update();
 	void LoadScene(const std::string& scenePath);
 	void SetCamera(Entity camera);
 	Scene GetScene();
-
+	~Engine();
 private:
 
 	Engine(const Engine&) = delete;
@@ -43,7 +44,7 @@ private:
 namespace engine
 {
 	extern Engine* currentEngine;
-	extern RendererType* currentRendererType;
+	extern GraphicsAPIType* currentRendererType;
 	void SetCurrentEngine(Engine& engine);
 	Entity CreateEmptyEntity();
 	Entity CreateObject(Transform transform = Transform(), Mesh mesh = {}, Material material = {});

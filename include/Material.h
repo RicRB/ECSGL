@@ -26,6 +26,7 @@ struct MaterialVariable
 };
 
 struct MaterialData {
+	MaterialID id;
 	ShaderID shaderID;
 	VkDescriptorSet descriptorSet;
 	VkUniformBuffer uniformBuffer;
@@ -36,6 +37,4 @@ struct MaterialData {
 };
 struct Material {
 	MaterialID id;
-	ShaderID shaderID;
-	MaterialData* data;
 };

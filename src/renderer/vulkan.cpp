@@ -9,7 +9,7 @@
 #include <set>
 #include <glm/gtc/matrix_transform.hpp>
 #include <unordered_set>
-void Vulkan::init(GLFWwindow* window)
+void Vulkan::initialize(GLFWwindow* window)
 {
 	this->window = window;
 	// create instance
@@ -84,8 +84,6 @@ void Vulkan::init(GLFWwindow* window)
 	createFramebuffers();
 	createCommandPool();
 
-	createVertexBuffer();
-	createIndexBuffer();
 	createUniformBuffers();
 
 	createDescriptorPool();
@@ -95,7 +93,7 @@ void Vulkan::init(GLFWwindow* window)
 	createSyncObjects();
 }
 
-void Vulkan::drawFrame(const glm::mat4 viewProjection, const int entityCount, const std::vector<Transform*> transforms, const std::vector<Mesh*> meshes, const std::vector<Material*> materials, const std::vector<ShaderData>* shaders)
+void Vulkan::drawFrame(const glm::mat4 viewProjection, const int entityCount, const std::vector<Transform*> transforms, const std::vector<MeshData*> meshes, const std::vector<MaterialData*> materials, const std::vector<ShaderData>* shaders)
 {
 	vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
@@ -119,7 +117,7 @@ void Vulkan::drawFrame(const glm::mat4 viewProjection, const int entityCount, co
 	for (auto material : materials) {
 		if (updatedMaterials.contains(material->id)) continue;
 		updatedMaterials.insert(material->id);
-		updateUniformBufferData(&material->data->uniformBuffer, &material->data->ubo);
+		updateUniformBufferData(&material->uniformBuffer, &material->ubo);
 	}
 	// recording command buffer
 	vkResetCommandBuffer(commandBuffers[currentFrame], 0);
@@ -174,14 +172,14 @@ void Vulkan::drawFrame(const glm::mat4 viewProjection, const int entityCount, co
 			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shader.pipeline);
 		}
 
-		VkBuffer vertexBuffers[] = { meshes[i]->vertexBuffer };
+		VkBuffer vertexBuffers[] = { meshes[i]->vertexBuffer.buffer };
 		VkDeviceSize offsets[] = { 0 };
-
+		
 		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-		vkCmdBindIndexBuffer(commandBuffer, meshes[i]->indexBuffer, 0, VK_INDEX_TYPE_UINT16);
+		vkCmdBindIndexBuffer(commandBuffer, meshes[i]->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT16);
 
-		uint32_t dynamicOffset = currentFrame * materials[i]->data->uniformBuffer.bufferSize;
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shader.pipelineLayout, 0, 1, &materials[i]->data->descriptorSet, 0, nullptr);
+		uint32_t dynamicOffset = currentFrame * materials[i]->uniformBuffer.bufferSize;
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shader.pipelineLayout, 0, 1, &materials[i]->descriptorSet, 0, nullptr);
 		PushConstants pushConstants;
 		pushConstants.mvp = viewProjection * transforms[i]->matrix();
 		pushConstants.time = static_cast<float>(glfwGetTime());
@@ -260,19 +258,21 @@ void Vulkan::cleanup()
 {
 	cleanupSwapChain();
 
+	/*
 	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 		vkDestroyBuffer(device, uniformBuffers[i], nullptr);
 		vkFreeMemory(device, uniformBuffersMemory[i], nullptr);
 	}
+	*/
 
 	vkDestroyDescriptorPool(device, descriptorPool, nullptr);
 
 	vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
-	vkDestroyBuffer(device, vertexBuffer, nullptr);
-	vkFreeMemory(device, vertexBufferMemory, nullptr);
-	vkDestroyBuffer(device, indexBuffer, nullptr);
-	vkFreeMemory(device, indexBufferMemory, nullptr);
+	//vkDestroyBuffer(device, vertexBuffer, nullptr);
+	//vkFreeMemory(device, vertexBufferMemory, nullptr);
+	//vkDestroyBuffer(device, indexBuffer, nullptr);
+	//vkFreeMemory(device, indexBufferMemory, nullptr);
 
 	vkDestroyPipeline(device, graphicsPipeline, nullptr);
 	vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
@@ -695,8 +695,8 @@ void Vulkan::createGraphicsPipeline(const char* name, const std::string& vertexS
 	// vertex input 
 	VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
 	vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-	auto bindingDescription = VkVertex::getBindingDescription();
-	auto attributeDescriptions = VkVertex::getAttributeDescriptions();
+	auto bindingDescription = Vertex::getBindingDescription();
+	auto attributeDescriptions = Vertex::getAttributeDescriptions();
 
 	vertexInputInfo.vertexBindingDescriptionCount = 1;
 	vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
@@ -1034,7 +1034,7 @@ void Vulkan::recreateSwapChain()
 	createFramebuffers();
 }
 
-void Vulkan::createVertexBuffer() {
+void Vulkan::createVertexBuffer(const std::vector<Vertex>& vertices, VkVertexBuffer* vertexBuffer) {
 	VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
 
 	VkBuffer stagingBuffer;
@@ -1046,15 +1046,15 @@ void Vulkan::createVertexBuffer() {
 	memcpy(data, vertices.data(), (size_t)bufferSize);
 	vkUnmapMemory(device, stagingBufferMemory);
 
-	createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
+	createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer->buffer, vertexBuffer->memory);
 	
-	copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
+	copyBuffer(stagingBuffer, vertexBuffer->buffer, bufferSize);
 
 	vkDestroyBuffer(device, stagingBuffer, nullptr);
 	vkFreeMemory(device, stagingBufferMemory, nullptr);
 }
 
-void Vulkan::createIndexBuffer()
+void Vulkan::createIndexBuffer(const std::vector<unsigned int>& indices, VkIndexBuffer* indexBuffer)
 {
 	VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
 
@@ -1067,9 +1067,9 @@ void Vulkan::createIndexBuffer()
 	memcpy(data, indices.data(), (size_t)bufferSize);
 	vkUnmapMemory(device, stagingBufferMemory);
 
-	createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory);
+	createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer->buffer, indexBuffer->memory);
 
-	copyBuffer(stagingBuffer, indexBuffer, bufferSize);
+	copyBuffer(stagingBuffer, indexBuffer->buffer, bufferSize);
 
 	vkDestroyBuffer(device, stagingBuffer, nullptr);
 	vkFreeMemory(device, stagingBufferMemory, nullptr);
@@ -1171,36 +1171,6 @@ void Vulkan::createDescriptorSetLayout()
 	}
 }
 
-void Vulkan::createUniformBuffers()
-{
-	VkDeviceSize bufferSize = sizeof(GlobalUniformBufferObject);
-
-	uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-	uniformBuffersMemory.resize(MAX_FRAMES_IN_FLIGHT);
-	uniformBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
-
-	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-		createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i], uniformBuffersMemory[i]);
-
-		vkMapMemory(device, uniformBuffersMemory[i], 0, bufferSize, 0, &uniformBuffersMapped[i]);
-	}
-}
-
-void Vulkan::updateUniformBuffer(uint32_t currentImage)
-{
-	static auto startTime = std::chrono::high_resolution_clock::now();
-
-	auto currentTime = std::chrono::high_resolution_clock::now();
-	float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-
-	GlobalUniformBufferObject ubo{};
-	ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	ubo.proj = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10.0f);
-	ubo.proj[1][1] *= -1;
-
-	memcpy(uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
-}
-
 void Vulkan::createDescriptorPool()
 {
 	VkDescriptorPoolSize poolSize{};
@@ -1218,45 +1188,6 @@ void Vulkan::createDescriptorPool()
 		throw std::runtime_error("failed to create descriptor pool!");
 	}
 }
-
-void Vulkan::createDescriptorSets()
-{
-	std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, descriptorSetLayout);
-	VkDescriptorSetAllocateInfo allocInfo{};
-	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-	allocInfo.descriptorPool = descriptorPool;
-	allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
-	allocInfo.pSetLayouts = layouts.data();
-
-	descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
-	if (vkAllocateDescriptorSets(device, &allocInfo, descriptorSets.data()) != VK_SUCCESS) {
-		throw std::runtime_error("failed to allocate descriptor sets!");
-	}
-
-	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-		VkDescriptorBufferInfo bufferInfo{};
-		bufferInfo.buffer = uniformBuffers[i];
-		bufferInfo.offset = 0;
-		bufferInfo.range = sizeof(GlobalUniformBufferObject);
-
-		VkWriteDescriptorSet descriptorWrite{};
-		descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptorWrite.dstSet = descriptorSets[i];
-		descriptorWrite.dstBinding = 0;
-		descriptorWrite.dstArrayElement = 0;
-
-		descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		descriptorWrite.descriptorCount = 1;
-
-		descriptorWrite.pBufferInfo = &bufferInfo;
-		descriptorWrite.pImageInfo = nullptr; // Optional
-		descriptorWrite.pTexelBufferView = nullptr; // Optional
-
-		vkUpdateDescriptorSets(device, 1, &descriptorWrite, 0, nullptr);
-	}
-}
-
-
 
 void Vulkan::createUniformBuffer(VkUniformBuffer* buffer, const VkDeviceSize bufferSize)
 {
@@ -1310,4 +1241,10 @@ inline void Vulkan::updateUniformBufferData(VkUniformBuffer* buffer, const void*
 {
 	size_t frameOffset = currentFrame % MAX_FRAMES_IN_FLIGHT;
 	memcpy(static_cast<char*>(buffer->mapped) + frameOffset, &data, buffer->bufferSize);
+}
+
+void Vulkan::loadMesh(MeshData* mesh) {
+	createVertexBuffer(mesh->vertices, &mesh->vertexBuffer);
+	createIndexBuffer(mesh->indices, &mesh->indexBuffer);
+	mesh->vertexCount = static_cast<uint32_t>(mesh->vertices.size());
 }

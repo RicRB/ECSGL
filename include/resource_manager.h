@@ -8,16 +8,19 @@
 #include <unordered_map>
 #include <fstream>
 #include <string>
+#include "engine.h"
 
 class ResourceManager
 {
 public:
 	ResourceManager();
 	~ResourceManager() = default;
-private:
-	bool initialized = false;
 	std::vector<ShaderData> mShaders;
 	std::vector<MaterialData> mMaterials;
+	std::vector<MeshData> mMeshes;
+private:
+	bool initialized = false;
+
 	// TODO: add a map string -> ShaderID to avoid copies
 	std::unordered_map<ShaderID, std::unordered_map<std::string, int>> mUniformLocationCache;
 	std::unordered_map<ShaderID, std::unordered_map<std::string, GLenum>> mUniforms;
@@ -25,6 +28,7 @@ private:
 
 public: 
 	Shader LoadShader(const std::string& vertexShaderPath, const std::string& fragmentShaderPath);
+	Material LoadMaterial(const ShaderID shaderID);
 	Texture LoadTexture(const std::string& path);
 	Mesh LoadOBJ(const std::string& filepath);
 	Scene ParseScene(const std::string& shaderPath);
