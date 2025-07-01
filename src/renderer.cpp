@@ -39,6 +39,22 @@ void Renderer::DrawElements(Registry& registry)
 		materials.push_back(&resourceManager.mMaterials[std::get<3>(currentView[i])->id]);
 	}
 
+	std::vector<DirectionLightUniform> directionalLights;
+	std::vector<PointLightUniform> pointLights;
+	auto dirView = registry.GetView<DirectionalLight>();
+	for (auto dirLight : dirView.GetComponents<DirectionalLight>())
+	{
+		auto& ubo = directionalLights.emplace_back();
+		ubo.direction = glm::vec4(dirLight->direction, 1.0);
+		ubo.ambient = glm::vec4(dirLight->ambient, 1.0);
+		ubo.diffuse = glm::vec4(dirLight->diffuse, 1.0);
+		ubo.specular = glm::vec4(dirLight->specular, 1.0);
+	}
+
+	auto pointView = registry.GetView<PointLight, Transform>();
+	for (size_t i = 0; i < pointView.size(); i++)
+	{
+	}
 	engine::currentEngine->graphicsAPI->drawFrame(viewProj,
 		currentView.size(),
 		currentView.GetComponents<Transform>(),

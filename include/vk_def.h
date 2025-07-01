@@ -1,12 +1,8 @@
 #include <vulkan/vulkan.h>
 #include <glm/glm.hpp>
+#include "uniform_objects.h"
 
 
-struct GlobalUniformBufferObject {
-	alignas(16) glm::mat4 model;
-	alignas(16) glm::mat4 view;
-	alignas(16) glm::mat4 proj;
-};
 struct alignas(256) VkMaterialUBO {
 	glm::vec4 diffuseColor;
 	glm::vec4 specularColor;

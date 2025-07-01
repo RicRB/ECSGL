@@ -74,7 +74,15 @@ private:
 
 public:
 	void initialize(GLFWwindow* window) override;
-	void drawFrame(const glm::mat4 viewProjection,const int entityCount, const std::vector<Transform*> transforms, const std::vector<MeshData*> meshes, const std::vector<MaterialData*> materials, const std::vector<ShaderData>* shaders) override;
+	void drawFrame(const glm::mat4 viewProjection,
+		const int entityCount, 
+		const std::vector<Transform*> transforms, 
+		const std::vector<MeshData*> meshes, 
+		const std::vector<MaterialData*> materials, 
+		const std::vector<ShaderData>* shaders,
+		const std::vector<DirectionLightUniform>* directionalLights,
+		const std::vector<PointLightUniform>* pointLights
+	) override;
 	std::vector<const char*> getRequiredExtensions();
 	void cleanup();
 	static void framebufferResizeCallback(GLFWwindow* window, int width, int height);

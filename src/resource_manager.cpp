@@ -119,7 +119,7 @@ void ResourceManager::InitShaders(Registry& registry)
             dirLightCount = 1;
         if (pointLightCount < 1)
             pointLightCount = 1;
-        std::string shaderVersion = "#version 330 core\n";
+        std::string shaderVersion = "#version 450\n";
         std::string fragmentArraySizes = "const int MAX_POINT_LIGHTS = " + std::to_string(dirLightCount) + ";\nconst int MAX_DIR_LIGHTS = " + std::to_string(pointLightCount) + ";\n";
         shader.FragmentSource = shaderVersion + fragmentArraySizes + shader.FragmentSource;
 		shader.id = CreateShader(shader.VertexSource, shader.FragmentSource);

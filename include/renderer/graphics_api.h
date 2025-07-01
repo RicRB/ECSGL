@@ -2,6 +2,7 @@
 #include "material.h"
 #include "mesh.h"
 #include "transform.h"
+#include "uniform_objects.h"
 #include <string>
 #include <vector>
 using GraphicsAPIType = uint16_t;
@@ -13,7 +14,15 @@ public:
 	// Initialize the graphics API
 	virtual void initialize(GLFWwindow* window) = 0;
 	// Render a frame
-	virtual void drawFrame(const glm::mat4 viewProjection, const int entityCount, const std::vector<Transform*> transforms, const std::vector<MeshData*> meshes, const std::vector<MaterialData*> materials, const std::vector<ShaderData>* shaders) = 0;
+	virtual void drawFrame(const glm::mat4 viewProjection, 
+		const int entityCount, 
+		const std::vector<Transform*> transforms, 
+		const std::vector<MeshData*> meshes, 
+		const std::vector<MaterialData*> materials, 
+		const std::vector<ShaderData>* shaders,
+		const std::vector<DirectionLightUniform>* directionalLights,
+		const std::vector<PointLightUniform>* pointLights
+	) = 0;
 	// Cleanup resources
 	virtual void cleanup() = 0;
 	// create Shader
