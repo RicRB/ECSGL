@@ -52,15 +52,28 @@ void Renderer::DrawElements(Registry& registry)
 	}
 
 	auto pointView = registry.GetView<PointLight, Transform>();
+	auto pointLightsView = pointView.GetComponents<PointLight>();
+	auto pointTransforms = pointView.GetComponents<Transform>();
 	for (size_t i = 0; i < pointView.size(); i++)
 	{
+		auto& ubo = pointLights.emplace_back();
+		ubo.position = glm::vec4(pointTransforms[i]->position, 1.0);
+		ubo.constant = pointLightsView[i]->constant;
+		ubo.linear = pointLightsView[i]->linear;
+		ubo.quadratic = pointLightsView[i]->quadratic;
+		ubo.ambient = glm::vec4(pointLightsView[i]->ambient, 1.0);
+		ubo.diffuse = glm::vec4(pointLightsView[i]->diffuse, 1.0);
+		ubo.specular = glm::vec4(pointLightsView[i]->specular, 1.0);
 	}
+	
 	engine::currentEngine->graphicsAPI->drawFrame(viewProj,
 		currentView.size(),
 		currentView.GetComponents<Transform>(),
 		meshes,
 		materials,
-		&resourceManager.mShaders
+		&resourceManager.mShaders,
+		&directionalLights,
+		&pointLights
 	);
 
 

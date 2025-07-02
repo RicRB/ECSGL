@@ -2,11 +2,15 @@ TODO:
 - SORT BY MATERIALS/MESHES SO WE CAN EFFICIENTLY RENDER AND AVOID SWITCHING PIPELINES AS OFTEN AS POSSIBLE
 - UUID SYSTEM FOR EVERYTHING. PLS
 - Add a struct for sending in information to draw frame rather than having 10000000 parameters
+
+
 IMMEDIATE TODO :
-- ADD POINT LIGHT STUFF...
-- attach both descriptors rather than just 1 we need per frame, per mat (not necessary??)
+- add light uniforms into our pipeline 
+- default material...
 - add uniform reading from spirv?? save spirv module or just read from file?
 
+debug ideas :
+- attach both descriptors rather than just 1 we need per frame, per mat (not necessary??)
 
 Questions??
 should i update current frame uniform buffer or the opposite?
