@@ -3,10 +3,8 @@
 #include <string>
 #include <sstream>
 #include <vector>
-#include "gl_def.h"
 #include "shader.h"
 #include "transform.h"
-#include "renderer.h"
 #include "resource_manager.h"
 #include "engine.h"
 #include "ecs/ecs.hpp"
@@ -43,14 +41,8 @@ int main(void)
         return -1;
     }
 
-    Vulkan vulkan;
-
-    glfwSetWindowUserPointer(window, &vulkan);
-    glfwSetFramebufferSizeCallback(window, vulkan.framebufferResizeCallback);
-
-    vulkan.initialize(window);
     Engine engine(GRAPHICS_API_VULKAN);
-
+    engine.initialize(window);
     /* Make the window's context current */
     //glfwMakeContextCurrent(window);
 
@@ -124,9 +116,11 @@ int main(void)
   //      double currentFrame;
 		//double lastFrame = 0.0f;
 		//double deltaTime = 0.0f;
+
+        engine.Start();
         while (!glfwWindowShouldClose(window))
         {
-            vulkan.drawFrame();
+            engine.Update();
             //GLCall(glClearColor(0.1f, 0.1f, 0.1f, 1.0f););
             /*renderer.Clear();
 
@@ -166,8 +160,11 @@ int main(void)
     //ImGui_ImplOpenGL3_Shutdown();
     //ImGui_ImplGlfw_Shutdown();
     //ImGui::DestroyContext();
-	vkDeviceWaitIdle(vulkan.device);
-	vulkan.cleanup();
+    if (engine.renderer.rendererType == GRAPHICS_API_VULKAN)
+    {
+        vkDeviceWaitIdle(engine.renderer.graphicsAPI->device);
+    }
+    engine.cleanup();
     glfwDestroyWindow(window);
     glfwTerminate();
 

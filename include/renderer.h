@@ -1,23 +1,26 @@
-#pragma once
+#pragma 
 #include "ecs/ecs_system.h"
 #include "transform.h"
-#include "gl_def.h"
 #include "material.h"
 #include "mesh.h"
-#include "engine.h"
 #include "renderer/graphics_api.h"
-class Renderer : public System
+#include "resource_manager.h"
+class Renderer
 {
+public:
+	std::unique_ptr<GraphicsAPI> graphicsAPI;
+	GraphicsAPIType rendererType;
+private:
 	View<Transform, Mesh, Material> currentView;
-	GraphicsAPI* graphicsAPI = nullptr;
+
 	
 public:
 	Renderer();
 	~Renderer();
-	void Start(Registry& registry) override {};
-	void Update(Registry& registry) override;
+	void Start(Registry& registry) {};
+	void Update(Registry& registry) {};
 	void Run();
-	void DrawElements(Registry& registry);
+	void DrawElements(Registry& registry, ResourceManager& resourceManager, Entity camera);
 	void Clear() const;
 	inline void DrawEntity(const Entity entity);
 };

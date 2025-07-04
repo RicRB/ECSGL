@@ -8,7 +8,6 @@
 #include <unordered_map>
 #include <fstream>
 #include <string>
-#include "engine.h"
 
 class ResourceManager
 {
@@ -33,7 +32,6 @@ public:
 	Mesh LoadOBJ(const std::string& filepath);
 	Scene ParseScene(const std::string& shaderPath);
 	std::string& SaveScene();
-	void InitShaders(Registry& registry);
 	int GetUniformLocation(const unsigned int rendererID, const std::string& name);
 
 private:

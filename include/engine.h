@@ -7,7 +7,6 @@
 #include "resource_manager.h"
 #include "lights.h"
 #include "camera.h"
-#include "renderer/graphics_api.h"
 #include "renderer.h"
 #include <memory>
 
@@ -17,13 +16,12 @@ public:
 	//std::unique_ptr<Scene> currentScene;
 	Registry registry;
 	ResourceManager resourceManager;
+	Renderer renderer;
 	Shader defaultShader;
 	Material defaultMaterial;
 	Mesh defaultMesh;
 	Camera currentCamera;
 	Entity currentCameraEntity;
-	GraphicsAPIType rendererType;
-	std::unique_ptr<GraphicsAPI> graphicsAPI;
 	GLFWwindow* window;
 	
 public:
@@ -33,6 +31,7 @@ public:
 	void Update();
 	void LoadScene(const std::string& scenePath);
 	void SetCamera(Entity camera);
+	void cleanup();
 	Scene GetScene();
 	~Engine();
 private:

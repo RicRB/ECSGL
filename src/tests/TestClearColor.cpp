@@ -1,5 +1,4 @@
 #include "test_clear_color.h"
-#include <GL/glew.h>
 #include "gl_def.h"
 #include "imgui/imgui.h"
 test::TestClearColor::TestClearColor()

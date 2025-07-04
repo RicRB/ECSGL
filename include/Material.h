@@ -34,6 +34,7 @@ struct MaterialData {
 
 	MaterialVariable diffuse, specular;
 	float shininess;
+	MaterialData() : id(0), shaderID(0), descriptorSet(VK_NULL_HANDLE), uniformBuffer(VK_NULL_HANDLE), ubo(), diffuse(glm::vec3(0.0, 0.0, 0.0)), specular(glm::vec3(0.0, 0.0, 0.0)) {}
 };
 struct Material {
 	MaterialID id;

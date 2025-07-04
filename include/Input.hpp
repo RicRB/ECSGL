@@ -1,5 +1,5 @@
 #pragma once
-#include "GLFW/glfw3.h"
+#include <GLFW/glfw3.h>
 enum class Key
 {
 	SPACE = GLFW_KEY_SPACE,

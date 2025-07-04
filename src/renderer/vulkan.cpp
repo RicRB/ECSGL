@@ -80,27 +80,29 @@ void Vulkan::initialize(GLFWwindow* window)
 	createSwapChain();
 	createImageViews();
 	createRenderPass();
-	createDescriptorSetLayout();
+	createDescriptorSetLayouts();
 	createFramebuffers();
 	createCommandPool();
-
-	createUniformBuffers();
-
 	createDescriptorPool();
-	createDescriptorSets();
+
+	createGlobalUniformBuffer();
+	//createUniformBuffers();
+
+
+	//createDescriptorSets();
 
 	createCommandBuffers();
 	createSyncObjects();
 }
-
-void Vulkan::drawFrame(const glm::mat4 viewProjection, 
-	const int entityCount, 
-	const std::vector<Transform*> transforms, 
-	const std::vector<MeshData*> meshes, 
+// TODO : REALLY NEED TO MAKE THIS ONE STRUCT
+void Vulkan::drawFrame(
+	const glm::mat4 viewProjection,
+	const GlobalUBO* globalUniformObject,
+	const int entityCount,
+	const std::vector<Transform*> transforms,
+	const std::vector<MeshData*> meshes,
 	const std::vector<MaterialData*> materials,
-	const std::vector<ShaderData>* shaders,
-	const std::vector<DirectionLightUniform>* directionalLights,
-	const std::vector<PointLightUniform>* pointLights
+	const std::vector<ShaderData>* shaders
 )
 {
 	vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
@@ -119,8 +121,9 @@ void Vulkan::drawFrame(const glm::mat4 viewProjection,
 	// Only reset the fence if we are submitting work
 	vkResetFences(device, 1, &inFlightFences[currentFrame]);
 
+	// update global 
+	updateUniformBufferData(&globalUniformBuffer, globalUniformObject);
 	// get new uniforms
-	updateUniformBuffer(currentFrame);
 	std::unordered_set<MaterialID> updatedMaterials;
 	for (auto material : materials) {
 		if (updatedMaterials.contains(material->id)) continue;
@@ -187,11 +190,13 @@ void Vulkan::drawFrame(const glm::mat4 viewProjection,
 		vkCmdBindIndexBuffer(commandBuffer, meshes[i]->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT16);
 
 		uint32_t dynamicOffset = currentFrame * materials[i]->uniformBuffer.bufferSize;
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shader.pipelineLayout, 0, 1, &materials[i]->descriptorSet, 0, nullptr);
+		uint32_t dynamicOffsets[] = { 0, dynamicOffset };
+		VkDescriptorSet descriptorSets[] = { globalDescriptorSet, materials[i]->descriptorSet };
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shader.pipelineLayout, 0, 2, descriptorSets, 0, dynamicOffsets);
 		PushConstants pushConstants;
 		pushConstants.mvp = viewProjection * transforms[i]->matrix();
 		pushConstants.time = static_cast<float>(glfwGetTime());
-		vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstants), &pushConstants);
+		vkCmdPushConstants(commandBuffer, shader.pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstants), &pushConstants);
 		vkCmdDrawIndexed(commandBuffer, meshes[i]->vertexCount, 1, 0, 0, 0);
 	}
 
@@ -236,8 +241,8 @@ void Vulkan::drawFrame(const glm::mat4 viewProjection,
 	presentInfo.pResults = nullptr; // Optional
 	result = vkQueuePresentKHR(presentQueue, &presentInfo);
 
-	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || framebufferResized) {
-		framebufferResized = false;
+	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || frameBufferResized) {
+		frameBufferResized = false;
 		recreateSwapChain();
 	}
 	else if (result != VK_SUCCESS) {
@@ -275,15 +280,16 @@ void Vulkan::cleanup()
 
 	vkDestroyDescriptorPool(device, descriptorPool, nullptr);
 
-	vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
+	vkDestroyDescriptorSetLayout(device, globalDescriptorSetLayout, nullptr);
+	vkDestroyDescriptorSetLayout(device, materialDescriptorSetLayout, nullptr);
 
 	//vkDestroyBuffer(device, vertexBuffer, nullptr);
 	//vkFreeMemory(device, vertexBufferMemory, nullptr);
 	//vkDestroyBuffer(device, indexBuffer, nullptr);
 	//vkFreeMemory(device, indexBufferMemory, nullptr);
 
-	vkDestroyPipeline(device, graphicsPipeline, nullptr);
-	vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
+	//vkDestroyPipeline(device, graphicsPipeline, nullptr);
+	//vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 
 	vkDestroyRenderPass(device, renderPass, nullptr);
 
@@ -305,13 +311,6 @@ void Vulkan::cleanup()
 	}
 	vkDestroySurfaceKHR(instance, surface, nullptr);
 	vkDestroyInstance(instance, nullptr);
-}
-
-void Vulkan::framebufferResizeCallback(GLFWwindow* window, int width, int height)
-{
-	auto app = reinterpret_cast<Vulkan*>(glfwGetWindowUserPointer(window));
-	app->framebufferResized = true;
-	std::cout << "Framebuffer resized: " << width << "x" << height << std::endl;
 }
 
 VKAPI_ATTR VkBool32 VKAPI_CALL Vulkan::debugCallback(
@@ -786,8 +785,9 @@ void Vulkan::createGraphicsPipeline(const char* name, const std::string& vertexS
 	// pipeline layout
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
 	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-	pipelineLayoutInfo.setLayoutCount = 1; // Optional
-	pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout; // Optional
+	pipelineLayoutInfo.setLayoutCount = 2; // Optional
+	VkDescriptorSetLayout descriptorSetLayouts[] = { globalDescriptorSetLayout, materialDescriptorSetLayout };
+	pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts; // Optional
 
 	VkPushConstantRange pushConstantRange{};
 	pushConstantRange.offset = 0;
@@ -1160,13 +1160,31 @@ void Vulkan::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize siz
 	vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
 }
 
-void Vulkan::createDescriptorSetLayout()
+void Vulkan::createDescriptorSetLayouts()
 {
+	// global 
+	VkDescriptorSetLayoutBinding guboLayoutBinding{};
+	guboLayoutBinding.binding = 0;
+	guboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+	guboLayoutBinding.descriptorCount = 1;
+	guboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT; // add frag for fragment uniforms
+	guboLayoutBinding.pImmutableSamplers = nullptr; // Optional
+
+	VkDescriptorSetLayoutCreateInfo globalLayoutInfo{};
+	globalLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	globalLayoutInfo.bindingCount = 1;
+	globalLayoutInfo.pBindings = &guboLayoutBinding;
+
+	if (vkCreateDescriptorSetLayout(device, &globalLayoutInfo, nullptr, &globalDescriptorSetLayout) != VK_SUCCESS) {
+		throw std::runtime_error("failed to create descriptor set layout!");
+	}
+
+	// material
 	VkDescriptorSetLayoutBinding uboLayoutBinding{};
 	uboLayoutBinding.binding = 0;
 	uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
 	uboLayoutBinding.descriptorCount = 1;
-	uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT; // add frag for fragment uniforms
+	uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT; // add frag for fragment uniforms
 	uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
 
 	VkDescriptorSetLayoutCreateInfo layoutInfo{};
@@ -1174,23 +1192,30 @@ void Vulkan::createDescriptorSetLayout()
 	layoutInfo.bindingCount = 1;
 	layoutInfo.pBindings = &uboLayoutBinding;
 
-	if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) {
+	if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &materialDescriptorSetLayout) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create descriptor set layout!");
 	}
+}
+
+void Vulkan::createGlobalUniformBuffer()
+{
+	createUniformBuffer(&globalUniformBuffer, sizeof(GlobalUBO));
+	createDescriptorSet(&globalUniformBuffer, &globalDescriptorSetLayout, &globalDescriptorSet);
+	updateUniformBufferData(&globalUniformBuffer, &globalUBO);
 }
 
 void Vulkan::createDescriptorPool()
 {
 	VkDescriptorPoolSize poolSize{};
-	poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	poolSize.descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+	poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+	poolSize.descriptorCount = MAX_MATERIALS;
 
 	VkDescriptorPoolCreateInfo poolInfo{};
 	poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 	poolInfo.poolSizeCount = 1;
 	poolInfo.pPoolSizes = &poolSize;
 
-	poolInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+	poolInfo.maxSets = MAX_MATERIALS * MAX_FRAMES_IN_FLIGHT;
 
 	if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create descriptor pool!");
@@ -1204,12 +1229,12 @@ void Vulkan::createUniformBuffer(VkUniformBuffer* buffer, const VkDeviceSize buf
 	vkMapMemory(device, buffer->memory, 0, bufferSize * MAX_FRAMES_IN_FLIGHT, 0, &buffer->mapped);
 }
 
-void Vulkan::createDescriptorSet(VkUniformBuffer* buffer, VkDescriptorSet* descriptorSet) {
+void Vulkan::createDescriptorSet(VkUniformBuffer* buffer, const VkDescriptorSetLayout* descriptorSetLayout, VkDescriptorSet* descriptorSet) {
 	VkDescriptorSetAllocateInfo allocInfo{};
 	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 	allocInfo.descriptorPool = descriptorPool;
 	allocInfo.descriptorSetCount = 1;
-	allocInfo.pSetLayouts = &descriptorSetLayout;
+	allocInfo.pSetLayouts = &materialDescriptorSetLayout;
 	if (vkAllocateDescriptorSets(device, &allocInfo, descriptorSet) != VK_SUCCESS) {
 		throw std::runtime_error("failed to allocate descriptor sets!");
 	}
@@ -1235,14 +1260,14 @@ void Vulkan::createDescriptorSet(VkUniformBuffer* buffer, VkDescriptorSet* descr
 	vkUpdateDescriptorSets(device, 1, &descriptorWrite, 0, nullptr);
 }
 
-void Vulkan::loadShader(const char* name, const std::string& vertexSource, const std::string& fragmentSource, ShaderData* shaderData) {
+void Vulkan::compileShader(const char* name, const std::string& vertexSource, const std::string& fragmentSource, ShaderData* shaderData) {
 	createGraphicsPipeline(name, vertexSource, fragmentSource, &shaderData->pipeline, &shaderData->pipelineLayout);
 }
 
 void Vulkan::loadMaterial(const char* name, const ShaderData& shaderData, MaterialData* materialData) {
 	materialData->shaderID = shaderData.id;
 	createUniformBuffer(&materialData->uniformBuffer, sizeof(VkMaterialUBO));
-
+	createDescriptorSet(&materialData->uniformBuffer, &materialDescriptorSetLayout, &materialData->descriptorSet);
 }
 
 inline void Vulkan::updateUniformBufferData(VkUniformBuffer* buffer, const void* data)

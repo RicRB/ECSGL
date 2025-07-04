@@ -4,7 +4,7 @@
 #include "lights.h"
 #include "gl_def.h"
 #include "vertex_buffer_layout.h"
-
+#include "engine.h"
 ResourceManager::ResourceManager()
 {
 	if (!initialized)
@@ -28,7 +28,7 @@ Shader ResourceManager::LoadShader(const std::string& vertexShaderPath, const st
 	returnShader.data = &shader;
     ParseShader(shader, vertexShaderPath, fragmentShaderPath);
 
-	engine::currentEngine->graphicsAPI->loadShader(
+	engine::currentEngine->renderer.graphicsAPI->compileShader(
 		std::to_string(shader.id).c_str(),
 		shader.VertexSource,
 		shader.FragmentSource,
@@ -49,7 +49,7 @@ Material ResourceManager::LoadMaterial(const ShaderID shaderID)
 	material.ubo.specularColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 	returnMaterial.id = material.id;
 
-	engine::currentEngine->graphicsAPI->loadMaterial(
+	engine::currentEngine->renderer.graphicsAPI->loadMaterial(
 		std::to_string(material.id).c_str(),
 		mShaders[shaderID],
 		&material
@@ -103,30 +103,6 @@ std::string& ResourceManager::SaveScene()
     // TODO: insert return statement here
     return hey;
 }
-// TODO : CREATE SHADER WITH THE LIGHT TYPES AND AMOUNTS !!!!!!!!!!!!!
-void ResourceManager::InitShaders(Registry& registry)
-{
-    for (auto& shader : mShaders)
-	{
-        // TODO: GET LIGHTS 
-        // Get Lights from current renderer in game
-        auto viewDir = registry.GetView<DirectionalLight>();
-        auto viewPoint = registry.GetView<PointLight>();
-        int dirLightCount = viewDir.size();
-        int pointLightCount = viewPoint.size();
-        // make sure the counters cant be below 1
-        if (dirLightCount < 1)
-            dirLightCount = 1;
-        if (pointLightCount < 1)
-            pointLightCount = 1;
-        std::string shaderVersion = "#version 450\n";
-        std::string fragmentArraySizes = "const int MAX_POINT_LIGHTS = " + std::to_string(dirLightCount) + ";\nconst int MAX_DIR_LIGHTS = " + std::to_string(pointLightCount) + ";\n";
-        shader.FragmentSource = shaderVersion + fragmentArraySizes + shader.FragmentSource;
-		shader.id = CreateShader(shader.VertexSource, shader.FragmentSource);
-	}
-}
-
-
 
 int ResourceManager::GetUniformLocation(const unsigned int rendererID, const std::string& name)
 {
@@ -306,8 +282,8 @@ Mesh ResourceManager::ProcessMesh(std::fstream& fstream)
     MeshData& meshData = mMeshes.emplace_back();
 	meshData.vertices = vertices;
 	meshData.indices = indices;
-    meshData.vertexCount = vertices.size();
-	meshData.id = mMeshes.size() - 1; // TODO : UUID????
+    meshData.vertexCount = static_cast<unsigned int>(vertices.size());
+	meshData.id = static_cast<MeshID>(mMeshes.size() - 1); // TODO : UUID????
 
 	Mesh meshComponent;
 	meshComponent.id = meshData.id;

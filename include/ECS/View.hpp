@@ -23,16 +23,14 @@ public:
 	template <typename RequestedType>
 	std::vector<RequestedType*>& GetComponents()
 	{
-		std::vector<RequestedType*>& componentVector;
 		try
 		{
-			componentVector = std::get<std::vector<RequestedType*>>(components);
+			return std::get<std::vector<RequestedType*>>(components);
 		}
 		catch (const std::exception&)
 		{
 			throw std::exception("Component type not found");
 		}
-		return componentVector;
 	}
 	template <typename RequestedType>
 	RequestedType* GetComponent(const Entity entity)

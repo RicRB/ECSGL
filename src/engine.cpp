@@ -5,14 +5,14 @@
 
 Engine::Engine(const GraphicsAPIType graphicsAPIType)
 {
-	rendererType = graphicsAPIType;
+	renderer.rendererType = graphicsAPIType;
 	switch (graphicsAPIType)
 	{
 	case GRAPHICS_API_OPENGL:
 		//graphicsAPI = std::make_unique<OpenGL>();
 		break;
 	case GRAPHICS_API_VULKAN:
-		graphicsAPI = std::make_unique<Vulkan>();
+		renderer.graphicsAPI = std::make_unique<Vulkan>();
 		break;
 	default:
 		std::cerr << "Unknown graphics API type!" << std::endl;
@@ -23,30 +23,42 @@ void Engine::initialize(GLFWwindow* window)
 {
 	engine::SetCurrentEngine(*this);
 	this->window = window; // Store the window pointer for later use
-	if (graphicsAPI == nullptr)
+	if (renderer.graphicsAPI == nullptr)
 	{
 		std::cerr << "Graphics API not initialized!" << std::endl;
 		exit(EXIT_FAILURE);
 	}
-	graphicsAPI->initialize(window); // Pass the window if needed
+	glfwSetWindowUserPointer(window, &renderer.graphicsAPI);
+	glfwSetFramebufferSizeCallback(window, renderer.graphicsAPI->frameBufferResizeCallback);
+	renderer.graphicsAPI->initialize(window); // Pass the window if needed
 }
 void Engine::Start()
 {
 	std::cout << "Working directory: " << std::filesystem::current_path() << std::endl;
 	defaultShader = resourceManager.LoadShader("res/shaders/Basic.vert", "res/shaders/Basic.frag");
-	resourceManager.InitShaders(registry);
+	defaultMaterial = resourceManager.LoadMaterial(defaultShader.id);
 	defaultMesh = resourceManager.LoadOBJ("res/models/cube.obj");
+
+	Entity camera = engine::CreateEmptyEntity();
+	registry.AssignComponent<Camera>(camera, Camera());
+	registry.AssignComponent<Transform>(camera, Transform());
 	printf("Game started");
 }
 
 void Engine::Update()
 {
+	renderer.DrawElements(registry, resourceManager, currentCameraEntity);
 }
 
 void Engine::LoadScene(const std::string& scenePath)
 {
 	// parse scene
 	// load scene
+}
+
+void Engine::cleanup()
+{
+	renderer.graphicsAPI->cleanup();
 }
 
 Scene Engine::GetScene()
@@ -56,10 +68,9 @@ Scene Engine::GetScene()
 
 Engine::~Engine()
 {
-	if (graphicsAPI)
+	if (renderer.graphicsAPI)
 	{
-		graphicsAPI->cleanup();
-		graphicsAPI.reset();
+		renderer.graphicsAPI.reset();
 	}
 }
 
@@ -71,7 +82,7 @@ namespace engine {
 	void engine::SetCurrentEngine(Engine& engine)
 	{
 		currentEngine = &engine;
-		currentRendererType = &engine.rendererType;
+		currentRendererType = &engine.renderer.rendererType;
 	}
 
 	Entity engine::CreateEmptyEntity()

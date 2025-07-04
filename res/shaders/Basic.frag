@@ -1,4 +1,42 @@
+#version 450
 
+
+struct PointLight
+{
+	vec3 position;
+	vec4 ambient;
+	vec4 diffuse;
+	vec4 specular;
+	float intensity;
+	float constant;
+    float linear;
+    float quadratic; 
+};
+struct DirLight 
+{
+	vec4 direction;
+
+	vec4 ambient;
+	vec4 diffuse;
+	vec4 specular;
+	float intensity;
+};
+layout(set = 0, binding = 0) uniform GlobalUniformBufferObject {
+	PointLight pointLights[5];
+	DirLight dirLights[5];
+	uint dirLightCount;
+	uint pointLightCount;
+};
+layout(set = 1, binding = 0) uniform MaterialUniformBufferObject {
+	vec4 diffuseColor;
+	vec4 specularColor;
+	vec4 ambientColor;
+};
+
+layout( push_constant ) uniform constants {
+	mat4 mvp;
+	float time;
+};
 struct Material
 {
 	int diffuseIsMap;
@@ -9,57 +47,31 @@ struct Material
 	vec3 specular;
 	sampler2D specularMap;
 };
-struct DirLight 
-{
-	vec3 direction;
 
-	vec3 ambient;
-	vec3 diffuse;
-	vec3 specular;
-};
-struct PointLight
-{
-	vec3 position;
-	
-	float constant;
-    float linear;
-    float quadratic; 
 
-	vec3 ambient;
-	vec3 diffuse;
-	vec3 specular;
-};
-struct Light
-{
-	vec3 ambient;
-	vec3 diffuse;
-	vec3 specular;
-};
 layout(location = 0) out vec4 color;
 in vec2 v_TextCoord;
 in vec3 v_FragPos;
 in vec3 v_Normal;
-uniform mat4 u_Model;
-uniform mat4 u_View;
-uniform vec4 u_GlobalLightColor;
-uniform vec4 u_LightPosition;
+//uniform mat4 u_Model;
+//uniform mat4 u_View;
+//uniform vec4 u_GlobalLightColor;
+//uniform vec4 u_LightPosition;
 
-uniform Material u_Material;
-uniform DirLight dirLights[MAX_DIR_LIGHTS];
-uniform PointLight pointLights[MAX_POINT_LIGHTS];
+//uniform Material u_Material;
 
 vec3 CalcDirLight(vec3 diffuseMaterial, vec3 specularMaterial, DirLight light, vec3 normal, vec3 viewDir)
 {
-    vec3 lightDir = normalize(-light.direction);
+    vec3 lightDir = normalize(-light.direction.xyz);
     // diffuse shading
     float diff = max(dot(normal, lightDir), 0.0);
     // specular shading
     vec3 halfwayDir = normalize(lightDir + viewDir);  
     float spec = pow(max(dot(normal, halfwayDir), 0.0), 32); // TODO: change 32 for material shininess
     // combine results
-    vec3 ambient  = light.ambient  * diffuseMaterial;
-    vec3 diffuse  = light.diffuse  * diff * diffuseMaterial;
-    vec3 specular = light.specular * spec * specularMaterial;
+    vec3 ambient  = light.ambient.xyz  * diffuseMaterial;
+    vec3 diffuse  = light.diffuse.xyz  * diff * diffuseMaterial;
+    vec3 specular = light.specular.xyz * spec * specularMaterial;
     return (ambient + diffuse + specular);
 }
 
@@ -76,9 +88,9 @@ vec3 CalcPointLight(vec3 diffuseMaterial, vec3 specularMaterial, PointLight ligh
     float attenuation = 1.0 / (light.constant + light.linear * distance + 
   			     light.quadratic * (distance * distance));    
     // combine results
-    vec3 ambient  = light.ambient  * diffuseMaterial;
-    vec3 diffuse  = light.diffuse  * diff * diffuseMaterial;
-    vec3 specular = light.specular * spec * specularMaterial;
+    vec3 ambient  = light.ambient.xyz  * diffuseMaterial;
+    vec3 diffuse  = light.diffuse.xyz  * diff * diffuseMaterial;
+    vec3 specular = light.specular.xyz * spec * specularMaterial;
     ambient  *= attenuation;
     diffuse  *= attenuation;
     specular *= attenuation;
@@ -93,35 +105,35 @@ void main()
 
 	// GET DIFFUSE MATERIAL
 	vec3 diffuseMaterial;
-	if(u_Material.diffuseIsMap == 1)
+	if(false)//u_Material.diffuseIsMap == 1)
 	{
-		diffuseMaterial = texture(u_Material.diffuseMap, v_TextCoord).rgb;
+		//diffuseMaterial = texture(u_Material.diffuseMap, v_TextCoord).rgb;
 	}
 	else
 	{
-		diffuseMaterial = u_Material.diffuse;
+		diffuseMaterial = diffuseColor.xyz;
 	}
 	// GET SPECULAR MATERIAL
 	vec3 specularMaterial;
-	if(u_Material.specularIsMap == 1)
+	if(false)//u_Material.specularIsMap == 1)
 	{
-		specularMaterial = texture(u_Material.specularMap, v_TextCoord).rgb;
+		//specularMaterial = texture(u_Material.specularMap, v_TextCoord).rgb;
 	}
 	else
 	{
-		specularMaterial = u_Material.specular;
+		specularMaterial = specularColor.xyz;
 	}
 	// Calculate Directional lights :D
 	vec4 dirLightColor = vec4(0.0);
-	for(int i = 0; i < MAX_DIR_LIGHTS; i++)
+	for(int i = 0; i < dirLightCount; i++)
 	{
 		dirLightColor += vec4(CalcDirLight(diffuseMaterial, specularMaterial, dirLights[i], norm, viewDir), 1.0);
 	}
 	// calculate point lights 
 	vec4 pointLightColor = vec4(0.0);
-	for(int i = 0; i < MAX_POINT_LIGHTS; i++)
+	for(int i = 0; i < pointLightCount; i++)
 	{
 		pointLightColor += vec4(CalcPointLight(diffuseMaterial, specularMaterial, pointLights[i], norm, v_FragPos, viewDir), 1.0);
 	}
-	color = pointLightColor + dirLightColor;;
+	color = pointLightColor + dirLightColor;
 };

@@ -1,8 +1,6 @@
 #include "renderer.h"
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
 #include "lights.h"
-
+#include "camera.h"
 Renderer::Renderer()
 {
 }
@@ -14,21 +12,16 @@ Renderer::~Renderer()
 void Renderer::Run()
 {
 }
-void Renderer::Update(Registry& registry)
-{
-	DrawElements(registry);
-}
-void Renderer::DrawElements(Registry& registry)
+void Renderer::DrawElements(Registry& registry, ResourceManager& resourceManager, Entity camera)
 {
 	currentView = registry.GetView<Transform, Mesh, Material>();
-	ResourceManager& resourceManager = engine::currentEngine->resourceManager;
 	if (graphicsAPI == nullptr) {
 		return;
 	}
 
-	Entity camera = engine::GetCameraEntity();
 	Transform cameraTransform = registry.GetComponent<Transform>(camera);
-	glm::mat4 viewProj = cameraTransform.viewMatrix() * engine::GetCamera().projection;
+	Camera cameraComponent = registry.GetComponent<Camera>(camera);
+	glm::mat4 viewProj = cameraTransform.viewMatrix() * cameraComponent.projection;
 
 	std::vector<MeshData*> meshes;
 	std::vector<MaterialData*> materials;
@@ -38,17 +31,23 @@ void Renderer::DrawElements(Registry& registry)
 		meshes.push_back(&resourceManager.mMeshes[std::get<2>(currentView[i])->id]);
 		materials.push_back(&resourceManager.mMaterials[std::get<3>(currentView[i])->id]);
 	}
+	// GLOBAL UNIFORM OBJECT
 
-	std::vector<DirectionLightUniform> directionalLights;
+	GlobalUBO globalUniformObject;
+	globalUniformObject.dirLightCount = 0;
+	globalUniformObject.pointLightCount = 0;
 	std::vector<PointLightUniform> pointLights;
 	auto dirView = registry.GetView<DirectionalLight>();
 	for (auto dirLight : dirView.GetComponents<DirectionalLight>())
 	{
-		auto& ubo = directionalLights.emplace_back();
+		DirectionLightUniform ubo;
 		ubo.direction = glm::vec4(dirLight->direction, 1.0);
 		ubo.ambient = glm::vec4(dirLight->ambient, 1.0);
 		ubo.diffuse = glm::vec4(dirLight->diffuse, 1.0);
 		ubo.specular = glm::vec4(dirLight->specular, 1.0);
+		
+		globalUniformObject.dirLights[globalUniformObject.dirLightCount] = ubo;
+		globalUniformObject.dirLightCount++;
 	}
 
 	auto pointView = registry.GetView<PointLight, Transform>();
@@ -56,7 +55,7 @@ void Renderer::DrawElements(Registry& registry)
 	auto pointTransforms = pointView.GetComponents<Transform>();
 	for (size_t i = 0; i < pointView.size(); i++)
 	{
-		auto& ubo = pointLights.emplace_back();
+		PointLightUniform ubo;
 		ubo.position = glm::vec4(pointTransforms[i]->position, 1.0);
 		ubo.constant = pointLightsView[i]->constant;
 		ubo.linear = pointLightsView[i]->linear;
@@ -64,16 +63,19 @@ void Renderer::DrawElements(Registry& registry)
 		ubo.ambient = glm::vec4(pointLightsView[i]->ambient, 1.0);
 		ubo.diffuse = glm::vec4(pointLightsView[i]->diffuse, 1.0);
 		ubo.specular = glm::vec4(pointLightsView[i]->specular, 1.0);
+
+		globalUniformObject.pointLights[i] = ubo;
 	}
-	
-	engine::currentEngine->graphicsAPI->drawFrame(viewProj,
+	globalUniformObject.pointLightCount = static_cast<uint32_t>(pointView.size());
+
+	graphicsAPI->drawFrame(
+		viewProj,
+		&globalUniformObject,
 		currentView.size(),
 		currentView.GetComponents<Transform>(),
 		meshes,
 		materials,
-		&resourceManager.mShaders,
-		&directionalLights,
-		&pointLights
+		&resourceManager.mShaders
 	);
 
 
