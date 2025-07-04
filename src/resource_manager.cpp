@@ -97,12 +97,6 @@ Scene ResourceManager::ParseScene(const std::string& shaderPath)
 {
     return Scene();
 }
-std::string& ResourceManager::SaveScene()
-{
-    std::string hey = std::string("Hey");
-    // TODO: insert return statement here
-    return hey;
-}
 
 int ResourceManager::GetUniformLocation(const unsigned int rendererID, const std::string& name)
 {

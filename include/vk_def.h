@@ -14,7 +14,7 @@ struct VkUniformBuffer {
 	VkBuffer buffer;
 	VkDeviceMemory memory;
 	void* mapped = nullptr;
-	uint32_t bufferSize;
+	VkDeviceSize bufferSize;
 };
 struct PushConstants {
 	glm::mat4 mvp;

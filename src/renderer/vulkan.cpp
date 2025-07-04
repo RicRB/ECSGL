@@ -189,7 +189,7 @@ void Vulkan::drawFrame(
 		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 		vkCmdBindIndexBuffer(commandBuffer, meshes[i]->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT16);
 
-		uint32_t dynamicOffset = currentFrame * materials[i]->uniformBuffer.bufferSize;
+		uint32_t dynamicOffset = currentFrame * static_cast<uint32_t>(materials[i]->uniformBuffer.bufferSize);
 		uint32_t dynamicOffsets[] = { 0, dynamicOffset };
 		VkDescriptorSet descriptorSets[] = { globalDescriptorSet, materials[i]->descriptorSet };
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shader.pipelineLayout, 0, 2, descriptorSets, 0, dynamicOffsets);
