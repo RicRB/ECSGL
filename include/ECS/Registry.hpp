@@ -76,12 +76,14 @@ public:
 		// check if pool exists
 		if (!PoolExists<Type>())
 		{
-			printf("Pool does not exist\n");
+			std::cout << "Pool 1 does not exist for type: " << typeid(Type).name() << std::endl;
 			return View<Type, OtherTypes...>();
 		}
 		if ((... || !PoolExists<OtherTypes>()))
 		{
-			printf("Pool does not exist\n");
+			std::cout << "Pool 2 does not exist for types: ";
+			((std::cout << typeid(OtherTypes).name() << " "), ...);
+			std::cout << std::endl;
 			return View<Type, OtherTypes...>();
 		}
 		// Initialize pool Sizes queue
@@ -198,7 +200,7 @@ private:
 		if (it != pools.end())
 			return dynamic_cast<Pool<ComponentType>*>(it->second.get());
 		else
-			throw std::exception("Pool does not exist");
+			throw std::runtime_error("Pool does not exist" + std::string(typeid(ComponentType).name()));
 	}
 	// a function that creates a pool and adds it to the map
 	template <typename ComponentType>

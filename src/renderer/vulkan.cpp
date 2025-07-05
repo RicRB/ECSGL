@@ -96,7 +96,8 @@ void Vulkan::initialize(GLFWwindow* window)
 }
 // TODO : REALLY NEED TO MAKE THIS ONE STRUCT
 void Vulkan::drawFrame(
-	const glm::mat4 viewProjection,
+	const glm::mat4 viewMatrix,
+	const glm::mat4 projectionMatrix,
 	const GlobalUBO* globalUniformObject,
 	const int entityCount,
 	const std::vector<Transform*> transforms,
@@ -187,16 +188,23 @@ void Vulkan::drawFrame(
 		VkDeviceSize offsets[] = { 0 };
 		
 		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-		vkCmdBindIndexBuffer(commandBuffer, meshes[i]->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT16);
+		vkCmdBindIndexBuffer(commandBuffer, meshes[i]->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 
 		uint32_t dynamicOffset = currentFrame * static_cast<uint32_t>(materials[i]->uniformBuffer.bufferSize);
 		uint32_t dynamicOffsets[] = { 0, dynamicOffset };
 		VkDescriptorSet descriptorSets[] = { globalDescriptorSet, materials[i]->descriptorSet };
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shader.pipelineLayout, 0, 2, descriptorSets, 0, dynamicOffsets);
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shader.pipelineLayout, 0, 2, descriptorSets, 1, dynamicOffsets);
 		PushConstants pushConstants;
-		pushConstants.mvp = viewProjection * transforms[i]->matrix();
-		pushConstants.time = static_cast<float>(glfwGetTime());
-		vkCmdPushConstants(commandBuffer, shader.pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstants), &pushConstants);
+		pushConstants.mvp = viewMatrix * projectionMatrix * transforms[i]->matrix();
+		glm::mat4 model = transforms[i]->matrix();
+		pushConstants.model = glm::mat3x4(
+			glm::vec4(model[0].x, model[0].y, model[0].z, model[3].x),
+			glm::vec4(model[1].x, model[1].y, model[1].z, model[3].y),
+			glm::vec4(model[2].x, model[2].y, model[2].z, model[3].z));
+		//pushConstants.time = static_cast<float>(glfwGetTime());
+		glm::vec3 cameraWorldPos = glm::inverse(viewMatrix)[3];
+		pushConstants.cameraPosition = glm::vec4(cameraWorldPos, 1.0f);
+		vkCmdPushConstants(commandBuffer, shader.pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(PushConstants), &pushConstants);
 		vkCmdDrawIndexed(commandBuffer, meshes[i]->vertexCount, 1, 0, 0, 0);
 	}
 
@@ -265,6 +273,20 @@ std::vector<const char*> Vulkan::getRequiredExtensions()
 	}
 
 	return extensions;
+}
+void Vulkan::compileShader(const char* name, const std::string& vertexSource, const std::string& fragmentSource, ShaderData* shaderData) {
+	createGraphicsPipeline(name, vertexSource, fragmentSource, &shaderData->pipeline, &shaderData->pipelineLayout);
+}
+
+void Vulkan::loadMaterial(const char* name, const ShaderData& shaderData, MaterialData* materialData) {
+	materialData->shaderID = shaderData.id;
+	createUniformBuffer(&materialData->uniformBuffer, sizeof(VkMaterialUBO));
+	createDescriptorSet(&materialData->uniformBuffer, &materialDescriptorSetLayout, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, &materialData->descriptorSet);
+}
+void Vulkan::loadMesh(MeshData* mesh) {
+	createVertexBuffer(mesh->vertices, &mesh->vertexBuffer);
+	createIndexBuffer(mesh->indices, &mesh->indexBuffer);
+	mesh->vertexCount = static_cast<uint32_t>(mesh->vertices.size());
 }
 
 void Vulkan::cleanup()
@@ -792,7 +814,7 @@ void Vulkan::createGraphicsPipeline(const char* name, const std::string& vertexS
 	VkPushConstantRange pushConstantRange{};
 	pushConstantRange.offset = 0;
 	pushConstantRange.size = sizeof(PushConstants);
-	pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+	pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 
 	pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
 	pipelineLayoutInfo.pushConstantRangeCount = 1;
@@ -887,37 +909,7 @@ void Vulkan::createRenderPass() {
 	}
 }
 
-std::vector<uint32_t> Vulkan::compileShaderGLSLToSPIRV(const std::string& sourcePath, shaderc_shader_kind kind, bool optimize)
-{
-
-	const std::string name = std::filesystem::path(sourcePath).filename().string();
-
-	std::ifstream file(sourcePath, std::ios::in);
-	if (!file.is_open()) {
-		std::cerr << "Failed to open file: " << sourcePath << std::endl;
-		return std::vector<uint32_t>();
-	}
-
-	std::ostringstream buffer;
-	buffer << file.rdbuf();
-
-	shaderc::Compiler compiler;
-	shaderc::CompileOptions options;
-	if (optimize) {
-		options.SetOptimizationLevel(shaderc_optimization_level_performance);
-	}
-	options.SetTargetEnvironment(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_2);
-	options.SetTargetSpirv(shaderc_spirv_version_1_0); // Or 1_5 for newer Vulkan
-	shaderc::SpvCompilationResult result = compiler.CompileGlslToSpv(buffer.str(), kind, name.c_str(), options);
-	std::cerr << result.GetErrorMessage();
-	if (result.GetCompilationStatus() != shaderc_compilation_status_success) {
-		std::cerr << result.GetErrorMessage();
-		return std::vector<uint32_t>();
-	}
-	return { result.cbegin(), result.cend() };
-}
-
-std::vector<uint32_t> Vulkan::compileShaderGLSLToSPIRV(const char* name, const std::string& source, shaderc_shader_kind kind, bool optimize)
+std::vector<uint32_t> Vulkan::compileShaderGLSLToSPIRV(const std::string& source, shaderc_shader_kind kind, bool optimize)
 {
 	shaderc::Compiler compiler;
 	shaderc::CompileOptions options;
@@ -926,7 +918,7 @@ std::vector<uint32_t> Vulkan::compileShaderGLSLToSPIRV(const char* name, const s
 	}
 	options.SetTargetEnvironment(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_2);
 	options.SetTargetSpirv(shaderc_spirv_version_1_0); // Or 1_5 for newer Vulkan
-	shaderc::SpvCompilationResult result = compiler.CompileGlslToSpv(source, kind, name, options);
+	shaderc::SpvCompilationResult result = compiler.CompileGlslToSpv(source, kind, "Shader", options);
 	std::cerr << result.GetErrorMessage();
 	if (result.GetCompilationStatus() != shaderc_compilation_status_success) {
 		std::cerr << result.GetErrorMessage();
@@ -1064,7 +1056,7 @@ void Vulkan::createVertexBuffer(const std::vector<Vertex>& vertices, VkVertexBuf
 
 void Vulkan::createIndexBuffer(const std::vector<unsigned int>& indices, VkIndexBuffer* indexBuffer)
 {
-	VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
+	VkDeviceSize bufferSize = sizeof(unsigned int) * indices.size();
 
 	VkBuffer stagingBuffer;
 	VkDeviceMemory stagingBufferMemory;
@@ -1165,7 +1157,7 @@ void Vulkan::createDescriptorSetLayouts()
 	// global 
 	VkDescriptorSetLayoutBinding guboLayoutBinding{};
 	guboLayoutBinding.binding = 0;
-	guboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+	guboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	guboLayoutBinding.descriptorCount = 1;
 	guboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT; // add frag for fragment uniforms
 	guboLayoutBinding.pImmutableSamplers = nullptr; // Optional
@@ -1200,20 +1192,22 @@ void Vulkan::createDescriptorSetLayouts()
 void Vulkan::createGlobalUniformBuffer()
 {
 	createUniformBuffer(&globalUniformBuffer, sizeof(GlobalUBO));
-	createDescriptorSet(&globalUniformBuffer, &globalDescriptorSetLayout, &globalDescriptorSet);
+	createDescriptorSet(&globalUniformBuffer, &globalDescriptorSetLayout, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &globalDescriptorSet);
 	updateUniformBufferData(&globalUniformBuffer, &globalUBO);
 }
 
 void Vulkan::createDescriptorPool()
 {
-	VkDescriptorPoolSize poolSize{};
-	poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-	poolSize.descriptorCount = MAX_MATERIALS;
+	VkDescriptorPoolSize poolSizes[2];
+	poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+	poolSizes[0].descriptorCount = MAX_MATERIALS;
+	poolSizes[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	poolSizes[1].descriptorCount = MAX_FRAMES_IN_FLIGHT;
 
 	VkDescriptorPoolCreateInfo poolInfo{};
 	poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-	poolInfo.poolSizeCount = 1;
-	poolInfo.pPoolSizes = &poolSize;
+	poolInfo.poolSizeCount = 2;
+	poolInfo.pPoolSizes = poolSizes;
 
 	poolInfo.maxSets = MAX_MATERIALS * MAX_FRAMES_IN_FLIGHT;
 
@@ -1229,12 +1223,12 @@ void Vulkan::createUniformBuffer(VkUniformBuffer* buffer, const VkDeviceSize buf
 	vkMapMemory(device, buffer->memory, 0, bufferSize * MAX_FRAMES_IN_FLIGHT, 0, &buffer->mapped);
 }
 
-void Vulkan::createDescriptorSet(VkUniformBuffer* buffer, const VkDescriptorSetLayout* descriptorSetLayout, VkDescriptorSet* descriptorSet) {
+void Vulkan::createDescriptorSet(VkUniformBuffer* buffer, const VkDescriptorSetLayout* descriptorSetLayout, const VkDescriptorType type, VkDescriptorSet* descriptorSet) {
 	VkDescriptorSetAllocateInfo allocInfo{};
 	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 	allocInfo.descriptorPool = descriptorPool;
 	allocInfo.descriptorSetCount = 1;
-	allocInfo.pSetLayouts = &materialDescriptorSetLayout;
+	allocInfo.pSetLayouts = descriptorSetLayout;
 	if (vkAllocateDescriptorSets(device, &allocInfo, descriptorSet) != VK_SUCCESS) {
 		throw std::runtime_error("failed to allocate descriptor sets!");
 	}
@@ -1250,7 +1244,7 @@ void Vulkan::createDescriptorSet(VkUniformBuffer* buffer, const VkDescriptorSetL
 	descriptorWrite.dstBinding = 0;
 	descriptorWrite.dstArrayElement = 0;
 
-	descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+	descriptorWrite.descriptorType = type;
 	descriptorWrite.descriptorCount = 1;
 
 	descriptorWrite.pBufferInfo = &bufferInfo;
@@ -1260,24 +1254,11 @@ void Vulkan::createDescriptorSet(VkUniformBuffer* buffer, const VkDescriptorSetL
 	vkUpdateDescriptorSets(device, 1, &descriptorWrite, 0, nullptr);
 }
 
-void Vulkan::compileShader(const char* name, const std::string& vertexSource, const std::string& fragmentSource, ShaderData* shaderData) {
-	createGraphicsPipeline(name, vertexSource, fragmentSource, &shaderData->pipeline, &shaderData->pipelineLayout);
-}
 
-void Vulkan::loadMaterial(const char* name, const ShaderData& shaderData, MaterialData* materialData) {
-	materialData->shaderID = shaderData.id;
-	createUniformBuffer(&materialData->uniformBuffer, sizeof(VkMaterialUBO));
-	createDescriptorSet(&materialData->uniformBuffer, &materialDescriptorSetLayout, &materialData->descriptorSet);
-}
 
 inline void Vulkan::updateUniformBufferData(VkUniformBuffer* buffer, const void* data)
 {
-	size_t frameOffset = currentFrame % MAX_FRAMES_IN_FLIGHT;
-	memcpy(static_cast<char*>(buffer->mapped) + frameOffset, &data, buffer->bufferSize);
+	size_t frameOffset = (currentFrame % MAX_FRAMES_IN_FLIGHT) * buffer->bufferSize;
+	memcpy(static_cast<char*>(buffer->mapped) + frameOffset, data, buffer->bufferSize);
 }
 
-void Vulkan::loadMesh(MeshData* mesh) {
-	createVertexBuffer(mesh->vertices, &mesh->vertexBuffer);
-	createIndexBuffer(mesh->indices, &mesh->indexBuffer);
-	mesh->vertexCount = static_cast<uint32_t>(mesh->vertices.size());
-}

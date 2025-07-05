@@ -3,7 +3,7 @@
 
 struct PointLight
 {
-	vec3 position;
+	vec4 position;
 	vec4 ambient;
 	vec4 diffuse;
 	vec4 specular;
@@ -15,15 +15,13 @@ struct PointLight
 struct DirLight 
 {
 	vec4 direction;
-
 	vec4 ambient;
 	vec4 diffuse;
 	vec4 specular;
-	float intensity;
 };
 layout(set = 0, binding = 0) uniform GlobalUniformBufferObject {
-	PointLight pointLights[5];
-	DirLight dirLights[5];
+	PointLight pointLights[4];
+	DirLight dirLights[4];
 	uint dirLightCount;
 	uint pointLightCount;
 };
@@ -35,7 +33,8 @@ layout(set = 1, binding = 0) uniform MaterialUniformBufferObject {
 
 layout( push_constant ) uniform constants {
 	mat4 mvp;
-	float time;
+	mat3x4 model;
+	vec4 cameraPosition;
 };
 struct Material
 {
@@ -50,9 +49,9 @@ struct Material
 
 
 layout(location = 0) out vec4 color;
-in vec2 v_TextCoord;
-in vec3 v_FragPos;
-in vec3 v_Normal;
+layout(location = 0) in vec2 v_TextCoord;
+layout(location = 1) in vec3 v_FragPos;
+layout(location = 2) in vec3 v_Normal;
 //uniform mat4 u_Model;
 //uniform mat4 u_View;
 //uniform vec4 u_GlobalLightColor;
@@ -77,14 +76,14 @@ vec3 CalcDirLight(vec3 diffuseMaterial, vec3 specularMaterial, DirLight light, v
 
 vec3 CalcPointLight(vec3 diffuseMaterial, vec3 specularMaterial, PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir)
 {
-    vec3 lightDir = normalize(light.position - fragPos);
+    vec3 lightDir = normalize(light.position.xyz - fragPos);
     // diffuse shading
     float diff = max(dot(normal, lightDir), 0.0);
     // specular shading
 	vec3 halfwayDir = normalize(lightDir + viewDir);  
     float spec = pow(max(dot(normal, halfwayDir), 0.0), 32);
     // attenuation
-    float distance    = length(light.position - fragPos);
+    float distance    = length(light.position.xyz - fragPos);
     float attenuation = 1.0 / (light.constant + light.linear * distance + 
   			     light.quadratic * (distance * distance));    
     // combine results
@@ -99,8 +98,7 @@ vec3 CalcPointLight(vec3 diffuseMaterial, vec3 specularMaterial, PointLight ligh
 
 void main()
 {
-	vec3 viewPos = u_View[3].xyz;
-	vec3 viewDir = normalize(viewPos - v_FragPos);
+	vec3 viewDir = normalize(cameraPosition.xyz - v_FragPos);
 	vec3 norm = normalize(v_Normal);
 
 	// GET DIFFUSE MATERIAL
@@ -136,4 +134,5 @@ void main()
 		pointLightColor += vec4(CalcPointLight(diffuseMaterial, specularMaterial, pointLights[i], norm, v_FragPos, viewDir), 1.0);
 	}
 	color = pointLightColor + dirLightColor;
-};
+	//color = vec4(1.0,1.0,1.0,1.0);
+}

@@ -18,5 +18,6 @@ struct VkUniformBuffer {
 };
 struct PushConstants {
 	glm::mat4 mvp;
-	float time;
+	glm::mat3x4 model;
+	glm::vec4 cameraPosition; // for material color
 };

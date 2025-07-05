@@ -16,13 +16,13 @@ struct alignas(16) DirectionLightUniform {
 	glm::vec4 ambient;
 	glm::vec4 diffuse;
 	glm::vec4 specular;
-	float intensity;
 };
 
 
 struct alignas(256) GlobalUBO {
-	PointLightUniform pointLights[5]; // 10 point lights
-	DirectionLightUniform dirLights[5]; // 10 directional lights
+	PointLightUniform pointLights[4]; // 4 point lights
+	DirectionLightUniform dirLights[4]; // 4 directional lights
 	uint32_t dirLightCount;
 	uint32_t pointLightCount;
+
 };

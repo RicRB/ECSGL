@@ -19,7 +19,8 @@ public:
 	virtual void initialize(GLFWwindow* window) = 0;
 	// Render a frame
 	virtual void drawFrame(
-		const glm::mat4 viewProjection,
+		const glm::mat4 viewMatrix,
+		const glm::mat4 projectionMatrix,
 		const GlobalUBO* globalUniformObject,
 		const int entityCount, 
 		const std::vector<Transform*> transforms, 

@@ -21,7 +21,6 @@ void Renderer::DrawElements(Registry& registry, ResourceManager& resourceManager
 
 	Transform cameraTransform = registry.GetComponent<Transform>(camera);
 	Camera cameraComponent = registry.GetComponent<Camera>(camera);
-	glm::mat4 viewProj = cameraTransform.viewMatrix() * cameraComponent.projection;
 
 	std::vector<MeshData*> meshes;
 	std::vector<MaterialData*> materials;
@@ -69,7 +68,8 @@ void Renderer::DrawElements(Registry& registry, ResourceManager& resourceManager
 	globalUniformObject.pointLightCount = static_cast<uint32_t>(pointView.size());
 
 	graphicsAPI->drawFrame(
-		viewProj,
+		cameraTransform.viewMatrix(),
+		cameraComponent.projection,
 		&globalUniformObject,
 		currentView.size(),
 		currentView.GetComponents<Transform>(),

@@ -42,6 +42,8 @@ void Engine::Start()
 	Entity camera = engine::CreateEmptyEntity();
 	registry.AssignComponent<Camera>(camera, Camera());
 	registry.AssignComponent<Transform>(camera, Transform());
+	currentCameraEntity = camera;
+	currentCamera = registry.GetComponent<Camera>(camera);
 	printf("Game started");
 }
 
@@ -91,11 +93,14 @@ namespace engine {
 		Registry& reg = currentEngine->registry;
 		return entity;
 	}
+	Entity engine::CreateDefaultObject(Transform transform)
+	{
+		return CreateObject(transform, currentEngine->defaultMesh, currentEngine->defaultMaterial);
+	}
 	Entity engine::CreateObject(Transform transform, Mesh mesh, Material material)
 	{
 		Registry& registry = currentEngine->registry;
 		Entity entity = registry.CreateEntity();
-		transform.position = glm::vec3(1.0f);
 		registry.AssignComponent(entity, transform);
 		registry.AssignComponent(entity, mesh);
 		registry.AssignComponent(entity, material);

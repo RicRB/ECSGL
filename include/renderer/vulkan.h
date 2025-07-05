@@ -77,7 +77,8 @@ private:
 public:
 	void initialize(GLFWwindow* window) override;
 	void drawFrame(
-		const glm::mat4 viewProjection,
+		const glm::mat4 viewMatrix,
+		const glm::mat4 projectionMatrix,
 		const GlobalUBO* globalUniformObject,
 		const int entityCount,
 		const std::vector<Transform*> transforms,
@@ -86,6 +87,9 @@ public:
 		const std::vector<ShaderData>* shaders
 	) override;
 	std::vector<const char*> getRequiredExtensions();
+	void compileShader(const char* name, const std::string& vertexSource, const std::string& fragmentSource, ShaderData* shaderData) override;
+	void loadMaterial(const char* name, const ShaderData& shaderData, MaterialData* materialData) override;
+	void loadMesh(MeshData* mesh) override;
 	void cleanup();
 private:
 	static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
@@ -110,8 +114,7 @@ private:
 	void createGraphicsPipeline(const char* name, const std::string& vertexSource, const std::string& fragmentSource, VkPipeline* pipeline, VkPipelineLayout* pipelineLayout);
 	VkShaderModule createShaderModule(const std::vector<uint32_t>& code);
 	void createRenderPass();
-	std::vector<uint32_t> compileShaderGLSLToSPIRV(const std::string& sourcePath, shaderc_shader_kind kind, bool optimize);
-	std::vector<uint32_t> compileShaderGLSLToSPIRV(const char* name, const std::string& source, shaderc_shader_kind kind, bool optimize);
+	std::vector<uint32_t> compileShaderGLSLToSPIRV(const std::string& source, shaderc_shader_kind kind, bool optimize);
 	void createFramebuffers();
 	void createCommandPool();
 	void createCommandBuffers();
@@ -127,10 +130,7 @@ private:
 	void createGlobalUniformBuffer();
 	void createDescriptorPool();
 	void createUniformBuffer(VkUniformBuffer* buffer, const VkDeviceSize bufferSize);
-	void createDescriptorSet(VkUniformBuffer* buffer, const VkDescriptorSetLayout* descriptorSetLayout, VkDescriptorSet* descriptorSet);
-	void compileShader(const char* name, const std::string& vertexSource, const std::string& fragmentSource, ShaderData* shaderData) override;
-	void loadMaterial(const char* name, const ShaderData& shaderData, MaterialData* materialData) override;
+	void createDescriptorSet(VkUniformBuffer* buffer, const VkDescriptorSetLayout* descriptorSetLayout, const VkDescriptorType type, VkDescriptorSet* descriptorSet);
 	inline void updateUniformBufferData(VkUniformBuffer* buffer, const void* data);
 
-	void loadMesh(MeshData* mesh) override;
 };
