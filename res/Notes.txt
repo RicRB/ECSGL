@@ -5,7 +5,6 @@ TODO:
 - MOVE ENGINE INIT OF RENDERER PART INSIDE OF RENDERER...
 
 IMMEDIATE TODO :
-- cleanup, unload shaders... and stuff
 - implement imgui
 - handle textures
 - opengl support 

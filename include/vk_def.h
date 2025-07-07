@@ -11,8 +11,8 @@ struct alignas(256) VkMaterialUBO {
 };
 
 struct VkUniformBuffer {
-	VkBuffer buffer;
-	VkDeviceMemory memory;
+	VkBuffer buffer = VK_NULL_HANDLE;
+	VkDeviceMemory memory = VK_NULL_HANDLE;
 	void* mapped = nullptr;
 	VkDeviceSize bufferSize;
 };

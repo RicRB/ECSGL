@@ -76,6 +76,7 @@ private:
 	VkDescriptorSetLayout globalDescriptorSetLayout;
 public:
 	void initialize(GLFWwindow* window) override;
+	void initializeImGui() override;
 	void drawFrame(
 		const glm::mat4 viewMatrix,
 		const glm::mat4 projectionMatrix,
@@ -91,6 +92,9 @@ public:
 	void loadMaterial(const char* name, const ShaderData& shaderData, MaterialData* materialData) override;
 	void loadMesh(MeshData* mesh) override;
 	void cleanup();
+	void unloadShader(ShaderData* shaderData) override;
+	void unloadMaterial(MaterialData* materialData) override;
+	void unloadMesh(MeshData* mesh) override;
 private:
 	static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
 		VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -132,5 +136,6 @@ private:
 	void createUniformBuffer(VkUniformBuffer* buffer, const VkDeviceSize bufferSize);
 	void createDescriptorSet(VkUniformBuffer* buffer, const VkDescriptorSetLayout* descriptorSetLayout, const VkDescriptorType type, VkDescriptorSet* descriptorSet);
 	inline void updateUniformBufferData(VkUniformBuffer* buffer, const void* data);
+
 
 };

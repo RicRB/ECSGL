@@ -9,6 +9,10 @@
 #include <set>
 #include <glm/gtc/matrix_transform.hpp>
 #include <unordered_set>
+#include "imgui/imgui.h"
+#include "imgui/imgui_impl_glfw.h"
+
+
 void Vulkan::initialize(GLFWwindow* window)
 {
 	this->window = window;
@@ -93,6 +97,9 @@ void Vulkan::initialize(GLFWwindow* window)
 
 	createCommandBuffers();
 	createSyncObjects();
+}
+void Vulkan::initializeImGui()
+{
 }
 // TODO : REALLY NEED TO MAKE THIS ONE STRUCT
 void Vulkan::drawFrame(
@@ -186,14 +193,16 @@ void Vulkan::drawFrame(
 
 		VkBuffer vertexBuffers[] = { meshes[i]->vertexBuffer.buffer };
 		VkDeviceSize offsets[] = { 0 };
-		
 		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 		vkCmdBindIndexBuffer(commandBuffer, meshes[i]->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 
+		// descriptor sets
 		uint32_t dynamicOffset = currentFrame * static_cast<uint32_t>(materials[i]->uniformBuffer.bufferSize);
 		uint32_t dynamicOffsets[] = { 0, dynamicOffset };
 		VkDescriptorSet descriptorSets[] = { globalDescriptorSet, materials[i]->descriptorSet };
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shader.pipelineLayout, 0, 2, descriptorSets, 1, dynamicOffsets);
+		
+		// push constants
 		PushConstants pushConstants;
 		pushConstants.mvp = viewMatrix * projectionMatrix * transforms[i]->matrix();
 		glm::mat4 model = transforms[i]->matrix();
@@ -203,8 +212,10 @@ void Vulkan::drawFrame(
 			glm::vec4(model[2].x, model[2].y, model[2].z, model[3].z));
 		//pushConstants.time = static_cast<float>(glfwGetTime());
 		glm::vec3 cameraWorldPos = glm::inverse(viewMatrix)[3];
+
 		pushConstants.cameraPosition = glm::vec4(cameraWorldPos, 1.0f);
 		vkCmdPushConstants(commandBuffer, shader.pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(PushConstants), &pushConstants);
+		
 		vkCmdDrawIndexed(commandBuffer, meshes[i]->vertexCount, 1, 0, 0, 0);
 	}
 
@@ -293,25 +304,13 @@ void Vulkan::cleanup()
 {
 	cleanupSwapChain();
 
-	/*
-	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-		vkDestroyBuffer(device, uniformBuffers[i], nullptr);
-		vkFreeMemory(device, uniformBuffersMemory[i], nullptr);
-	}
-	*/
+	vkDestroyBuffer(device, globalUniformBuffer.buffer, nullptr);
+	vkFreeMemory(device, globalUniformBuffer.memory, nullptr);
 
 	vkDestroyDescriptorPool(device, descriptorPool, nullptr);
 
 	vkDestroyDescriptorSetLayout(device, globalDescriptorSetLayout, nullptr);
 	vkDestroyDescriptorSetLayout(device, materialDescriptorSetLayout, nullptr);
-
-	//vkDestroyBuffer(device, vertexBuffer, nullptr);
-	//vkFreeMemory(device, vertexBufferMemory, nullptr);
-	//vkDestroyBuffer(device, indexBuffer, nullptr);
-	//vkFreeMemory(device, indexBufferMemory, nullptr);
-
-	//vkDestroyPipeline(device, graphicsPipeline, nullptr);
-	//vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 
 	vkDestroyRenderPass(device, renderPass, nullptr);
 
@@ -333,6 +332,43 @@ void Vulkan::cleanup()
 	}
 	vkDestroySurfaceKHR(instance, surface, nullptr);
 	vkDestroyInstance(instance, nullptr);
+}
+
+void Vulkan::unloadShader(ShaderData* shaderData)
+{
+	if (shaderData->pipeline != VK_NULL_HANDLE) {
+		vkDestroyPipeline(device, shaderData->pipeline, nullptr);
+		shaderData->pipeline = VK_NULL_HANDLE;
+	}
+	if (shaderData->pipelineLayout != VK_NULL_HANDLE) {
+		vkDestroyPipelineLayout(device, shaderData->pipelineLayout, nullptr);
+		shaderData->pipelineLayout = VK_NULL_HANDLE;
+	}
+}
+
+void Vulkan::unloadMaterial(MaterialData* materialData)
+{
+	if (materialData->uniformBuffer.buffer != VK_NULL_HANDLE) {
+		vkDestroyBuffer(device, materialData->uniformBuffer.buffer, nullptr);
+		vkFreeMemory(device, materialData->uniformBuffer.memory, nullptr);
+		materialData->uniformBuffer.buffer = VK_NULL_HANDLE;
+	}
+}
+
+void Vulkan::unloadMesh(MeshData* mesh)
+{
+	if (mesh->vertexBuffer.buffer != VK_NULL_HANDLE)
+	{
+		vkDestroyBuffer(device, mesh->vertexBuffer.buffer, nullptr);
+		vkFreeMemory(device, mesh->vertexBuffer.memory, nullptr);
+		mesh->vertexBuffer.buffer = VK_NULL_HANDLE;
+	}
+	if (mesh->indexBuffer.buffer != VK_NULL_HANDLE)
+	{
+		vkDestroyBuffer(device, mesh->indexBuffer.buffer, nullptr);
+		vkFreeMemory(device, mesh->indexBuffer.memory, nullptr);
+		mesh->indexBuffer.buffer = VK_NULL_HANDLE;
+	}
 }
 
 VKAPI_ATTR VkBool32 VKAPI_CALL Vulkan::debugCallback(

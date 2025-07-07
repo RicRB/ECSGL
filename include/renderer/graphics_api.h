@@ -17,6 +17,7 @@ public:
 	virtual ~GraphicsAPI() = default;
 	// Initialize the graphics API
 	virtual void initialize(GLFWwindow* window) = 0;
+	virtual void initializeImGui() = 0;
 	// Render a frame
 	virtual void drawFrame(
 		const glm::mat4 viewMatrix,
@@ -34,6 +35,10 @@ public:
 	virtual void compileShader(const char* name, const std::string& vertexSource, const std::string& fragmentSource, ShaderData* shaderData) = 0;
 	virtual void loadMaterial(const char* name, const ShaderData& shaderData, MaterialData* materialData) = 0;
 	virtual void loadMesh(MeshData* mesh) = 0;
+	virtual void unloadShader(ShaderData* shaderData) = 0;
+	virtual void unloadMaterial(MaterialData* materialData) = 0;
+	virtual void unloadMesh(MeshData* mesh) = 0;
+
 	static void frameBufferResizeCallback(GLFWwindow* window, int width, int height) {
 		auto app = reinterpret_cast<GraphicsAPI*>(glfwGetWindowUserPointer(window));
 		app->frameBufferResized = true;

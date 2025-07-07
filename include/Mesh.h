@@ -37,12 +37,12 @@ struct Vertex
 	}
 };
 struct VkVertexBuffer {
-	VkBuffer buffer;
-	VkDeviceMemory memory;
+	VkBuffer buffer = VK_NULL_HANDLE;
+	VkDeviceMemory memory = VK_NULL_HANDLE;
 };
 struct VkIndexBuffer {
-	VkBuffer buffer;
-	VkDeviceMemory memory;
+	VkBuffer buffer = VK_NULL_HANDLE;
+	VkDeviceMemory memory = VK_NULL_HANDLE;
 };
 struct Mesh
 {

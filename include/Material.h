@@ -28,7 +28,7 @@ struct MaterialVariable
 struct MaterialData {
 	MaterialID id;
 	ShaderID shaderID;
-	VkDescriptorSet descriptorSet;
+	VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
 	VkUniformBuffer uniformBuffer;
 	VkMaterialUBO ubo;
 

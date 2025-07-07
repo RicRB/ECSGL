@@ -60,6 +60,7 @@ void Engine::LoadScene(const std::string& scenePath)
 
 void Engine::cleanup()
 {
+	resourceManager.unloadAll();
 	renderer.graphicsAPI->cleanup();
 }
 

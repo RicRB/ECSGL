@@ -11,7 +11,6 @@ ResourceManager::ResourceManager()
 	{
 		initialized = true;
 		// Initialize shaders
-		mShaders = std::vector<ShaderData>(256);
 		mShaders.reserve(256); // reserve space for 256 shaders to avoid reallocations
 		mTextures.reserve(256); // reserve space for 256 textures to avoid reallocations
 		mMaterials.reserve(256); // reserve space for 256 materials to avoid reallocations
@@ -22,6 +21,7 @@ ResourceManager::ResourceManager()
 Shader ResourceManager::LoadShader(const std::string& vertexShaderPath, const std::string& fragmentShaderPath)
 {
     Shader returnShader;
+	std::cout << mShaders.size() << " shaders loaded\n";
     ShaderData& shader = mShaders.emplace_back();
 	shader.id = static_cast<ShaderID>(mShaders.size() - 1); // Assign a unique ID based on the index
     returnShader.id = shader.id;
@@ -106,6 +106,28 @@ int ResourceManager::GetUniformLocation(const unsigned int rendererID, const std
         printf("Warning: uniform '%s' doesn't exist!\n", name.c_str());
 
     return -1;
+}
+
+void ResourceManager::unloadAll()
+{
+	for (auto& shader : mShaders)
+	{
+		engine::currentEngine->renderer.graphicsAPI->unloadShader(&shader);
+	}
+	for (auto& material : mMaterials)
+	{
+		engine::currentEngine->renderer.graphicsAPI->unloadMaterial(&material);
+	}
+	for (auto& mesh : mMeshes)
+	{
+		engine::currentEngine->renderer.graphicsAPI->unloadMesh(&mesh);
+	}
+    // TODO: TEXTURES
+
+    mShaders.clear();
+	mMaterials.clear();
+	mMeshes.clear();
+	mTextures.clear();
 }
 
 /////////////////////// PRIVATE ///////////////////////

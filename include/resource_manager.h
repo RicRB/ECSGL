@@ -33,7 +33,7 @@ public:
 	Scene ParseScene(const std::string& shaderPath);
 	std::string& SaveScene();
 	int GetUniformLocation(const unsigned int rendererID, const std::string& name);
-
+	void unloadAll();
 private:
 
 	// SHADER STUFFS

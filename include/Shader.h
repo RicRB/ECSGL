@@ -24,8 +24,8 @@ struct ShaderData
 	unsigned int programID;
 
 	// vulkan
-	VkPipeline pipeline;
-	VkPipelineLayout pipelineLayout;
+	VkPipeline pipeline = VK_NULL_HANDLE;
+	VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
 	
 
 	// sources
