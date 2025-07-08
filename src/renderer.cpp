@@ -1,6 +1,7 @@
 #include "renderer.h"
 #include "lights.h"
 #include "camera.h"
+#include "imgui/imgui.h"
 Renderer::Renderer()
 {
 }
@@ -19,8 +20,8 @@ void Renderer::DrawElements(Registry& registry, ResourceManager& resourceManager
 		return;
 	}
 
-	Transform cameraTransform = registry.GetComponent<Transform>(camera);
-	Camera cameraComponent = registry.GetComponent<Camera>(camera);
+	Transform& cameraTransform = registry.GetComponent<Transform>(camera);
+	Camera& cameraComponent = registry.GetComponent<Camera>(camera);
 
 	std::vector<MeshData*> meshes;
 	std::vector<MaterialData*> materials;
@@ -67,6 +68,13 @@ void Renderer::DrawElements(Registry& registry, ResourceManager& resourceManager
 	}
 	globalUniformObject.pointLightCount = static_cast<uint32_t>(pointView.size());
 
+	graphicsAPI->beginDrawImGui();
+	ImGui::Begin("Hello, world!");
+	ImGui::DragFloat3("Camera pos ", &cameraTransform.position.x);
+	ImGui::End();
+	graphicsAPI->endDrawImGui();
+
+
 	graphicsAPI->drawFrame(
 		cameraTransform.viewMatrix(),
 		cameraComponent.projection,
@@ -77,8 +85,6 @@ void Renderer::DrawElements(Registry& registry, ResourceManager& resourceManager
 		materials,
 		&resourceManager.mShaders
 	);
-
-
 	//for (size_t i = 0; i < currentView.size(); i++)
 	//{
 	//	auto entity = currentView[i];

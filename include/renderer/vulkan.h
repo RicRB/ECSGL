@@ -52,6 +52,7 @@ private:
 	VkCommandPool commandPool;
 	std::vector<VkCommandBuffer> commandBuffers;
 	VkDescriptorPool descriptorPool;
+	VkDescriptorPool imGuiDescriptorPool;
 	bool enableValidationLayers = true;
 
 	const std::vector<const char*> validationLayers = {
@@ -74,6 +75,7 @@ private:
 	VkUniformBuffer globalUniformBuffer;
 	VkDescriptorSet globalDescriptorSet;
 	VkDescriptorSetLayout globalDescriptorSetLayout;
+	QueueFamilyIndices indices;
 public:
 	void initialize(GLFWwindow* window) override;
 	void initializeImGui() override;
@@ -87,6 +89,8 @@ public:
 		const std::vector<MaterialData*> materials,
 		const std::vector<ShaderData>* shaders
 	) override;
+	void beginDrawImGui() override;
+	void endDrawImGui() override;
 	std::vector<const char*> getRequiredExtensions();
 	void compileShader(const char* name, const std::string& vertexSource, const std::string& fragmentSource, ShaderData* shaderData) override;
 	void loadMaterial(const char* name, const ShaderData& shaderData, MaterialData* materialData) override;

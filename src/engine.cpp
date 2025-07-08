@@ -2,7 +2,6 @@
 #include <iostream>
 #include <filesystem>
 #include "renderer/vulkan.h"
-
 Engine::Engine(const GraphicsAPIType graphicsAPIType)
 {
 	renderer.rendererType = graphicsAPIType;
@@ -31,6 +30,7 @@ void Engine::initialize(GLFWwindow* window)
 	glfwSetWindowUserPointer(window, &renderer.graphicsAPI);
 	glfwSetFramebufferSizeCallback(window, renderer.graphicsAPI->frameBufferResizeCallback);
 	renderer.graphicsAPI->initialize(window); // Pass the window if needed
+	renderer.graphicsAPI->initializeImGui();
 }
 void Engine::Start()
 {

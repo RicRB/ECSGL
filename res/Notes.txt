@@ -5,7 +5,8 @@ TODO:
 - MOVE ENGINE INIT OF RENDERER PART INSIDE OF RENDERER...
 
 IMMEDIATE TODO :
-- implement imgui
+- cleanup imgui
+- handle z??? clipping is fucked i think
 - handle textures
 - opengl support 
 - add uniform reading from spirv?? save spirv module or just read from file?

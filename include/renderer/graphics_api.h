@@ -14,6 +14,7 @@ public:
 
 	VkDevice device;
 	bool frameBufferResized = false;
+	bool isImGuiInitialized = false;
 	virtual ~GraphicsAPI() = default;
 	// Initialize the graphics API
 	virtual void initialize(GLFWwindow* window) = 0;
@@ -29,6 +30,8 @@ public:
 		const std::vector<MaterialData*> materials, 
 		const std::vector<ShaderData>* shaders
 	) = 0;
+	virtual void beginDrawImGui() = 0;
+	virtual void endDrawImGui() = 0;
 	// Cleanup resources
 	virtual void cleanup() = 0;
 	// create Shader

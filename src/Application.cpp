@@ -67,21 +67,6 @@ int main(void)
         glCullFace(GL_BACK);
         glEnable(GL_DEPTH_TEST);
         glDepthFunc(GL_LESS);*/
-        
-        ImGui::CreateContext();
-        IMGUI_CHECKVERSION();
-        ImGui::CreateContext();
-        ImGuiIO& io = ImGui::GetIO(); (void)io;
-        io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-        io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
-
-        // Setup Dear ImGui style
-        ImGui::StyleColorsDark();
-        ImGui_ImplGlfw_InitForOpenGL(window, true);
-        ImGui_ImplOpenGL3_Init("#version 130");
-        bool show_demo_window = false;
-        bool show_another_window = false;
-        ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
         // setup Input system
   //      Input::Init(window);
@@ -132,11 +117,11 @@ int main(void)
         Entity entity = engine::CreateDefaultObject(transform);
         Entity light = engine::CreateDirLight();
         Entity pLight = engine::CreatePointLight();
-        auto& cameraTransformView = engine.registry.GetComponent<Transform>(engine.currentCameraEntity);
-        cameraTransformView.position = glm::vec3(0.0f, 0.0f, 0.0f);
 
+		engine.registry.scenegraph.ParentEntity(pLight, engine.currentCameraEntity);
         while (!glfwWindowShouldClose(window))
         {
+            glfwPollEvents();
             engine.Update();
             //GLCall(glClearColor(0.1f, 0.1f, 0.1f, 1.0f););
             /*renderer.Clear();
@@ -170,7 +155,6 @@ int main(void)
             //ImGui::Render();
             //ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
             glfwSwapBuffers(window);
-            glfwPollEvents();
         }
     }
     //ImGui_ImplOpenGL3_Shutdown();

@@ -11,6 +11,7 @@
 #include <unordered_set>
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_glfw.h"
+#include "imgui/imgui_impl_vulkan.h"
 
 
 void Vulkan::initialize(GLFWwindow* window)
@@ -100,6 +101,55 @@ void Vulkan::initialize(GLFWwindow* window)
 }
 void Vulkan::initializeImGui()
 {
+	VkDescriptorPoolSize pool_sizes[] = {
+		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, IMGUI_IMPL_VULKAN_MINIMUM_IMAGE_SAMPLER_POOL_SIZE },
+	};
+	VkDescriptorPoolCreateInfo pool_info{};
+	pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+	pool_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+	pool_info.maxSets = 0;
+	for (VkDescriptorPoolSize& pool_size : pool_sizes)
+		pool_info.maxSets += pool_size.descriptorCount;
+	pool_info.poolSizeCount = (uint32_t)IM_ARRAYSIZE(pool_sizes);
+	pool_info.pPoolSizes = pool_sizes;
+	if (vkCreateDescriptorPool(device, &pool_info, nullptr, &imGuiDescriptorPool) != VK_SUCCESS) {
+		throw std::runtime_error("failed to create descriptor pool!");
+	}
+
+	ImGui::CreateContext();
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO(); (void)io;
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+	ImGui::StyleColorsDark();
+
+	ImGui_ImplGlfw_InitForVulkan(window, true);
+
+	ImGui_ImplVulkan_InitInfo init_info = {};
+
+	init_info.Instance = instance;
+	init_info.PhysicalDevice = physicalDevice;
+	init_info.Device = device;
+	init_info.QueueFamily = indices.graphicsFamily.value();
+	init_info.Queue = graphicsQueue;
+	init_info.PipelineCache = VK_NULL_HANDLE;
+	init_info.DescriptorPool = imGuiDescriptorPool;
+	init_info.RenderPass = renderPass;
+	init_info.Subpass = 0;
+	init_info.MinImageCount = static_cast<uint32_t>(swapChainImages.size());
+	init_info.ImageCount = static_cast<uint32_t>(swapChainImages.size());
+	init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT; // No MSAA for now
+	init_info.Allocator = nullptr; // No custom allocator
+	init_info.CheckVkResultFn = nullptr; // No custom error handler
+	ImGui_ImplVulkan_Init(&init_info);
+
+	bool show_demo_window = false;
+	bool show_another_window = false;
+	ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+
+	isImGuiInitialized = true;
+
 }
 // TODO : REALLY NEED TO MAKE THIS ONE STRUCT
 void Vulkan::drawFrame(
@@ -218,7 +268,7 @@ void Vulkan::drawFrame(
 		
 		vkCmdDrawIndexed(commandBuffer, meshes[i]->vertexCount, 1, 0, 0, 0);
 	}
-
+	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer, VK_NULL_HANDLE);
 	vkCmdEndRenderPass(commandBuffer);
 
 	if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
@@ -271,6 +321,17 @@ void Vulkan::drawFrame(
 	currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 
+void Vulkan::beginDrawImGui()
+{
+	ImGui_ImplVulkan_NewFrame();
+	ImGui_ImplGlfw_NewFrame();
+	ImGui::NewFrame();
+}
+
+void Vulkan::endDrawImGui()
+{
+	ImGui::Render();
+}
 std::vector<const char*> Vulkan::getRequiredExtensions()
 {
 	uint32_t glfwExtensionCount = 0;
@@ -308,7 +369,7 @@ void Vulkan::cleanup()
 	vkFreeMemory(device, globalUniformBuffer.memory, nullptr);
 
 	vkDestroyDescriptorPool(device, descriptorPool, nullptr);
-
+	vkDestroyDescriptorPool(device, imGuiDescriptorPool, nullptr);
 	vkDestroyDescriptorSetLayout(device, globalDescriptorSetLayout, nullptr);
 	vkDestroyDescriptorSetLayout(device, materialDescriptorSetLayout, nullptr);
 
@@ -436,6 +497,7 @@ void Vulkan::pickPhysicsalDevice()
 	}
 	if (candidates.rbegin()->first > 0) {
 		// Get the device with the highest score
+		indices = findQueueFamilies(candidates.rbegin()->second);
 		physicalDevice = candidates.rbegin()->second;
 	} else {
 		throw std::runtime_error("failed to find a suitable GPU!");
