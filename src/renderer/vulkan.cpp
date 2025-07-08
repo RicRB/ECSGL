@@ -254,7 +254,7 @@ void Vulkan::drawFrame(
 		
 		// push constants
 		PushConstants pushConstants;
-		pushConstants.mvp = viewMatrix * projectionMatrix * transforms[i]->matrix();
+		pushConstants.mvp = projectionMatrix * viewMatrix  * transforms[i]->matrix();
 		glm::mat4 model = transforms[i]->matrix();
 		pushConstants.model = glm::mat3x4(
 			glm::vec4(model[0].x, model[0].y, model[0].z, model[3].x),
@@ -363,6 +363,11 @@ void Vulkan::loadMesh(MeshData* mesh) {
 
 void Vulkan::cleanup()
 {
+	if (isImGuiInitialized) {
+		ImGui_ImplVulkan_Shutdown();
+		ImGui_ImplGlfw_Shutdown();
+		ImGui::DestroyContext();
+	}
 	cleanupSwapChain();
 
 	vkDestroyBuffer(device, globalUniformBuffer.buffer, nullptr);
@@ -685,7 +690,7 @@ VkPresentModeKHR Vulkan::chooseSwapPresentMode(const std::vector<VkPresentModeKH
 		}
 	}
 
-	return VK_PRESENT_MODE_FIFO_KHR;
+	return VK_PRESENT_MODE_IMMEDIATE_KHR;
 }
 VkExtent2D Vulkan::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) {
 	if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {

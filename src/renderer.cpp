@@ -67,10 +67,12 @@ void Renderer::DrawElements(Registry& registry, ResourceManager& resourceManager
 		globalUniformObject.pointLights[i] = ubo;
 	}
 	globalUniformObject.pointLightCount = static_cast<uint32_t>(pointView.size());
-
+	ImGuiIO& io = ImGui::GetIO(); (void)io;
 	graphicsAPI->beginDrawImGui();
 	ImGui::Begin("Hello, world!");
 	ImGui::DragFloat3("Camera pos ", &cameraTransform.position.x);
+	ImGui::DragFloat3("Object rot", &currentView.GetComponents<Transform>()[0]->rotation.x);
+	ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
 	ImGui::End();
 	graphicsAPI->endDrawImGui();
 

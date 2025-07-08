@@ -272,6 +272,7 @@ Mesh ResourceManager::ProcessMesh(std::fstream& fstream)
 		{
 			std::istringstream ss(currentLine.substr(2));
             std::string vertexData;
+            std::array<uint32_t, 3> triangle;
             for (int i = 0; i < 3; i++)
             {
                 ss >> vertexData;
@@ -291,8 +292,12 @@ Mesh ResourceManager::ProcessMesh(std::fstream& fstream)
 				vertex.normal = normals[normIndex - 1];
 				vertex.textCoords = textCoords[texIndex - 1];
 				vertices.push_back(vertex);
-				indices.push_back(vertices.size() - 1);
+				triangle[i] = static_cast<unsigned int>(vertices.size() - 1); // store index of the vertex
             }
+            // Reverse winding: v0, v2, v1 instead of v0, v1, v2
+            indices.push_back(triangle[0]);
+            indices.push_back(triangle[2]);
+            indices.push_back(triangle[1]);
 		}
     }
     MeshData& meshData = mMeshes.emplace_back();
