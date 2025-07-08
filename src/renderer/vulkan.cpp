@@ -311,13 +311,12 @@ void Vulkan::drawFrame(
 	result = vkQueuePresentKHR(presentQueue, &presentInfo);
 
 	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || frameBufferResized) {
-		frameBufferResized = false;
 		recreateSwapChain();
+		frameBufferResized = false;
 	}
 	else if (result != VK_SUCCESS) {
 		throw std::runtime_error("failed to present swap chain image!");
 	}
-
 	currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 

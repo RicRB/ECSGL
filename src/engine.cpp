@@ -27,7 +27,7 @@ void Engine::initialize(GLFWwindow* window)
 		std::cerr << "Graphics API not initialized!" << std::endl;
 		exit(EXIT_FAILURE);
 	}
-	glfwSetWindowUserPointer(window, &renderer.graphicsAPI);
+	glfwSetWindowUserPointer(window, renderer.graphicsAPI.get());
 	glfwSetFramebufferSizeCallback(window, renderer.graphicsAPI->frameBufferResizeCallback);
 	renderer.graphicsAPI->initialize(window); // Pass the window if needed
 	renderer.graphicsAPI->initializeImGui();

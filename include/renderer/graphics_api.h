@@ -44,7 +44,6 @@ public:
 
 	static void frameBufferResizeCallback(GLFWwindow* window, int width, int height) {
 		auto app = reinterpret_cast<GraphicsAPI*>(glfwGetWindowUserPointer(window));
-		app->frameBufferResized = true;
-		std::cout << "Framebuffer resized: " << width << "x" << height << std::endl;
+		app->frameBufferResized = true;	
 	}
 };
