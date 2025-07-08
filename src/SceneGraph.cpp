@@ -64,6 +64,6 @@ glm::mat4x4 SceneGraph::_GetParentWorldMatrix(Registry& registry, Entity child)
 	{
 		return glm::mat4(1.0f);
 	}
-	glm::mat4x4 parentMatrix = registry.GetComponent<Transform>(parent).matrix();
+	glm::mat4x4 parentMatrix = registry.GetComponent<Transform>(parent).getMatrix();
 	return  _GetParentWorldMatrix(registry, parent) * parentMatrix;
 }

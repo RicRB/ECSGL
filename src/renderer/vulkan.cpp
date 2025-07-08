@@ -232,6 +232,11 @@ void Vulkan::drawFrame(
 
 	// PER OBJECT
 	VkPipeline lastPipeline = VK_NULL_HANDLE;
+	MeshData* lastMesh = nullptr;
+	MaterialData* lastMaterial = nullptr;
+	const glm::mat4 projectView = projectionMatrix * viewMatrix;
+	glm::vec3 cameraWorldPos = glm::inverse(viewMatrix)[3];
+	const glm::vec4 cameraPosition = glm::vec4(cameraWorldPos, 1.0f);
 	for (size_t i = 0; i < entityCount; i++)
 	{
 		const ShaderData& shader = shaders->at(materials[i]->shaderID);
@@ -241,29 +246,32 @@ void Vulkan::drawFrame(
 			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shader.pipeline);
 		}
 
-		VkBuffer vertexBuffers[] = { meshes[i]->vertexBuffer.buffer };
-		VkDeviceSize offsets[] = { 0 };
-		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-		vkCmdBindIndexBuffer(commandBuffer, meshes[i]->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-
-		// descriptor sets
-		uint32_t dynamicOffset = currentFrame * static_cast<uint32_t>(materials[i]->uniformBuffer.bufferSize);
-		uint32_t dynamicOffsets[] = { 0, dynamicOffset };
-		VkDescriptorSet descriptorSets[] = { globalDescriptorSet, materials[i]->descriptorSet };
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shader.pipelineLayout, 0, 2, descriptorSets, 1, dynamicOffsets);
-		
+		if (meshes[i] != lastMesh) {
+			// bind mesh if it has changed
+			lastMesh = meshes[i];
+			VkBuffer vertexBuffers[] = { meshes[i]->vertexBuffer.buffer };
+			VkDeviceSize offsets[] = { 0 };
+			vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+			vkCmdBindIndexBuffer(commandBuffer, meshes[i]->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+		}
+		if (materials[i] != lastMaterial) {
+			// descriptor sets
+			lastMaterial = materials[i];
+			uint32_t dynamicOffset = currentFrame * static_cast<uint32_t>(materials[i]->uniformBuffer.bufferSize);
+			uint32_t dynamicOffsets[] = { 0, dynamicOffset };
+			VkDescriptorSet descriptorSets[] = { globalDescriptorSet, materials[i]->descriptorSet };
+			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shader.pipelineLayout, 0, 2, descriptorSets, 1, dynamicOffsets);
+		}
 		// push constants
 		PushConstants pushConstants;
-		pushConstants.mvp = projectionMatrix * viewMatrix  * transforms[i]->matrix();
-		glm::mat4 model = transforms[i]->matrix();
+		pushConstants.mvp = projectView * transforms[i]->getMatrix();
+
+		glm::mat4 model = transforms[i]->getMatrix();
 		pushConstants.model = glm::mat3x4(
 			glm::vec4(model[0].x, model[0].y, model[0].z, model[3].x),
 			glm::vec4(model[1].x, model[1].y, model[1].z, model[3].y),
 			glm::vec4(model[2].x, model[2].y, model[2].z, model[3].z));
-		//pushConstants.time = static_cast<float>(glfwGetTime());
-		glm::vec3 cameraWorldPos = glm::inverse(viewMatrix)[3];
-
-		pushConstants.cameraPosition = glm::vec4(cameraWorldPos, 1.0f);
+		pushConstants.cameraPosition = cameraPosition;
 		vkCmdPushConstants(commandBuffer, shader.pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(PushConstants), &pushConstants);
 		
 		vkCmdDrawIndexed(commandBuffer, meshes[i]->vertexCount, 1, 0, 0, 0);

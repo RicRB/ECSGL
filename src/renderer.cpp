@@ -56,7 +56,7 @@ void Renderer::DrawElements(Registry& registry, ResourceManager& resourceManager
 	for (size_t i = 0; i < pointView.size(); i++)
 	{
 		PointLightUniform ubo;
-		ubo.position = glm::vec4(pointTransforms[i]->position, 1.0);
+		ubo.position = glm::vec4(pointTransforms[i]->getPosition(), 1.0);
 		ubo.constant = pointLightsView[i]->constant;
 		ubo.linear = pointLightsView[i]->linear;
 		ubo.quadratic = pointLightsView[i]->quadratic;
@@ -68,15 +68,13 @@ void Renderer::DrawElements(Registry& registry, ResourceManager& resourceManager
 	}
 	globalUniformObject.pointLightCount = static_cast<uint32_t>(pointView.size());
 
-
 	// ImGui
 	if (graphicsAPI->isImGuiInitialized)
 	{
 		ImGuiIO& io = ImGui::GetIO(); (void)io;
 		graphicsAPI->beginDrawImGui();
 		ImGui::Begin("Hello, world!");
-		ImGui::DragFloat3("Camera pos ", &cameraTransform.position.x);
-		ImGui::DragFloat3("Object rot", &currentView.GetComponents<Transform>()[0]->rotation.x);
+		ImGui::DragFloat3("Camera pos ", &cameraTransform.getPositionReference().x);
 		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
 		ImGui::End();
 		graphicsAPI->endDrawImGui();

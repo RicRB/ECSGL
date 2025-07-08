@@ -111,10 +111,15 @@ int main(void)
 
 
         Transform transform;
-		transform.position = glm::vec3(0, 0, -10.0f);
-		transform.scale = glm::vec3(1.0f, 1.0f, 1.0f) * 0.5f;
-		transform.rotation = glm::vec3(45.0f, 45.0f, 0.0f);
-        Entity entity = engine::CreateDefaultObject(transform);
+		transform.setPosition(glm::vec3(0, 0, -10.0f));
+		transform.setScale(glm::vec3(1.0f, 1.0f, 1.0f) * 0.5f);
+		transform.setRotation(glm::vec3(45.0f, 45.0f, 0.0f));
+        for (size_t i = 0; i < 750; i++)
+        {
+            transform.setPosition(glm::vec3(i * 0.1f, 0, -10.0f));
+            Entity entity = engine::CreateDefaultObject(transform);
+        }
+        //Entity entity = engine::CreateDefaultObject(transform);
         Entity light = engine::CreateDirLight();
         Entity pLight = engine::CreatePointLight();
 
