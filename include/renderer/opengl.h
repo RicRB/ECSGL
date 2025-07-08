@@ -1,0 +1,31 @@
+#include "renderer/graphics_api.h"
+#include "gl_def.h"
+class OpenGl : public GraphicsAPI {
+public:
+private:
+
+public:
+	void initialize(GLFWwindow* window) override;
+	void initializeImGui() override;
+	void drawFrame(
+		const glm::mat4 viewMatrix,
+		const glm::mat4 projectionMatrix,
+		const GlobalUBO* globalUniformObject,
+		const int entityCount,
+		const std::vector<Transform*> transforms,
+		const std::vector<MeshData*> meshes,
+		const std::vector<MaterialData*> materials,
+		const std::vector<ShaderData>* shaders
+	) override;
+	void beginDrawImGui() override;
+	void endDrawImGui() override;
+	void cleanup() override;
+	void compileShader(const char* name, const std::string& vertexSource, const std::string& fragmentSource, ShaderData* shaderData) override;
+	void loadMaterial(const char* name, const ShaderData& shaderData, MaterialData* materialData) override;
+	void loadMesh(MeshData* mesh) override;
+	void unloadShader(ShaderData* shaderData) override;
+	void unloadMaterial(MaterialData* materialData) override;
+	void unloadMesh(MeshData* mesh) override;
+private:
+
+};

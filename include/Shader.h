@@ -8,7 +8,7 @@
 #include "vk_def.h"
 
 using ShaderID = unsigned int;
-
+using GLProgramID = unsigned int;
 struct ShaderUniformMetaData
 {
 	char* data = nullptr;
@@ -21,7 +21,7 @@ struct ShaderData
 {
 	ShaderID id;
 	// opengl
-	unsigned int programID;
+	GLProgramID programID = 0;
 
 	// vulkan
 	VkPipeline pipeline = VK_NULL_HANDLE;

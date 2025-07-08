@@ -11,7 +11,7 @@ class GraphicsAPI {
 private:
 	
 public:
-
+	GLFWwindow* window = nullptr;
 	VkDevice device;
 	bool frameBufferResized = false;
 	bool isImGuiInitialized = false;

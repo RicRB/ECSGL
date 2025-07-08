@@ -1,7 +1,11 @@
 #pragma once
 #include "vk_def.h"
-
+#include <array>
 using MeshID = unsigned int;
+using GLVertexID = unsigned int;
+using GLIndexID = unsigned int;
+
+
 struct Vertex
 {
 	glm::vec3 position;
@@ -51,6 +55,8 @@ struct Mesh
 struct MeshData
 {
 	MeshID id;
+	GLVertexID vertexID;
+	GLIndexID indexID;
 	VkVertexBuffer vertexBuffer;
 	VkIndexBuffer indexBuffer;
 	std::vector<Vertex> vertices;

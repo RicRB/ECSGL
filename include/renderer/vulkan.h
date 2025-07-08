@@ -33,7 +33,6 @@ struct SwapChainSupportDetails {
 class Vulkan : public GraphicsAPI {
 public:
 private:
-	GLFWwindow* window;
 	VkInstance instance;
 	VkDebugUtilsMessengerEXT debugMessenger;
 	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
