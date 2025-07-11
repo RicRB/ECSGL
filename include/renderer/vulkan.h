@@ -76,6 +76,9 @@ private:
 	VkDescriptorSetLayout globalDescriptorSetLayout;
 	QueueFamilyIndices indices;
 public:
+	Vulkan() {
+		graphicsAPIType = GRAPHICS_API_VULKAN;
+	}
 	void initialize(GLFWwindow* window) override;
 	void initializeImGui() override;
 	void drawFrame(

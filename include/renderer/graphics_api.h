@@ -4,12 +4,14 @@
 #include "transform.h"
 #include <string>
 #include <vector>
-using GraphicsAPIType = uint16_t;
+using GraphicsAPIType = uint32_t;
 constexpr GraphicsAPIType GRAPHICS_API_OPENGL = 0;
 constexpr GraphicsAPIType GRAPHICS_API_VULKAN = 1;
 class GraphicsAPI {
+protected:
+	GraphicsAPIType graphicsAPIType;
 private:
-	
+
 public:
 	GLFWwindow* window = nullptr;
 	VkDevice device;
@@ -41,7 +43,9 @@ public:
 	virtual void unloadShader(ShaderData* shaderData) = 0;
 	virtual void unloadMaterial(MaterialData* materialData) = 0;
 	virtual void unloadMesh(MeshData* mesh) = 0;
-
+	GraphicsAPIType getType() {
+		return graphicsAPIType;
+	}
 	static void frameBufferResizeCallback(GLFWwindow* window, int width, int height) {
 		auto app = reinterpret_cast<GraphicsAPI*>(glfwGetWindowUserPointer(window));
 		app->frameBufferResized = true;	

@@ -2,13 +2,14 @@
 #include <iostream>
 #include <filesystem>
 #include "renderer/vulkan.h"
+#include "renderer/opengl.h"
 Engine::Engine(const GraphicsAPIType graphicsAPIType)
 {
 	renderer.rendererType = graphicsAPIType;
 	switch (graphicsAPIType)
 	{
 	case GRAPHICS_API_OPENGL:
-		//graphicsAPI = std::make_unique<OpenGL>();
+		renderer.graphicsAPI = std::make_unique<OpenGl>();
 		break;
 	case GRAPHICS_API_VULKAN:
 		renderer.graphicsAPI = std::make_unique<Vulkan>();

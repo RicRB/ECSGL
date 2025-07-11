@@ -2,6 +2,7 @@
 #include "glm/glm.hpp"
 #include "shader.h"
 #include "texture.h"
+#include "gl_def.h"
 enum class VariableType
 {
 	TEXTURE,
@@ -28,13 +29,14 @@ struct MaterialVariable
 struct MaterialData {
 	MaterialID id;
 	ShaderID shaderID;
+	MaterialUBO ubo;
+
+	// opengl specific
+	GLuint gl_uniformBuffer;
+
+	// vulkan specific
 	VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
 	VkUniformBuffer uniformBuffer;
-	VkMaterialUBO ubo;
-
-	MaterialVariable diffuse, specular;
-	float shininess;
-	MaterialData() : id(0), shaderID(0), descriptorSet(VK_NULL_HANDLE), uniformBuffer(VK_NULL_HANDLE), ubo(), diffuse(glm::vec3(0.0, 0.0, 0.0)), specular(glm::vec3(0.0, 0.0, 0.0)) {}
 };
 struct Material {
 	MaterialID id;

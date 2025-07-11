@@ -2,8 +2,8 @@
 #include "vk_def.h"
 #include <array>
 using MeshID = unsigned int;
-using GLVertexID = unsigned int;
-using GLIndexID = unsigned int;
+using GLVertexID = GLuint;
+using GLIndexID = GLuint;
 
 
 struct Vertex

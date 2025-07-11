@@ -13,9 +13,11 @@
 #include "imgui/imgui_impl_glfw.h"
 #include "imgui/imgui_impl_vulkan.h"
 
-
 void Vulkan::initialize(GLFWwindow* window)
 {
+
+
+	glfwSwapInterval(0);
 	this->window = window;
 	// create instance
 	VkApplicationInfo appInfo{};
@@ -359,7 +361,7 @@ void Vulkan::compileShader(const char* name, const std::string& vertexSource, co
 
 void Vulkan::loadMaterial(const char* name, const ShaderData& shaderData, MaterialData* materialData) {
 	materialData->shaderID = shaderData.id;
-	createUniformBuffer(&materialData->uniformBuffer, sizeof(VkMaterialUBO));
+	createUniformBuffer(&materialData->uniformBuffer, sizeof(MaterialUBO));
 	createDescriptorSet(&materialData->uniformBuffer, &materialDescriptorSetLayout, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, &materialData->descriptorSet);
 }
 void Vulkan::loadMesh(MeshData* mesh) {
@@ -1035,7 +1037,6 @@ std::vector<uint32_t> Vulkan::compileShaderGLSLToSPIRV(const std::string& source
 		return std::vector<uint32_t>();
 	}
 	return { result.cbegin(), result.cend() };
-	return std::vector<uint32_t>();
 }
 
 

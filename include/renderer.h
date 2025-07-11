@@ -12,7 +12,8 @@ public:
 	GraphicsAPIType rendererType;
 private:
 	View<Transform, Mesh, Material> currentView;
-
+	float fps = 0.0f;
+	float times = 0.0f;
 	
 public:
 	Renderer();

@@ -1,6 +1,5 @@
 #version 450
 
-
 struct PointLight
 {
 	vec4 position;
@@ -19,6 +18,23 @@ struct DirLight
 	vec4 diffuse;
 	vec4 specular;
 };
+struct s_GlobalUniformBufferObject {
+	PointLight pointLights[4];
+	DirLight dirLights[4];
+	uint dirLightCount;
+	uint pointLightCount;
+};
+struct s_MaterialUniformBufferObject {
+	vec4 diffuseColor;
+	vec4 specularColor;
+	vec4 ambientColor;
+};
+struct s_constants {
+	mat4 mvp;
+	mat3x4 model;
+	vec4 cameraPosition;
+};
+#ifdef VULKAN
 layout(set = 0, binding = 0) uniform GlobalUniformBufferObject {
 	PointLight pointLights[4];
 	DirLight dirLights[4];
@@ -36,6 +52,26 @@ layout( push_constant ) uniform constants {
 	mat3x4 model;
 	vec4 cameraPosition;
 };
+#endif
+#ifdef OPENGL
+layout(std140, binding = 0) uniform GlobalUniformBufferObject {
+	PointLight pointLights[4];
+	DirLight dirLights[4];
+	uint dirLightCount;
+	uint pointLightCount;
+};
+layout(std140, binding = 1) uniform MaterialUniformBufferObject {
+	vec4 diffuseColor;
+	vec4 specularColor;
+	vec4 ambientColor;
+};
+
+layout(std140, binding = 2) uniform constants {
+	mat4 mvp;
+	mat3x4 model;
+	vec4 cameraPosition;
+};
+#endif
 struct Material
 {
 	int diffuseIsMap;
@@ -47,11 +83,11 @@ struct Material
 	sampler2D specularMap;
 };
 
-
-layout(location = 0) out vec4 color;
 layout(location = 0) in vec2 v_TextCoord;
 layout(location = 1) in vec3 v_FragPos;
 layout(location = 2) in vec3 v_Normal;
+
+layout(location = 0) out vec4 color;
 //uniform mat4 u_Model;
 //uniform mat4 u_View;
 //uniform vec4 u_GlobalLightColor;

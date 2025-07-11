@@ -24,5 +24,16 @@ struct alignas(256) GlobalUBO {
 	DirectionLightUniform dirLights[4]; // 4 directional lights
 	uint32_t dirLightCount;
 	uint32_t pointLightCount;
+};
 
+struct alignas(256) MaterialUBO {
+	glm::vec4 diffuseColor;
+	glm::vec4 specularColor;
+	glm::vec4 ambientColor;
+};
+
+struct PushConstants {
+	glm::mat4 mvp;
+	glm::mat3x4 model;
+	glm::vec4 cameraPosition; // for material color
 };

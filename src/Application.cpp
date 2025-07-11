@@ -25,14 +25,24 @@ void PrintMessage(int i) {
 #define GLM_ENABLE_EXPERIMENTAL
 int main(void)
 {
+	const GraphicsAPIType graphicsAPIType = GRAPHICS_API_VULKAN; // Change to GRAPHICS_API_VULKAN for Vulkan
     // hi
     GLFWwindow* window;
     
     /* Initialize the library */
     if (!glfwInit())
         return -1;
-
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API); // Prevents OpenGL context creation
+    if (graphicsAPIType == GRAPHICS_API_OPENGL)
+    {
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+		glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // For MacOS compatibility
+	}
+    else if (graphicsAPIType == GRAPHICS_API_VULKAN)
+    {
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API); // Prevents OpenGL context creation
+    }
     /* Create a windowed mode window and its OpenGL context */
     window = glfwCreateWindow(960, 540, "Vulkan Time", NULL, NULL);
     if (!window)
@@ -45,9 +55,6 @@ int main(void)
     /* Make the window's context current */
     //glfwMakeContextCurrent(window);
 
-
-    glfwSwapInterval(0);
-
     // glewInit();
 
  /*if (glewInit() != GLEW_OK)
@@ -55,7 +62,7 @@ int main(void)
      std::cout << "ERROR!" << std::endl;
  }
  std::cout << glGetString(GL_VERSION) << std::endl;*/
-    Engine engine(GRAPHICS_API_VULKAN);
+    Engine engine(graphicsAPIType);
 
     {
 
@@ -114,7 +121,7 @@ int main(void)
 		transform.setPosition(glm::vec3(0, 0, -10.0f));
 		transform.setScale(glm::vec3(1.0f, 1.0f, 1.0f) * 0.5f);
 		transform.setRotation(glm::vec3(45.0f, 45.0f, 0.0f));
-        for (size_t i = 0; i < 750; i++)
+        for (size_t i = 0; i < 1; i++)
         {
             transform.setPosition(glm::vec3(i * 0.1f, 0, -10.0f));
             Entity entity = engine::CreateDefaultObject(transform);

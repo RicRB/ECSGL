@@ -3,7 +3,8 @@
 class OpenGl : public GraphicsAPI {
 public:
 private:
-
+	GLuint globalUniformBuffer = 0;
+	GLuint pushConstantBuffer = 0; // for push constants
 public:
 	void initialize(GLFWwindow* window) override;
 	void initializeImGui() override;
@@ -27,5 +28,7 @@ public:
 	void unloadMaterial(MaterialData* materialData) override;
 	void unloadMesh(MeshData* mesh) override;
 private:
+	GLuint createUniformBuffer(const size_t size);
+	void updateUniformBuffer(GLuint uniformBuffer, const void* data, const size_t size);
 
 };
