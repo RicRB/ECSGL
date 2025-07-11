@@ -5,6 +5,9 @@ TODO:
 - MOVE ENGINE INIT OF RENDERER PART INSIDE OF RENDERER...
 
 IMMEDIATE TODO :
+- handle projection for opengl and vulkan (different) AND FLIP AXIS
+- flip axis???
+
 - handle textures
 - add uniform reading from spirv?? save spirv module or just read from file?
 
