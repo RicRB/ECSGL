@@ -190,6 +190,22 @@ void Vulkan::drawFrame(
 		updatedMaterials.insert(material->id);
 		updateUniformBufferData(&material->uniformBuffer, &material->ubo);
 	}
+
+	// SORTING TIME
+	std::vector<DrawObject> drawObjects(entityCount);
+	for (size_t i = 0; i < entityCount; i++)
+	{
+		drawObjects[i].index = i;
+		drawObjects[i].mesh = meshes[i]->id;
+		drawObjects[i].material = materials[i]->id;
+		drawObjects[i].shader = materials[i]->shaderID;
+	}
+	// sort draw objects by shaderID, then by materialID, then by meshID
+	std::sort(drawObjects.begin(), drawObjects.end(), [](const DrawObject& a, const DrawObject& b) {
+		if (a.shader != b.shader) return a.shader < b.shader;
+		if (a.material != b.material) return a.material < b.material;
+		return a.mesh < b.mesh;
+		});
 	// recording command buffer
 	vkResetCommandBuffer(commandBuffers[currentFrame], 0);
 
@@ -236,11 +252,16 @@ void Vulkan::drawFrame(
 	VkPipeline lastPipeline = VK_NULL_HANDLE;
 	MeshData* lastMesh = nullptr;
 	MaterialData* lastMaterial = nullptr;
-	const glm::mat4 projectView = projectionMatrix * viewMatrix;
+	glm::mat4 realProjectionMatrix = projectionMatrix;
+	realProjectionMatrix[1][1] *= -1.0f; // flip the y-axis for Vulkan
+	const glm::mat4 projectView = realProjectionMatrix * viewMatrix;
 	glm::vec3 cameraWorldPos = glm::inverse(viewMatrix)[3];
 	const glm::vec4 cameraPosition = glm::vec4(cameraWorldPos, 1.0f);
-	for (size_t i = 0; i < entityCount; i++)
+	for (size_t orderedIndex = 0; orderedIndex < entityCount; orderedIndex++)
 	{
+		const size_t i = drawObjects[orderedIndex].index;
+		// get the draw object
+
 		const ShaderData& shader = shaders->at(materials[i]->shaderID);
 		if (shader.pipeline != lastPipeline) {
 			// bind pipeline if it has changed

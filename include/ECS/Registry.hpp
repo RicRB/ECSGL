@@ -192,6 +192,10 @@ public:
 		destroyed = std::queue<unsigned int>();
 	}
 
+	glm::mat4 GetLocalToWorldMatrix(Entity entity)
+	{
+		return scenegraph.GetLocalToWorldMatrix(*this, entity);
+	}
 private:
 	template <typename ComponentType>
 	Pool<ComponentType>* GetPool()

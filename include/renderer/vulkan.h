@@ -29,7 +29,12 @@ struct SwapChainSupportDetails {
 	std::vector<VkSurfaceFormatKHR> formats;
 	std::vector<VkPresentModeKHR> presentModes;
 };
-
+struct DrawObject {
+	size_t index;
+	ShaderID shader;
+	MaterialID material;
+	MeshID mesh;
+};
 class Vulkan : public GraphicsAPI {
 public:
 private:

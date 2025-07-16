@@ -8,7 +8,7 @@ private:
 	glm::vec3 scale;
 	glm::mat4 matrix;
 	bool cached = false; // if the matrix is cached, we don't need to recalculate it every time
-
+	bool cachingEnabled = true; // if caching is enabled, we will cache the matrix
 public:
 	Transform(glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3 rotation = glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3 scale = glm::vec3(1.0f))
 		:  position(position), rotation(rotation), scale(scale) {
@@ -16,15 +16,18 @@ public:
 	~Transform() {}
 	const glm::mat4 getMatrix()
 	{
-		if (cached) return matrix;
+		if (cachingEnabled && cached) return matrix;
 		glm::mat4 mat(1.0f);
 		mat = glm::translate(mat, position);
 		mat = glm::rotate(mat, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
 		mat = glm::rotate(mat, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
 		mat = glm::rotate(mat, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 		mat = glm::scale(mat, scale);
-		matrix = mat;
-		cached = true;
+		if (cachingEnabled)
+		{
+			matrix = mat;
+			cached = true;
+		}
 		return mat;
 	}
 	// returns without the scale
@@ -52,6 +55,10 @@ public:
 	glm::vec3& getPositionReference() {
 		return position;
 	}
+	glm::vec3& getRotationReference() {
+		return rotation;
+	}
+
 	glm::vec3 getPosition() const {
 		return position;
 	}
@@ -60,5 +67,11 @@ public:
 	}
 	glm::vec3 getScale() const {
 		return scale;
+	}
+	void setCaching(bool enable) {
+		cachingEnabled = enable;
+		if (!enable) {
+			cached = false; // invalidate cache if caching is disabled
+		}
 	}
 };

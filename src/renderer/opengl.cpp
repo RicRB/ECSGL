@@ -22,6 +22,7 @@ void OpenGl::initialize(GLFWwindow* window)
     glCullFace(GL_BACK);
 	glFrontFace(GL_CCW); // Counter-clockwise winding order
     glEnable(GL_DEPTH_TEST);
+	glEnable(GL_FRAMEBUFFER_SRGB); // Enable sRGB framebuffer for color correction
     glDepthFunc(GL_LESS);
 
 	// create global uniform buffer

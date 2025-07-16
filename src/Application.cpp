@@ -3,6 +3,7 @@
 #include <string>
 #include <sstream>
 #include <vector>
+#include <cmath>
 #include "shader.h"
 #include "transform.h"
 #include "resource_manager.h"
@@ -121,9 +122,10 @@ int main(void)
 		transform.setPosition(glm::vec3(0, 0, -10.0f));
 		transform.setScale(glm::vec3(1.0f, 1.0f, 1.0f) * 0.5f);
 		transform.setRotation(glm::vec3(45.0f, 45.0f, 0.0f));
-        for (size_t i = 0; i < 1; i++)
+        for (size_t i = 0; i < 900; i++)
         {
-            transform.setPosition(glm::vec3(i * 0.1f, 0, -10.0f));
+			glm::vec3 hey = glm::vec3( std::fmod((static_cast<float>(i) * 2.0f), 20.0f), static_cast<float>(glm::floor(i / 20)), -10.0f);
+            transform.setPosition(hey);
             Entity entity = engine::CreateDefaultObject(transform);
         }
         //Entity entity = engine::CreateDefaultObject(transform);
