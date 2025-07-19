@@ -68,6 +68,33 @@ public:
 	glm::vec3 getScale() const {
 		return scale;
 	}
+	const glm::vec3 getForward() const {
+		// Convert degrees to radians if needed
+		float pitch = glm::radians(rotation.x);
+		float yaw = glm::radians(rotation.y);
+
+		glm::vec3 forward;
+		forward.x = cos(pitch) * sin(yaw);
+		forward.y = sin(pitch);
+		forward.z = -cos(pitch) * cos(yaw); // OpenGL forward is -Z
+
+		return glm::normalize(forward);
+	}
+	const glm::vec3 getRight() const {
+		float pitch = glm::radians(rotation.x);
+		float yaw = glm::radians(rotation.y);
+
+		glm::vec3 forward;
+		forward.x = cos(pitch) * sin(yaw);
+		forward.y = sin(pitch);
+		forward.z = -cos(pitch) * cos(yaw);
+		forward = glm::normalize(forward);
+
+		glm::vec3 worldUp = glm::vec3(0.0f, 1.0f, 0.0f);
+		glm::vec3 right = glm::normalize(glm::cross(forward, worldUp));
+		glm::vec3 up = glm::normalize(glm::cross(right, forward));
+		return right;
+	}
 	void setCaching(bool enable) {
 		cachingEnabled = enable;
 		if (!enable) {

@@ -132,7 +132,7 @@ namespace engine {
 		Registry& reg = currentEngine->registry;
 		currentEngine->currentCamera = reg.GetComponent<Camera>(entity);
 	}
-	Entity engine::GetCameraEntity()
+	const Entity engine::GetCameraEntity()
 	{
 		return currentEngine->currentCameraEntity;
 	}

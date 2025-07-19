@@ -1,5 +1,4 @@
 #pragma 
-#include "ecs/ecs_system.h"
 #include "transform.h"
 #include "material.h"
 #include "mesh.h"

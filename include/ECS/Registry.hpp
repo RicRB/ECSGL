@@ -2,7 +2,7 @@
 #include "scenegraph.hpp"
 #include "pool.hpp"
 #include "view.hpp"
-
+#include "ecs/system.h"
 #include <unordered_map>
 #include <queue>
 #include <memory>
@@ -15,6 +15,7 @@ public:
 private:
 	std::unordered_map<std::type_index, std::shared_ptr<PoolBase>> pools;
 	dense_array<Entity, MAX_ENTITIES> entities;
+	std::vector<std::shared_ptr<System>> systems; // List of systems
 	std::queue<unsigned int> destroyed;
 public:
 
@@ -195,6 +196,36 @@ public:
 	glm::mat4 GetLocalToWorldMatrix(Entity entity)
 	{
 		return scenegraph.GetLocalToWorldMatrix(*this, entity);
+	}
+	template <typename SystemType>
+	void AddSystem()
+	{
+		static_assert(std::is_base_of<System, SystemType>::value, "SystemType must inherit from System");
+		// Check if system already exists
+		for (const auto& system : systems)
+		{
+			if (typeid(*system) == typeid(SystemType))
+			{
+				std::cout << "System of type " << typeid(SystemType).name() << " already exists." << std::endl;
+				return;
+			}
+		}
+
+		systems.push_back(std::make_shared<SystemType>());
+	}
+	void startSystems()
+	{
+		for (const auto& system : systems)
+		{
+			system->start();
+		}
+	}
+	void updateSystems(const float deltaTime)
+	{
+		for (const auto& system : systems)
+		{
+			system->update(deltaTime);
+		}
 	}
 private:
 	template <typename ComponentType>

@@ -8,6 +8,7 @@
 #include "lights.h"
 #include "camera.h"
 #include "renderer.h"
+#include "input.hpp"
 #include <memory>
 
 class Engine
@@ -51,7 +52,7 @@ namespace engine
 	Entity CreateDirLight(const glm::vec3 direction = glm::vec3(0.0f, 0.0f, 1.0f), const glm::vec3 ambient = glm::vec3(0.0f), const glm::vec3 diffuse = glm::vec3(1.0f), const glm::vec3 specular = glm::vec3(0.2f), const float intensity = 2.0f);
 	Entity CreatePointLight(const glm::vec3 ambient = glm::vec3(0.0f), const glm::vec3 diffuse = glm::vec3(1.0f), const glm::vec3 specular = glm::vec3(0.2f), const float intensity = 1.0f, const float constant = 1.0f, const float linear = 0.09f, const float quadratic = 0.032f);
 	void SetCamera(Entity entity);
-	Entity GetCameraEntity();
+	const Entity GetCameraEntity();
 	Camera GetCamera();
 	Registry& GetRegistry();
 };

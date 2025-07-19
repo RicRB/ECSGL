@@ -18,6 +18,7 @@
 #include "imgui//imgui_impl_opengl3.h"
 #include "renderer/vulkan.h"
 #include "renderer/graphics_api.h"
+#include "systems/camera_movement.hpp"
 void PrintMessage(int i) {
     std::cout << i << "\n";
 }
@@ -114,7 +115,7 @@ int main(void)
   //      double currentFrame;
 		//double lastFrame = 0.0f;
 		//double deltaTime = 0.0f;
-
+		engine.registry.AddSystem<CameraMovementSystem>();
         engine.Start();
 
 
@@ -136,38 +137,9 @@ int main(void)
         while (!glfwWindowShouldClose(window))
         {
             glfwPollEvents();
+            
             engine.Update();
-            //GLCall(glClearColor(0.1f, 0.1f, 0.1f, 1.0f););
-            /*renderer.Clear();
 
-            Time::Update();
-
-			if (Input::GetKeyPressed(Key::A))
-			{
-				cameraTransformView.position.x -= 10.0f * Time::deltaTime;
-			}
-            if (Input::GetKeyPressed(Key::D))
-            {
-                cameraTransformView.position.x += 10.0f * Time::deltaTime;
-            }*/
-            //renderer.Update(registry);
-            //ImGui_ImplOpenGL3_NewFrame();
-            //ImGui_ImplGlfw_NewFrame();
-            //ImGui::NewFrame();
-            // GUI
-            {
-                /*ImGui::Begin("Hello, world!");
-               ImGui::DragFloat3("Position ", &transformView.position.x);
-               ImGui::DragFloat3("Scale", &transformView.scale.x);
-               ImGui::DragFloat3("Rotation", &transformView.rotation.x);
-               ImGui::DragFloat3("Color", &materialView.diffuse.vec3.x);
-               ImGui::DragFloat3("camera Position", &cameraTransformView.position.x);
-               ImGui::DragFloat3("Position2", &transformView2.position.x);*/
-                /*ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
-                ImGui::End();*/
-            }
-            //ImGui::Render();
-            //ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
             glfwSwapBuffers(window);
         }
     }
