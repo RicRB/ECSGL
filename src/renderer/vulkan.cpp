@@ -1394,3 +1394,15 @@ inline void Vulkan::updateUniformBufferData(VkUniformBuffer* buffer, const void*
 	memcpy(static_cast<char*>(buffer->mapped) + frameOffset, data, buffer->bufferSize);
 }
 
+void Vulkan::createDepthResources()
+{
+}
+
+void Vulkan::findDepthFormat()
+{
+}
+
+void Vulkan::findSupportedFormat()
+{
+}
+

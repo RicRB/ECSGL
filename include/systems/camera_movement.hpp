@@ -29,6 +29,24 @@ public:
 		if (Input::GetKeyPressed(Key::D)) {
 			transform.getPositionReference() += transform.getRight() * deltaTime * moveSpeed;
 		}
+		if (Input::GetKeyPressed(Key::SPACE)) {
+			transform.getPositionReference() += transform.getUp() * deltaTime * moveSpeed;
+		}
+		if (Input::GetKeyPressed(Key::LEFT_CONTROL)) {
+			transform.getPositionReference() -= transform.getUp() * deltaTime * moveSpeed;
+		}
+		if (Input::GetKeyPressed(Key::RIGHT)) {
+			transform.getRotationReference().y -= 90.0f * deltaTime; // Rotate right
+		}
+		if (Input::GetKeyPressed(Key::LEFT)) {
+			transform.getRotationReference().y += 90.0f * deltaTime; // Rotate left
+		}
+		if (Input::GetKeyPressed(Key::UP)) {
+			transform.getRotationReference().x += 90.0f * deltaTime; // Rotate up
+		}
+		if (Input::GetKeyPressed(Key::DOWN)) {
+			transform.getRotationReference().x -= 90.0f * deltaTime; // Rotate down
+		}
 	}
 	void cleanup() override {
 		// Cleanup code if needed

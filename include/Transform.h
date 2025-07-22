@@ -34,10 +34,10 @@ public:
 	const glm::mat4 viewMatrix() const
 	{
 		glm::mat4 mat(1.0f);
-		mat = glm::translate(mat, position);
-		mat = glm::rotate(mat, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-		mat = glm::rotate(mat, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		mat = glm::rotate(mat, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+		mat = glm::rotate(mat, glm::radians(-rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+		mat = glm::rotate(mat, glm::radians(-rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+		mat = glm::rotate(mat, glm::radians(-rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+		mat = glm::translate(mat, -position);
 		return mat;
 	}
 	void setPosition(const glm::vec3& pos) {
@@ -69,31 +69,24 @@ public:
 		return scale;
 	}
 	const glm::vec3 getForward() const {
-		// Convert degrees to radians if needed
-		float pitch = glm::radians(rotation.x);
-		float yaw = glm::radians(rotation.y);
+		glm::mat4 rotMat = glm::rotate(glm::mat4(1.0f), glm::radians(rotation.z), glm::vec3(0, 0, 1));
+		rotMat = glm::rotate(rotMat, glm::radians(rotation.y), glm::vec3(0, 1, 0));
+		rotMat = glm::rotate(rotMat, glm::radians(rotation.x), glm::vec3(1, 0, 0));
 
-		glm::vec3 forward;
-		forward.x = cos(pitch) * sin(yaw);
-		forward.y = sin(pitch);
-		forward.z = cos(pitch) * cos(yaw);
-
-		return glm::normalize(forward);
+		return -glm::vec3(rotMat[2]);
 	}
 	const glm::vec3 getRight() const {
-		float pitch = glm::radians(rotation.x);
-		float yaw = glm::radians(rotation.y);
+		glm::mat4 rotMat = glm::rotate(glm::mat4(1.0f), glm::radians(rotation.z), glm::vec3(0, 0, 1));
+		rotMat = glm::rotate(rotMat, glm::radians(rotation.y), glm::vec3(0, 1, 0));
+		rotMat = glm::rotate(rotMat, glm::radians(rotation.x), glm::vec3(1, 0, 0));
 
-		glm::vec3 forward;
-		forward.x = cos(pitch) * sin(yaw);
-		forward.y = sin(pitch);
-		forward.z = cos(pitch) * cos(yaw);
-		forward = glm::normalize(forward);
-
-		glm::vec3 worldUp = glm::vec3(0.0f, 1.0f, 0.0f);
-		glm::vec3 right = glm::normalize(glm::cross(forward, worldUp));
-		glm::vec3 up = glm::normalize(glm::cross(right, forward));
-		return right;
+		return glm::vec3(rotMat[0]);
+	}
+	const glm::vec3 getUp() const {
+		glm::mat4 rotMat = glm::rotate(glm::mat4(1.0f), glm::radians(rotation.z), glm::vec3(0, 0, 1));
+		rotMat = glm::rotate(rotMat, glm::radians(rotation.y), glm::vec3(0, 1, 0));
+		rotMat = glm::rotate(rotMat, glm::radians(rotation.x), glm::vec3(1, 0, 0));
+		return glm::vec3(rotMat[1]);
 	}
 	void setCaching(bool enable) {
 		cachingEnabled = enable;

@@ -147,6 +147,9 @@ private:
 	void createUniformBuffer(VkUniformBuffer* buffer, const VkDeviceSize bufferSize);
 	void createDescriptorSet(VkUniformBuffer* buffer, const VkDescriptorSetLayout* descriptorSetLayout, const VkDescriptorType type, VkDescriptorSet* descriptorSet);
 	inline void updateUniformBufferData(VkUniformBuffer* buffer, const void* data);
+	void createDepthResources();
+	void findDepthFormat();
+	void findSupportedFormat();
 
 
 };
