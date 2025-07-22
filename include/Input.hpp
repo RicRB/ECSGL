@@ -114,5 +114,3 @@ private:
 	Input() = default;
 	~Input() = default;
 };
-
-GLFWwindow* Input::m_window = nullptr;

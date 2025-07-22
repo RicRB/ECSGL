@@ -9,6 +9,7 @@
 #include "camera.h"
 #include "renderer.h"
 #include "input.hpp"
+#include "time.hpp"
 #include <memory>
 
 class Engine

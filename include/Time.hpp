@@ -1,10 +1,10 @@
 #pragma once
+#include "gl_def.h"
 class Time
 {
-public:
+private:
 	static double deltaTime;
 	static double time;
-private:
 	static double lastFrame;
 
 public:
@@ -20,9 +20,9 @@ public:
 		deltaTime = time - lastFrame;
 		lastFrame = time;
 	}
+	static const double getDeltaTime()
+	{
+		return deltaTime;
+	}
 private:
 };
-
-double Time::deltaTime = 0.0f;
-double Time::time = 0.0f;
-double Time::lastFrame = 0.0f;

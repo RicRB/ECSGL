@@ -50,6 +50,8 @@ void Engine::Start()
 
 void Engine::Update()
 {
+	Time::Update();
+	registry.updateSystems();
 	renderer.DrawElements(registry, resourceManager, currentCameraEntity);
 }
 

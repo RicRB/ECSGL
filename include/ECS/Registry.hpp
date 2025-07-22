@@ -220,11 +220,11 @@ public:
 			system->start();
 		}
 	}
-	void updateSystems(const float deltaTime)
+	void updateSystems()
 	{
 		for (const auto& system : systems)
 		{
-			system->update(deltaTime);
+			system->update();
 		}
 	}
 private:

@@ -11,7 +11,8 @@ public:
 		auto& registry = engine::GetRegistry();
 		registry.GetComponent<Transform>(camera).setCaching(false); // Disable caching for camera transform to ensure real-time updates
 	}
-	void update(const float deltaTime) override {
+	void update() override {
+		auto deltaTime = (float)Time::getDeltaTime();
 		auto camera = engine::GetCameraEntity();
 		auto& registry = engine::GetRegistry();
 		auto& transform = registry.GetComponent<Transform>(camera);

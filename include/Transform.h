@@ -76,7 +76,7 @@ public:
 		glm::vec3 forward;
 		forward.x = cos(pitch) * sin(yaw);
 		forward.y = sin(pitch);
-		forward.z = -cos(pitch) * cos(yaw); // OpenGL forward is -Z
+		forward.z = cos(pitch) * cos(yaw);
 
 		return glm::normalize(forward);
 	}
@@ -87,7 +87,7 @@ public:
 		glm::vec3 forward;
 		forward.x = cos(pitch) * sin(yaw);
 		forward.y = sin(pitch);
-		forward.z = -cos(pitch) * cos(yaw);
+		forward.z = cos(pitch) * cos(yaw);
 		forward = glm::normalize(forward);
 
 		glm::vec3 worldUp = glm::vec3(0.0f, 1.0f, 0.0f);

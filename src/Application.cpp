@@ -10,7 +10,6 @@
 #include "engine.h"
 #include "ecs/ecs.hpp"
 #include "input.hpp"
-#include "time.hpp"
 #include "event.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "imgui/imgui.h"
@@ -69,7 +68,8 @@ int main(void)
     {
 
         engine.initialize(window);
-
+		Input::Init(window);
+        Time::Init();
         /*glEnable(GL_BLEND);
         GLCall(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
         glEnable(GL_CULL_FACE);
