@@ -63,28 +63,30 @@ Texture ResourceManager::LoadTexture(const std::string& path)
     auto textureInfo = mTextures.find(path);
     if (textureInfo != mTextures.end())
     {
-        return Texture(textureInfo->second.mRendererID);
+        Texture tex;
+		tex.id = textureInfo->second.id;
+        return tex;
     }
     TextureData texInfo;
     stbi_set_flip_vertically_on_load(1); // play with it if upside down
-    texInfo.mLocalBuffer = stbi_load(path.c_str(), &texInfo.mWidth, &texInfo.mHeight, &texInfo.mBPP, 4);
-    GLCall(glGenTextures(1, &texInfo.mRendererID));
-    GLCall(glBindTexture(GL_TEXTURE_2D, texInfo.mRendererID));
+    texInfo.pixels = stbi_load(path.c_str(), &texInfo.width, &texInfo.height, &texInfo.bpp, 4);
+    //GLCall(glGenTextures(1, &texInfo.mRendererID));
+    //GLCall(glBindTexture(GL_TEXTURE_2D, texInfo.mRendererID));
 
-    // you need to specify these or else black texture
-    GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
-    GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
-    GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
-    GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
-    // give data
-    GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, texInfo.mWidth, texInfo.mHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, texInfo.mLocalBuffer));
-    GLCall(glBindTexture(GL_TEXTURE_2D, 0));
+    //// you need to specify these or else black texture
+    //GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
+    //GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+    //GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
+    //GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
+    //// give data
+    //GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, texInfo.mWidth, texInfo.mHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, texInfo.mLocalBuffer));
+    //GLCall(glBindTexture(GL_TEXTURE_2D, 0));
 
-    if (texInfo.mLocalBuffer)
-        stbi_image_free(texInfo.mLocalBuffer);
+    if (texInfo.pixels)
+		engine::currentEngine->renderer.graphicsAPI->loadTexture(&texInfo);
 
     mTextures[path] = texInfo;
-    return Texture(texInfo.mRendererID);
+    return Texture(texInfo.id);
 }
 
 Mesh ResourceManager::LoadOBJ(const std::string& filepath)

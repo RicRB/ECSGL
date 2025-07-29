@@ -4,6 +4,7 @@
 #include "transform.h"
 #include <string>
 #include <vector>
+#include "stb_image/stb_image.h"
 using GraphicsAPIType = uint32_t;
 constexpr GraphicsAPIType GRAPHICS_API_OPENGL = 0;
 constexpr GraphicsAPIType GRAPHICS_API_VULKAN = 1;
@@ -40,9 +41,11 @@ public:
 	virtual void compileShader(const char* name, const std::string& vertexSource, const std::string& fragmentSource, ShaderData* shaderData) = 0;
 	virtual void loadMaterial(const char* name, const ShaderData& shaderData, MaterialData* materialData) = 0;
 	virtual void loadMesh(MeshData* mesh) = 0;
+	virtual void loadTexture(TextureData* textureData) = 0;
 	virtual void unloadShader(ShaderData* shaderData) = 0;
 	virtual void unloadMaterial(MaterialData* materialData) = 0;
 	virtual void unloadMesh(MeshData* mesh) = 0;
+	virtual void unloadTexture(TextureData* textureData) = 0;
 	GraphicsAPIType getType() {
 		return graphicsAPIType;
 	}

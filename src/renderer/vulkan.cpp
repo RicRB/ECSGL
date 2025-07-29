@@ -391,6 +391,11 @@ void Vulkan::loadMesh(MeshData* mesh) {
 	mesh->vertexCount = static_cast<uint32_t>(mesh->vertices.size());
 }
 
+void Vulkan::loadTexture(TextureData* textureData)
+{
+
+}
+
 void Vulkan::cleanup()
 {
 	if (isImGuiInitialized) {

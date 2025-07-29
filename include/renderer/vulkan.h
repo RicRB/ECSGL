@@ -7,6 +7,7 @@
 #include <GLFW/glfw3native.h>
 
 #include <vulkan/vulkan.h>
+#include <vulkan/vulkan_raii.hpp>
 #include <shaderc/shaderc.hpp>
 #include <vector>
 #include <optional>
@@ -102,10 +103,13 @@ public:
 	void compileShader(const char* name, const std::string& vertexSource, const std::string& fragmentSource, ShaderData* shaderData) override;
 	void loadMaterial(const char* name, const ShaderData& shaderData, MaterialData* materialData) override;
 	void loadMesh(MeshData* mesh) override;
+	void loadTexture(TextureData* textureData) override;
+
 	void cleanup();
 	void unloadShader(ShaderData* shaderData) override;
 	void unloadMaterial(MaterialData* materialData) override;
 	void unloadMesh(MeshData* mesh) override;
+	void unloadTexture(TextureData* textureData) override;
 private:
 	static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
 		VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
