@@ -472,6 +472,10 @@ void Vulkan::unloadMesh(MeshData* mesh)
 	}
 }
 
+void Vulkan::unloadTexture(TextureData* textureData)
+{
+}
+
 VKAPI_ATTR VkBool32 VKAPI_CALL Vulkan::debugCallback(
 	VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, 
 	VkDebugUtilsMessageTypeFlagsEXT messageType, 

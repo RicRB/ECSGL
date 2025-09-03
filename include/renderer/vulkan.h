@@ -7,7 +7,7 @@
 #include <GLFW/glfw3native.h>
 
 #include <vulkan/vulkan.h>
-#include <vulkan/vulkan_raii.hpp>
+//#include <vulkan/vulkan_raii.hpp>
 #include <shaderc/shaderc.hpp>
 #include <vector>
 #include <optional>

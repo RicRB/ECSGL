@@ -36,6 +36,7 @@ void Engine::initialize(GLFWwindow* window)
 void Engine::Start()
 {
 	std::cout << "Working directory: " << std::filesystem::current_path() << std::endl;
+	
 	defaultShader = resourceManager.LoadShader("res/shaders/Basic.vert", "res/shaders/Basic.frag");
 	defaultMaterial = resourceManager.LoadMaterial(defaultShader.id);
 	defaultMesh = resourceManager.LoadOBJ("res/models/cube.obj");

@@ -56,7 +56,7 @@ message(STATUS "$ENV{VULKAN_SDK}/Lib")
 message(STATUS "Vulkan include: ${Vulkan_INCLUDE_DIRS}")
 # Copy the 'res' directory to the build directory
 add_custom_command(TARGET ECSGL POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_SOURCE_DIR}/res $<TARGET_FILE_DIR:ECSGL>/res
+   COMMAND ${CMAKE_COMMAND} -E copy_directory
+   ${CMAKE_SOURCE_DIR}/res $<TARGET_FILE_DIR:ECSGL>/res
 )
 

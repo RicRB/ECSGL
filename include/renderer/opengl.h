@@ -24,9 +24,12 @@ public:
 	void compileShader(const char* name, const std::string& vertexSource, const std::string& fragmentSource, ShaderData* shaderData) override;
 	void loadMaterial(const char* name, const ShaderData& shaderData, MaterialData* materialData) override;
 	void loadMesh(MeshData* mesh) override;
+	void loadTexture(TextureData* textureData) override;
 	void unloadShader(ShaderData* shaderData) override;
 	void unloadMaterial(MaterialData* materialData) override;
 	void unloadMesh(MeshData* mesh) override;
+	void unloadTexture(TextureData* textureData) override;
+
 private:
 	GLuint createUniformBuffer(const size_t size);
 	void updateUniformBuffer(GLuint uniformBuffer, const void* data, const size_t size);

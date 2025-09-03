@@ -269,6 +269,11 @@ void OpenGl::loadMesh(MeshData* mesh)
 	mesh->indexID = indexBuffer;
 }
 
+void OpenGl::loadTexture(TextureData* textureData)
+{
+
+}
+
 void OpenGl::unloadShader(ShaderData* shaderData)
 {
 	GLCall(glDeleteProgram(shaderData->programID));
@@ -287,6 +292,10 @@ void OpenGl::unloadMesh(MeshData* mesh)
 	GLCall(glDeleteBuffers(1, &mesh->indexID));
 	mesh->vertexID = 0;
 	mesh->indexID = 0;
+}
+
+void OpenGl::unloadTexture(TextureData* textureData)
+{
 }
 
 GLuint OpenGl::createUniformBuffer(const size_t size)
