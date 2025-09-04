@@ -86,6 +86,10 @@ Texture ResourceManager::LoadTexture(const std::string& path)
 		engine::currentEngine->renderer.graphicsAPI->loadTexture(&texInfo);
 
     mTextures[path] = texInfo;
+
+	if (texInfo.pixels)
+		stbi_image_free(texInfo.pixels);
+
     return Texture(texInfo.id);
 }
 

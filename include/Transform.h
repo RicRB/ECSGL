@@ -1,6 +1,7 @@
 #pragma once
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
+#include "glm/gtx/quaternion.hpp"
 struct Transform {
 private:
 	glm::vec3 position;
@@ -17,12 +18,14 @@ public:
 	const glm::mat4 getMatrix()
 	{
 		if (cachingEnabled && cached) return matrix;
-		glm::mat4 mat(1.0f);
-		mat = glm::translate(mat, position);
-		mat = glm::rotate(mat, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-		mat = glm::rotate(mat, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		mat = glm::rotate(mat, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
-		mat = glm::scale(mat, scale);
+		const glm::vec3 eulerRad = glm::radians(rotation);
+
+		// 2) Build a quaternion from Euler (normalized for safety)
+		// Option A (simple):
+		glm::quat q = glm::normalize(glm::quat(eulerRad));
+		glm::mat4 quatRotation = glm::toMat4(q);
+
+		glm::mat4 mat = glm::translate(glm::mat4(1.0f), position) * quatRotation * glm::scale(glm::mat4(1.0f), scale);
 		if (cachingEnabled)
 		{
 			matrix = mat;
@@ -33,12 +36,21 @@ public:
 	// returns without the scale
 	const glm::mat4 viewMatrix() const
 	{
-		glm::mat4 mat(1.0f);
-		mat = glm::rotate(mat, glm::radians(-rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
-		mat = glm::rotate(mat, glm::radians(-rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		mat = glm::rotate(mat, glm::radians(-rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-		mat = glm::translate(mat, -position);
-		return mat;
+		// 1) Build rotation from Euler *in radians*
+		const glm::vec3 e = glm::radians(rotation);   // rotation is in degrees
+		glm::quat q = glm::normalize(glm::quat(e));   // safe: normalize
+
+		// 2) Rotation matrix and its transpose (inverse for orthonormal)
+		const glm::mat3 R = glm::mat3_cast(q);
+		const glm::mat3 Rt = glm::transpose(R);
+
+		// 3) Compose view = R^T * T^{-1}
+		glm::mat4 V(1.0f);
+		V[0] = glm::vec4(Rt[0], 0.0f);                // columns
+		V[1] = glm::vec4(Rt[1], 0.0f);
+		V[2] = glm::vec4(Rt[2], 0.0f);
+		V[3] = glm::vec4(-Rt * position, 1.0f);       // translation part
+		return V;
 	}
 	void setPosition(const glm::vec3& pos) {
 		position = pos;
@@ -69,24 +81,19 @@ public:
 		return scale;
 	}
 	const glm::vec3 getForward() const {
-		glm::mat4 rotMat = glm::rotate(glm::mat4(1.0f), glm::radians(rotation.z), glm::vec3(0, 0, 1));
-		rotMat = glm::rotate(rotMat, glm::radians(rotation.y), glm::vec3(0, 1, 0));
-		rotMat = glm::rotate(rotMat, glm::radians(rotation.x), glm::vec3(1, 0, 0));
-
-		return -glm::vec3(rotMat[2]);
+		glm::quat q = glm::normalize(glm::quat(glm::radians(rotation)));
+		// In GLM, -Z is the conventional forward in right-handed systems
+		return glm::normalize(q * glm::vec3(0.0f, 0.0f, -1.0f));
 	}
+
 	const glm::vec3 getRight() const {
-		glm::mat4 rotMat = glm::rotate(glm::mat4(1.0f), glm::radians(rotation.z), glm::vec3(0, 0, 1));
-		rotMat = glm::rotate(rotMat, glm::radians(rotation.y), glm::vec3(0, 1, 0));
-		rotMat = glm::rotate(rotMat, glm::radians(rotation.x), glm::vec3(1, 0, 0));
-
-		return glm::vec3(rotMat[0]);
+		glm::quat q = glm::normalize(glm::quat(glm::radians(rotation)));
+		return glm::normalize(q * glm::vec3(1.0f, 0.0f, 0.0f));
 	}
+
 	const glm::vec3 getUp() const {
-		glm::mat4 rotMat = glm::rotate(glm::mat4(1.0f), glm::radians(rotation.z), glm::vec3(0, 0, 1));
-		rotMat = glm::rotate(rotMat, glm::radians(rotation.y), glm::vec3(0, 1, 0));
-		rotMat = glm::rotate(rotMat, glm::radians(rotation.x), glm::vec3(1, 0, 0));
-		return glm::vec3(rotMat[1]);
+		glm::quat q = glm::normalize(glm::quat(glm::radians(rotation)));
+		return glm::normalize(q * glm::vec3(0.0f, 1.0f, 0.0f));
 	}
 	void setCaching(bool enable) {
 		cachingEnabled = enable;

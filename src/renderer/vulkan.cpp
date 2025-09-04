@@ -393,6 +393,15 @@ void Vulkan::loadMesh(MeshData* mesh) {
 
 void Vulkan::loadTexture(TextureData* textureData)
 {
+	VkBuffer stagingBuffer;
+	VkDeviceMemory stagingBufferMemory;
+	VkDeviceSize size = textureData->width * textureData->height * 4;
+	createBuffer(size, VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+
+	void* data;
+	vkMapMemory(device, stagingBufferMemory, 0, size, 0, &data);
+	memcpy(data, textureData->pixels, size);
+	vkUnmapMemory(device, stagingBufferMemory);
 
 }
 
