@@ -25,7 +25,7 @@ source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${SOURCES})
 
 target_link_libraries(Core PRIVATE 
 glfw 
-GLEW::GLEW 
+libglew_static 
 Vulkan::Vulkan 
 Vulkan::shaderc_combined
 )
