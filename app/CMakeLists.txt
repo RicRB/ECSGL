@@ -11,7 +11,10 @@ target_sources(App PRIVATE ${SOURCES})
 # Match VS filters to directory structure on disk
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${SOURCES})
 
-add_compile_definitions()
+add_compile_definitions(
+    GLFW_INCLUDE_NONE
+    GLM_ENABLE_EXPERIMENTAL
+)
 
 target_link_libraries(App Core)
 

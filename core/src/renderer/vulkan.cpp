@@ -10,8 +10,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <unordered_set>
 #include "imgui/imgui.h"
-#include "imgui/imgui_impl_glfw.h"
-#include "imgui/imgui_impl_vulkan.h"
+#include "imgui/backends/imgui_impl_glfw.h"
+#include "imgui/backends/imgui_impl_vulkan.h"
 
 void Vulkan::initialize(GLFWwindow* window)
 {

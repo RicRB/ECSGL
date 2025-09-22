@@ -3,19 +3,12 @@
 #
 cmake_minimum_required (VERSION 3.10)
 
-# Recurse into source files
-file(GLOB_RECURSE ECSGL_SOURCES
-    src/*.cpp
-    vendor/*.cpp
-)
-
-# Remove ImGui's main.cpp (we use our own main in Application.cpp)
-list(REMOVE_ITEM ECSGL_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/vendor/imgui/main.cpp")
-
 project (ECSGL)
 
 
 set(CMAKE_CXX_STANDARD 23)
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 include(Dependencies.cmake)
 

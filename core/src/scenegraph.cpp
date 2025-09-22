@@ -1,4 +1,5 @@
-#include "registry.hpp"
+#include "ecs/registry.hpp"
+
 void SceneGraph::ParentEntity(Entity child, Entity parent)
 {
 	_ParentEntity(child, parent);
