@@ -37,9 +37,9 @@ void Engine::Start()
 {
 	std::cout << "Working directory: " << std::filesystem::current_path() << std::endl;
 	
-	defaultShader = resourceManager.LoadShader("res/shaders/Basic.vert", "res/shaders/Basic.frag");
+	defaultShader = resourceManager.LoadShader( RES_DIR"shaders/Basic.vert", RES_DIR"shaders/Basic.frag");
 	defaultMaterial = resourceManager.LoadMaterial(defaultShader.id);
-	defaultMesh = resourceManager.LoadOBJ("res/models/cube.obj");
+	defaultMesh = resourceManager.LoadOBJ(RES_DIR"models/cube.obj");
 
 	Entity camera = engine::CreateEmptyEntity();
 	registry.AssignComponent<Camera>(camera, Camera());
