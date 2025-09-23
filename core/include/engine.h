@@ -1,10 +1,5 @@
 #pragma once
 #include "ecs/ecs.hpp"
-#include "shader.h"
-#include "transform.h"
-#include "mesh.h"
-#include "material.h"
-#include "resource_manager.h"
 #include "lights.h"
 #include "camera.h"
 #include "renderer.h"

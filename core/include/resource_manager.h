@@ -1,7 +1,5 @@
 #pragma once
-
 #include "material.h"
-#include "texture.h"
 #include "scene.h"
 #include "mesh.h"
 #include "ecs/ecs.hpp"

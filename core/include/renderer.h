@@ -1,7 +1,5 @@
 #pragma 
 #include "transform.h"
-#include "material.h"
-#include "mesh.h"
 #include "renderer/graphics_api.h"
 #include "resource_manager.h"
 class Renderer
