@@ -1,8 +1,16 @@
-#include "application.h"
+#include "core/application.h"
 
+class Game : public Core::Application {
+public:
+	Game() : Core::Application() {
+
+	}
+
+	~Game() {
+	}
+};
 int main(void)
 {
-	Application app;
-	app.Init();
+	Game game;
 	return 0;
 }
