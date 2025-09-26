@@ -1,3 +1,3 @@
 #include "input.hpp"
 
-GLFWwindow* Input::m_window = nullptr;
+std::weak_ptr<Window> Input::window;

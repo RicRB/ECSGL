@@ -2,7 +2,6 @@
 #include <sstream>
 #include "stb_image/stb_image.h"
 #include "components/lights.h"
-#include "platform/opengl/gl_def.h"
 #include "renderer/vertex_buffer_layout.h"
 #include "core/engine.h"
 ResourceManager::ResourceManager()

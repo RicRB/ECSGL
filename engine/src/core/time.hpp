@@ -1,5 +1,5 @@
 #pragma once
-#include "platform/opengl/gl_def.h"
+#include "GLFW/glfw3.h"
 class Time
 {
 private:

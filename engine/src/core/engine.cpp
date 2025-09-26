@@ -19,26 +19,25 @@ Engine::Engine(const GraphicsAPIType graphicsAPIType)
 		std::cerr << "Unknown graphics API type!" << std::endl;
 		exit(EXIT_FAILURE);
 	}
-}
-void Engine::initialize(GLFWwindow* window)
-{
 	engine::SetCurrentEngine(*this);
+	engine::currentRendererType = &renderer.rendererType;
+}
+void Engine::initialize(const std::shared_ptr<Window>& window)
+{
 	this->window = window; // Store the window pointer for later use
 	if (renderer.graphicsAPI == nullptr)
 	{
 		std::cerr << "Graphics API not initialized!" << std::endl;
 		exit(EXIT_FAILURE);
 	}
-	glfwSetWindowUserPointer(window, renderer.graphicsAPI.get());
-	glfwSetFramebufferSizeCallback(window, renderer.graphicsAPI->frameBufferResizeCallback);
-	renderer.graphicsAPI->initialize(window); // Pass the window if needed
+	glfwSetWindowUserPointer(window->getHandle(), renderer.graphicsAPI.get());
+	glfwSetFramebufferSizeCallback(window->getHandle(), renderer.graphicsAPI->frameBufferResizeCallback);
+	renderer.graphicsAPI->initialize(window->getHandle()); // Pass the window if needed
 	renderer.graphicsAPI->initializeImGui();
-}
-void Engine::Start()
-{
+
 	std::cout << "Working directory: " << std::filesystem::current_path() << std::endl;
-	
-	defaultShader = resourceManager.LoadShader( RES_DIR"shaders/Basic.vert", RES_DIR"shaders/Basic.frag");
+
+	defaultShader = resourceManager.LoadShader(RES_DIR"shaders/Basic.vert", RES_DIR"shaders/Basic.frag");
 	defaultMaterial = resourceManager.LoadMaterial(defaultShader.id);
 	defaultMesh = resourceManager.LoadOBJ(RES_DIR"models/cube.obj");
 
@@ -47,6 +46,9 @@ void Engine::Start()
 	registry.AssignComponent<Transform>(camera, Transform());
 	currentCameraEntity = camera;
 	currentCamera = registry.GetComponent<Camera>(camera);
+}
+void Engine::Start()
+{
 	printf("Game started");
 }
 

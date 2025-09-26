@@ -1,5 +1,6 @@
 #pragma once
-#include "platform/opengl/gl_def.h"
+#include "window.h"
+#include <memory>
 enum class Key
 {
 	SPACE = GLFW_KEY_SPACE,
@@ -88,27 +89,28 @@ enum class Key
 class Input
 {
 private:
-	static GLFWwindow* m_window;
+	static std::weak_ptr<Window> window;
 public:
-	static void Init(GLFWwindow* window)
+	static void Init(const std::shared_ptr<Window>& window)
 	{
-		Input::m_window = window;
+		Input::window = window;
+		Input::window.lock();
 	}
 	static bool GetKeyPressed(Key key)
 	{
-		return glfwGetKey(m_window, (int)key) == GLFW_PRESS;
+		return glfwGetKey(window.lock()->getHandle(), (int)key) == GLFW_PRESS;
 	}
 	static bool GetKeyReleased(Key key)
 	{
-		return glfwGetKey(m_window, (int)key) == GLFW_RELEASE;
+		return glfwGetKey(window.lock()->getHandle(), (int)key) == GLFW_RELEASE;
 	}
 	static bool GetMouseButtonPressed(Key button)
 	{
-		return glfwGetMouseButton(m_window, (int)button) == GLFW_PRESS;
+		return glfwGetMouseButton(window.lock()->getHandle(), (int)button) == GLFW_PRESS;
 	}
 	static bool GetMouseButtonReleased(Key button)
 	{
-		return glfwGetMouseButton(m_window, (int)button) == GLFW_RELEASE;
+		return glfwGetMouseButton(window.lock()->getHandle(), (int)button) == GLFW_RELEASE;
 	}
 private:
 	Input() = default;

@@ -4,7 +4,7 @@
 #include "components/camera.h"
 #include "renderer/renderer.h"
 #include <memory>
-
+#include "window.h"
 class Engine
 {
 public:
@@ -17,11 +17,11 @@ public:
 	Mesh defaultMesh;
 	Camera currentCamera;
 	Entity currentCameraEntity;
-	GLFWwindow* window;
+	std::weak_ptr<Window> window;
 	
 public:
 	Engine(const GraphicsAPIType graphicsAPIType);
-	void initialize(GLFWwindow* window);
+	void initialize(const std::shared_ptr<Window>& window);
 	void Start();
 	void Update();
 	void LoadScene(const std::string& scenePath);
