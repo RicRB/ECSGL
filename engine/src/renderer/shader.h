@@ -2,11 +2,10 @@
 #include <string>
 #include <unordered_map>
 #include "glm/glm.hpp"
-#include "platform/opengl/gl_def.h"
-#include "platform/vulkan/vk_def.h"
-
+#include "program.h"
 using ShaderID = unsigned int;
 using GLProgramID = unsigned int;
+using GLenum = unsigned int;
 struct ShaderUniformMetaData
 {
 	char* data = nullptr;
@@ -17,15 +16,10 @@ struct ShaderUniformMetaData
 };
 struct ShaderData
 {
+	ShaderData();
 	ShaderID id;
-	// opengl
-	GLProgramID programID = 0;
-
-	// vulkan
-	VkPipeline pipeline = nullptr;
-	VkPipelineLayout pipelineLayout = nullptr;
 	
-
+	std::shared_ptr<Program> program;
 	// sources
 	std::string VertexSource;
 	std::string FragmentSource;

@@ -14,6 +14,8 @@
 #include <string>
 #include <array>
 #include "renderer/graphics_api.h"
+#include "renderer/buffer.h"
+#include "vk_buffer.h"
 #ifdef max
 #undef max
 #endif
@@ -40,6 +42,7 @@ class Vulkan : public GraphicsAPI {
 public:
 private:
 	VkInstance instance;
+	VkDevice device;
 	VkDebugUtilsMessengerEXT debugMessenger;
 	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
 
@@ -155,5 +158,6 @@ private:
 	void findDepthFormat();
 	void findSupportedFormat();
 
-
+	constexpr std::array<VkVertexInputAttributeDescription, 3> getVertexAttributeDescriptions() const;
+	constexpr VkVertexInputBindingDescription getVertexBindingDescription() const;
 };

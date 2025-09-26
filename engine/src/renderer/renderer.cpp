@@ -2,6 +2,7 @@
 #include "components/lights.h"
 #include "components/camera.h"
 #include "imgui/imgui.h"
+
 Renderer::Renderer()
 {
 }
@@ -197,5 +198,4 @@ void Renderer::DrawElements(Registry& registry, ResourceManager& resourceManager
 
 void Renderer::Clear() const
 {
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }

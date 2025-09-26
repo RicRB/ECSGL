@@ -12,11 +12,11 @@
 #include "imgui/imgui.h"
 #include "imgui/backends/imgui_impl_glfw.h"
 #include "imgui/backends/imgui_impl_vulkan.h"
-
+#include "vk_descriptor_set.h"
+#include "renderer/uniform_objects.h"
+#include "vk_program.h"
 void Vulkan::initialize(GLFWwindow* window)
 {
-
-
 	glfwSwapInterval(0);
 	this->window = window;
 	// create instance
@@ -188,7 +188,7 @@ void Vulkan::drawFrame(
 	for (auto material : materials) {
 		if (updatedMaterials.contains(material->id)) continue;
 		updatedMaterials.insert(material->id);
-		updateUniformBufferData(&material->uniformBuffer, &material->ubo);
+		updateUniformBufferData(std::static_pointer_cast<VkUniformBuffer>(material->uniformBuffer).get(), &material->ubo);
 	}
 
 	// SORTING TIME
@@ -263,27 +263,31 @@ void Vulkan::drawFrame(
 		// get the draw object
 
 		const ShaderData& shader = shaders->at(materials[i]->shaderID);
-		if (shader.pipeline != lastPipeline) {
+		auto program = std::static_pointer_cast<VkProgram>(shader.program).get();
+		if (program->pipeline != lastPipeline) {
 			// bind pipeline if it has changed
-			lastPipeline = shader.pipeline;
-			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shader.pipeline);
+			lastPipeline = program->pipeline;
+			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, program->pipeline);
 		}
 
 		if (meshes[i] != lastMesh) {
 			// bind mesh if it has changed
 			lastMesh = meshes[i];
-			VkBuffer vertexBuffers[] = { meshes[i]->vertexBuffer.buffer };
+			auto vertexBuffer = std::static_pointer_cast<VkVertexBuffer>(meshes[i]->vertexBuffer);
+			auto indexBuffer = std::static_pointer_cast<VkIndexBuffer>(meshes[i]->indexBuffer);
+
+			VkBuffer vertexBuffers[] = { vertexBuffer->buffer };
 			VkDeviceSize offsets[] = { 0 };
 			vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-			vkCmdBindIndexBuffer(commandBuffer, meshes[i]->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdBindIndexBuffer(commandBuffer, indexBuffer->buffer, 0, VK_INDEX_TYPE_UINT32);
 		}
 		if (materials[i] != lastMaterial) {
 			// descriptor sets
 			lastMaterial = materials[i];
-			uint32_t dynamicOffset = currentFrame * static_cast<uint32_t>(materials[i]->uniformBuffer.bufferSize);
+			uint32_t dynamicOffset = currentFrame * static_cast<uint32_t>(std::static_pointer_cast<VkUniformBuffer>(materials[i]->uniformBuffer)->bufferSize);
 			uint32_t dynamicOffsets[] = { 0, dynamicOffset };
-			VkDescriptorSet descriptorSets[] = { globalDescriptorSet, materials[i]->descriptorSet };
-			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shader.pipelineLayout, 0, 2, descriptorSets, 1, dynamicOffsets);
+			VkDescriptorSet descriptorSets[] = { globalDescriptorSet, std::static_pointer_cast<VkDescriptorSetWrapper>(materials[i]->descriptorSet)->set};
+			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, program->pipelineLayout, 0, 2, descriptorSets, 1, dynamicOffsets);
 		}
 		// push constants
 		PushConstants pushConstants;
@@ -295,7 +299,7 @@ void Vulkan::drawFrame(
 			glm::vec4(model[1].x, model[1].y, model[1].z, model[3].y),
 			glm::vec4(model[2].x, model[2].y, model[2].z, model[3].z));
 		pushConstants.cameraPosition = cameraPosition;
-		vkCmdPushConstants(commandBuffer, shader.pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(PushConstants), &pushConstants);
+		vkCmdPushConstants(commandBuffer, program->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(PushConstants), &pushConstants);
 		
 		vkCmdDrawIndexed(commandBuffer, meshes[i]->vertexCount, 1, 0, 0, 0);
 	}
@@ -377,17 +381,18 @@ std::vector<const char*> Vulkan::getRequiredExtensions()
 	return extensions;
 }
 void Vulkan::compileShader(const char* name, const std::string& vertexSource, const std::string& fragmentSource, ShaderData* shaderData) {
-	createGraphicsPipeline(name, vertexSource, fragmentSource, &shaderData->pipeline, &shaderData->pipelineLayout);
+	auto program = std::static_pointer_cast<VkProgram>(shaderData->program).get();
+	createGraphicsPipeline(name, vertexSource, fragmentSource, &program->pipeline, &program->pipelineLayout);
 }
 
 void Vulkan::loadMaterial(const char* name, const ShaderData& shaderData, MaterialData* materialData) {
 	materialData->shaderID = shaderData.id;
-	createUniformBuffer(&materialData->uniformBuffer, sizeof(MaterialUBO));
-	createDescriptorSet(&materialData->uniformBuffer, &materialDescriptorSetLayout, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, &materialData->descriptorSet);
+	createUniformBuffer(std::static_pointer_cast<VkUniformBuffer>(materialData->uniformBuffer).get(), sizeof(MaterialUBO));
+	createDescriptorSet(std::static_pointer_cast<VkUniformBuffer>(materialData->uniformBuffer).get(), &materialDescriptorSetLayout, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, &std::static_pointer_cast<VkDescriptorSetWrapper>(materialData->descriptorSet)->set);
 }
 void Vulkan::loadMesh(MeshData* mesh) {
-	createVertexBuffer(mesh->vertices, &mesh->vertexBuffer);
-	createIndexBuffer(mesh->indices, &mesh->indexBuffer);
+	createVertexBuffer(mesh->vertices, std::static_pointer_cast<VkVertexBuffer>(mesh->vertexBuffer).get());
+	createIndexBuffer(mesh->indices, std::static_pointer_cast<VkIndexBuffer>(mesh->indexBuffer).get());
 	mesh->vertexCount = static_cast<uint32_t>(mesh->vertices.size());
 }
 
@@ -407,6 +412,8 @@ void Vulkan::loadTexture(TextureData* textureData)
 
 void Vulkan::cleanup()
 {
+	vkDeviceWaitIdle(device);
+
 	if (isImGuiInitialized) {
 		ImGui_ImplVulkan_Shutdown();
 		ImGui_ImplGlfw_Shutdown();
@@ -446,38 +453,43 @@ void Vulkan::cleanup()
 
 void Vulkan::unloadShader(ShaderData* shaderData)
 {
-	if (shaderData->pipeline != VK_NULL_HANDLE) {
-		vkDestroyPipeline(device, shaderData->pipeline, nullptr);
-		shaderData->pipeline = VK_NULL_HANDLE;
+	auto program = std::static_pointer_cast<VkProgram>(shaderData->program).get();
+	if (program->pipeline != VK_NULL_HANDLE) {
+		vkDestroyPipeline(device, program->pipeline, nullptr);
+		program->pipeline = VK_NULL_HANDLE;
 	}
-	if (shaderData->pipelineLayout != VK_NULL_HANDLE) {
-		vkDestroyPipelineLayout(device, shaderData->pipelineLayout, nullptr);
-		shaderData->pipelineLayout = VK_NULL_HANDLE;
+	if (program->pipelineLayout != VK_NULL_HANDLE) {
+		vkDestroyPipelineLayout(device, program->pipelineLayout, nullptr);
+		program->pipelineLayout = VK_NULL_HANDLE;
 	}
 }
 
 void Vulkan::unloadMaterial(MaterialData* materialData)
 {
-	if (materialData->uniformBuffer.buffer != VK_NULL_HANDLE) {
-		vkDestroyBuffer(device, materialData->uniformBuffer.buffer, nullptr);
-		vkFreeMemory(device, materialData->uniformBuffer.memory, nullptr);
-		materialData->uniformBuffer.buffer = VK_NULL_HANDLE;
+	if (materialData->uniformBuffer != VK_NULL_HANDLE) {
+		
+		auto uniformBuffer = std::static_pointer_cast<VkUniformBuffer>(materialData->uniformBuffer);
+		vkDestroyBuffer(device, uniformBuffer->buffer, nullptr);
+		vkFreeMemory(device, uniformBuffer->memory, nullptr);
+		uniformBuffer->buffer = VK_NULL_HANDLE;
 	}
 }
 
 void Vulkan::unloadMesh(MeshData* mesh)
 {
-	if (mesh->vertexBuffer.buffer != VK_NULL_HANDLE)
+	if (mesh->vertexBuffer != VK_NULL_HANDLE)
 	{
-		vkDestroyBuffer(device, mesh->vertexBuffer.buffer, nullptr);
-		vkFreeMemory(device, mesh->vertexBuffer.memory, nullptr);
-		mesh->vertexBuffer.buffer = VK_NULL_HANDLE;
+		auto vertexBuffer = std::static_pointer_cast<VkVertexBuffer>(mesh->vertexBuffer);
+		vkDestroyBuffer(device, vertexBuffer->buffer, nullptr);
+		vkFreeMemory(device, vertexBuffer->memory, nullptr);
+		vertexBuffer->buffer = VK_NULL_HANDLE;
 	}
-	if (mesh->indexBuffer.buffer != VK_NULL_HANDLE)
+	if (mesh->indexBuffer != VK_NULL_HANDLE)
 	{
-		vkDestroyBuffer(device, mesh->indexBuffer.buffer, nullptr);
-		vkFreeMemory(device, mesh->indexBuffer.memory, nullptr);
-		mesh->indexBuffer.buffer = VK_NULL_HANDLE;
+		auto indexBuffer = std::static_pointer_cast<VkIndexBuffer>(mesh->indexBuffer);
+		vkDestroyBuffer(device, indexBuffer->buffer, nullptr);
+		vkFreeMemory(device, indexBuffer->memory, nullptr);
+		indexBuffer->buffer = VK_NULL_HANDLE;
 	}
 }
 
@@ -875,8 +887,8 @@ void Vulkan::createGraphicsPipeline(const char* name, const std::string& vertexS
 	// vertex input 
 	VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
 	vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-	auto bindingDescription = Vertex::getBindingDescription();
-	auto attributeDescriptions = Vertex::getAttributeDescriptions();
+	auto bindingDescription = getVertexBindingDescription();
+	auto attributeDescriptions = getVertexAttributeDescriptions();
 
 	vertexInputInfo.vertexBindingDescriptionCount = 1;
 	vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
@@ -1422,5 +1434,36 @@ void Vulkan::findDepthFormat()
 
 void Vulkan::findSupportedFormat()
 {
+}
+
+constexpr std::array<VkVertexInputAttributeDescription, 3> Vulkan::getVertexAttributeDescriptions() const
+{
+	std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions{};
+	attributeDescriptions[0].binding = 0;
+	attributeDescriptions[0].location = 0;
+	attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+	attributeDescriptions[0].offset = offsetof(Vertex, Vertex::position);
+
+	attributeDescriptions[1].binding = 0;
+	attributeDescriptions[1].location = 1;
+	attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+	attributeDescriptions[1].offset = offsetof(Vertex, Vertex::normal);
+
+	attributeDescriptions[2].binding = 0;
+	attributeDescriptions[2].location = 2;
+	attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
+	attributeDescriptions[2].offset = offsetof(Vertex, Vertex::textCoords);
+
+	return attributeDescriptions;
+}
+
+constexpr VkVertexInputBindingDescription Vulkan::getVertexBindingDescription() const
+{
+	VkVertexInputBindingDescription bindingDescription{};
+	bindingDescription.binding = 0;
+	bindingDescription.stride = sizeof(Vertex);
+	bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+	return bindingDescription;
 }
 

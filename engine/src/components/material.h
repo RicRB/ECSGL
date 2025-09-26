@@ -2,7 +2,9 @@
 #include "glm/glm.hpp"
 #include "renderer/shader.h"
 #include "renderer/texture.h"
-#include "platform/opengl/gl_def.h"
+#include "renderer/buffer.h"
+#include "renderer/descriptor_set.h"
+#include "renderer/uniform_objects.h"
 enum class VariableType
 {
 	TEXTURE,
@@ -27,16 +29,13 @@ struct MaterialVariable
 };
 
 struct MaterialData {
+	MaterialData();
 	MaterialID id;
 	ShaderID shaderID;
 	MaterialUBO ubo;
-
-	// opengl specific
-	GLuint gl_uniformBuffer;
-
 	// vulkan specific
-	VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
-	VkUniformBuffer uniformBuffer;
+	std::shared_ptr<DescriptorSet> descriptorSet;
+	std::shared_ptr<UniformBuffer> uniformBuffer;
 };
 struct Material {
 	MaterialID id;

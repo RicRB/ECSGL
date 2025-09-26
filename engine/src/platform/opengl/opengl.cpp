@@ -5,6 +5,10 @@
 #include "renderer/vertex_buffer_layout.h"
 #include <sstream>
 #include <unordered_set>
+#include "gl_buffer.h"
+#include <memory>
+#include "renderer/uniform_objects.h"
+#include "gl_program.h"
 void OpenGl::initialize(GLFWwindow* window)
 {
 	this->window = window;
@@ -60,7 +64,7 @@ void OpenGl::drawFrame(const glm::mat4 viewMatrix, const glm::mat4 projectionMat
     for (auto material : materials) {
         if (updatedMaterials.contains(material->id)) continue;
         updatedMaterials.insert(material->id);
-        updateUniformBuffer(material->gl_uniformBuffer, &material->ubo, sizeof(MaterialUBO));
+        updateUniformBuffer(std::static_pointer_cast<GlUniformBuffer>(material->uniformBuffer)->uniformID, &material->ubo, sizeof(MaterialUBO));
     }
 
 	for (size_t i = 0; i < entityCount; i++)
@@ -71,12 +75,12 @@ void OpenGl::drawFrame(const glm::mat4 viewMatrix, const glm::mat4 projectionMat
 		const ShaderData* shader = &(*shaders)[material->shaderID];
         int textureIndex = 0;
 		// Bind vertex array
-		GLCall(glBindVertexArray(mesh->vertexID));
+		GLCall(glBindVertexArray(std::static_pointer_cast<GlVertexBuffer>(mesh->vertexBuffer)->vertexID));
 		// Bind index buffer
-        GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->indexID));
+        GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, std::static_pointer_cast<GlIndexBuffer>(mesh->indexBuffer)->indexID));
 
         // bind Shader
-		GLCall(glUseProgram(shader->programID));
+		GLCall(glUseProgram(std::static_pointer_cast<GlProgram>(shader->program)->programID));
 
         // bind material
         PushConstants pushConstants;
@@ -90,7 +94,7 @@ void OpenGl::drawFrame(const glm::mat4 viewMatrix, const glm::mat4 projectionMat
         pushConstants.cameraPosition = cameraPosition;
 		updateUniformBuffer(pushConstantBuffer, &pushConstants, sizeof(PushConstants));
 		GLCall(glBindBufferBase(GL_UNIFORM_BUFFER, 0, globalUniformBuffer));
-		GLCall(glBindBufferBase(GL_UNIFORM_BUFFER, 1, material->gl_uniformBuffer));
+		GLCall(glBindBufferBase(GL_UNIFORM_BUFFER, 1, std::static_pointer_cast<GlUniformBuffer>(material->uniformBuffer)->uniformID));
         GLCall(glBindBufferBase(GL_UNIFORM_BUFFER, 2, pushConstantBuffer));
         GLCall(glDrawElements(GL_TRIANGLES, mesh->vertexCount, GL_UNSIGNED_INT, nullptr));
 	}
@@ -220,7 +224,7 @@ void OpenGl::compileShader(const char* name, const std::string& vertexSource, co
 	// Clean up shaders
 	glDeleteShader(vertexID);
 	glDeleteShader(fragmentID);
-	shaderData->programID = programID;
+	std::static_pointer_cast<GlProgram>(shaderData->program)->programID = programID;
 	shaderData->VertexSource = vertexSource;
 	shaderData->FragmentSource = fragmentSource;
 }
@@ -228,7 +232,7 @@ void OpenGl::compileShader(const char* name, const std::string& vertexSource, co
 void OpenGl::loadMaterial(const char* name, const ShaderData& shaderData, MaterialData* materialData)
 {
 	materialData->shaderID = shaderData.id;
-	materialData->gl_uniformBuffer = createUniformBuffer(sizeof(MaterialUBO));
+    std::static_pointer_cast<GlUniformBuffer>(materialData->uniformBuffer)->uniformID = createUniformBuffer(sizeof(MaterialUBO));
 }
 
 void OpenGl::loadMesh(MeshData* mesh)
@@ -265,8 +269,8 @@ void OpenGl::loadMesh(MeshData* mesh)
     GLCall(glGenBuffers(1, &indexBuffer));
     GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer));
     GLCall(glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh->indices.size() * sizeof(unsigned int), mesh->indices.data(), GL_STATIC_DRAW));
-    mesh->vertexID = vertexArray;
-	mesh->indexID = indexBuffer;
+    std::static_pointer_cast<GlVertexBuffer>(mesh->vertexBuffer)->vertexID = vertexArray;
+    std::static_pointer_cast<GlIndexBuffer>(mesh->indexBuffer)->indexID = indexBuffer;
 }
 
 void OpenGl::loadTexture(TextureData* textureData)
@@ -276,22 +280,24 @@ void OpenGl::loadTexture(TextureData* textureData)
 
 void OpenGl::unloadShader(ShaderData* shaderData)
 {
-	GLCall(glDeleteProgram(shaderData->programID));
-	shaderData->programID = 0;
+	GLCall(glDeleteProgram(std::static_pointer_cast<GlProgram>(shaderData->program)->programID));
+    std::static_pointer_cast<GlProgram>(shaderData->program)->programID = 0;
 }
 
 void OpenGl::unloadMaterial(MaterialData* materialData)
 {
-	GLCall(glDeleteBuffers(1, &materialData->gl_uniformBuffer));
-	materialData->gl_uniformBuffer = 0;
+	GLCall(glDeleteBuffers(1, &std::static_pointer_cast<GlUniformBuffer>(materialData->uniformBuffer)->uniformID));
+	std::static_pointer_cast<GlUniformBuffer>(materialData->uniformBuffer)->uniformID = 0;
 }
 
 void OpenGl::unloadMesh(MeshData* mesh)
 {
-	GLCall(glDeleteBuffers(1, &mesh->vertexID));
-	GLCall(glDeleteBuffers(1, &mesh->indexID));
-	mesh->vertexID = 0;
-	mesh->indexID = 0;
+	auto vertexID = &std::static_pointer_cast<GlVertexBuffer>(mesh->vertexBuffer)->vertexID;
+	auto indexID = &std::static_pointer_cast<GlIndexBuffer>(mesh->indexBuffer)->indexID;
+	GLCall(glDeleteBuffers(1, vertexID));
+	GLCall(glDeleteBuffers(1, indexID));
+    *vertexID = 0;
+    *indexID = 0;
 }
 
 void OpenGl::unloadTexture(TextureData* textureData)

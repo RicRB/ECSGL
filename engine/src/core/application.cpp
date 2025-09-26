@@ -151,10 +151,6 @@ namespace Core {
         //ImGui_ImplOpenGL3_Shutdown();
         //ImGui_ImplGlfw_Shutdown();
         //ImGui::DestroyContext();
-        if (engine.renderer.rendererType == GRAPHICS_API_VULKAN)
-        {
-            vkDeviceWaitIdle(engine.renderer.graphicsAPI->device);
-        }
         engine.cleanup();
         glfwDestroyWindow(window);
         glfwTerminate();

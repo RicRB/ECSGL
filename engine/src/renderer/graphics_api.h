@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include "stb_image/stb_image.h"
+#include "GLFW/glfw3.h"
 using GraphicsAPIType = uint32_t;
 constexpr GraphicsAPIType GRAPHICS_API_OPENGL = 0;
 constexpr GraphicsAPIType GRAPHICS_API_VULKAN = 1;
@@ -15,7 +16,6 @@ private:
 
 public:
 	GLFWwindow* window = nullptr;
-	VkDevice device;
 	bool frameBufferResized = false;
 	bool isImGuiInitialized = false;
 	virtual ~GraphicsAPI() = default;
