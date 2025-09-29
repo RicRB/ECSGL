@@ -129,7 +129,6 @@ void Vulkan::initializeImGui()
 	ImGui_ImplGlfw_InitForVulkan(window, true);
 
 	ImGui_ImplVulkan_InitInfo init_info = {};
-
 	init_info.Instance = instance;
 	init_info.PhysicalDevice = physicalDevice;
 	init_info.Device = device;
@@ -137,11 +136,16 @@ void Vulkan::initializeImGui()
 	init_info.Queue = graphicsQueue;
 	init_info.PipelineCache = VK_NULL_HANDLE;
 	init_info.DescriptorPool = imGuiDescriptorPool;
-	init_info.RenderPass = renderPass;
-	init_info.Subpass = 0;
+	//init_info.RenderPass = renderPass;
+	//init_info.Subpass = 0;
 	init_info.MinImageCount = static_cast<uint32_t>(swapChainImages.size());
 	init_info.ImageCount = static_cast<uint32_t>(swapChainImages.size());
-	init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT; // No MSAA for now
+	//init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT; // No MSAA for now
+	ImGui_ImplVulkan_PipelineInfo pipe;
+	pipe.RenderPass = renderPass;
+	pipe.Subpass = 0;
+	pipe.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+	init_info.PipelineInfoMain = pipe;
 	init_info.Allocator = nullptr; // No custom allocator
 	init_info.CheckVkResultFn = nullptr; // No custom error handler
 	ImGui_ImplVulkan_Init(&init_info);
