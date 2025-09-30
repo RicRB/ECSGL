@@ -9,6 +9,7 @@
 #include <memory>
 #include "renderer/uniform_objects.h"
 #include "gl_program.h"
+#include "GLFW/glfw3.h"
 void OpenGl::initialize(GLFWwindow* window)
 {
 	this->window = window;

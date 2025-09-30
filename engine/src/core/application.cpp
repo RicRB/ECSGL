@@ -10,7 +10,7 @@
 #include "resource_manager.h"
 #include "engine.h"
 #include "ecs/ecs.hpp"
-#include "input.hpp"
+#include "input.h"
 #include "event.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "imgui/imgui.h"
@@ -18,7 +18,7 @@
 #include "imgui/backends/imgui_impl_opengl3.h"
 #include "platform/vulkan/vulkan.h"
 #include "renderer/graphics_api.h"
-#include "time.hpp"
+#include "time.h"
 void PrintMessage(int i) {
     std::cout << i << "\n";
 }

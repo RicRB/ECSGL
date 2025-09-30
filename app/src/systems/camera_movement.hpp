@@ -1,7 +1,7 @@
 #include "ecs/ecs.hpp"
 #include "core/engine.h"
-#include "core/time.hpp"
-#include "core/input.hpp"
+#include "core/time.h"
+#include "core/input.h"
 class CameraMovementSystem : public System {
 public:
 	float moveSpeed = 5.0f; // Speed of camera movement
@@ -30,22 +30,22 @@ public:
 		if (Input::GetKeyPressed(Key::D)) {
 			transform.getPositionReference() += transform.getRight() * deltaTime * moveSpeed;
 		}
-		if (Input::GetKeyPressed(Key::SPACE)) {
+		if (Input::GetKeyPressed(Key::Space)) {
 			transform.getPositionReference() += transform.getUp() * deltaTime * moveSpeed;
 		}
-		if (Input::GetKeyPressed(Key::LEFT_CONTROL)) {
+		if (Input::GetKeyPressed(Key::LeftControl)) {
 			transform.getPositionReference() -= transform.getUp() * deltaTime * moveSpeed;
 		}
-		if (Input::GetKeyPressed(Key::RIGHT)) {
+		if (Input::GetKeyPressed(Key::Right)) {
 			transform.getRotationReference().y -= 90.0f * deltaTime; // Rotate right
 		}
-		if (Input::GetKeyPressed(Key::LEFT)) {
+		if (Input::GetKeyPressed(Key::Left)) {
 			transform.getRotationReference().y += 90.0f * deltaTime; // Rotate left
 		}
-		if (Input::GetKeyPressed(Key::UP)) {
+		if (Input::GetKeyPressed(Key::Up)) {
 			transform.getRotationReference().x += 90.0f * deltaTime; // Rotate up
 		}
-		if (Input::GetKeyPressed(Key::DOWN)) {
+		if (Input::GetKeyPressed(Key::Down)) {
 			transform.getRotationReference().x -= 90.0f * deltaTime; // Rotate down
 		}
 	}

@@ -1,6 +1,7 @@
 #include "window.h"
 #include "engine.h"
 #include "platform/opengl/gl_def.h"
+#include "GLFW/glfw3.h"
 Window::Window(const WindowSpecification& specification) : specification(specification)
 {
 }

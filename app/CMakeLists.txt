@@ -19,7 +19,7 @@ add_compile_definitions(
     GLM_ENABLE_EXPERIMENTAL
 )
 
-target_link_libraries(App Engine glfw)
+target_link_libraries(App Engine)
 
 target_include_directories(App PRIVATE src)
 

@@ -3,7 +3,7 @@
 #include <filesystem>
 #include "platform/vulkan/vulkan.h"
 #include "platform/opengl/opengl.h"
-#include "time.hpp"
+#include "time.h"
 Engine::Engine(const GraphicsAPIType graphicsAPIType)
 {
 	renderer.rendererType = graphicsAPIType;

@@ -1,6 +1,7 @@
 #pragma once
-#include "GLFW/glfw3.h"
 #include <string>
+struct GLFWwindow;
+
 struct WindowSpecification
 {
 	std::string title = "Engine";
