@@ -1,8 +1,6 @@
 #pragma once
-#ifndef TEXTURE_H
-#define TEXTURE_H
 #include <string>
-
+#include "image.h"
 using TextureID = unsigned int;
 enum class TextureType
 {
@@ -13,13 +11,14 @@ enum class TextureType
 
 struct TextureData
 {
+	TextureData();
 	TextureID id;
 	unsigned char* pixels;
 	int width, height, bpp;
+	std::shared_ptr<TextureImage> image;
 };
 struct Texture
 {
 	 TextureID id;
 	 Texture(TextureID id = 0) : id(id) {}
 };
-#endif

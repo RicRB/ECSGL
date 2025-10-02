@@ -16,6 +16,7 @@
 #include "renderer/graphics_api.h"
 #include "renderer/buffer.h"
 #include "vk_buffer.h"
+#include "vk_image.h"
 #ifdef max
 #undef max
 #endif
@@ -133,6 +134,7 @@ private:
 	VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
 	void createSwapChain();
 	void createImageViews();
+	VkImageView createImageView(VkImage image, VkFormat format);
 	void createGraphicsPipeline(const char* name, const std::string& vertexSource, const std::string& fragmentSource, VkPipeline* pipeline, VkPipelineLayout* pipelineLayout);
 	VkShaderModule createShaderModule(const std::vector<uint32_t>& code);
 	void createRenderPass();
@@ -157,6 +159,13 @@ private:
 	void createDepthResources();
 	void findDepthFormat();
 	void findSupportedFormat();
+	void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
+	VkCommandBuffer beginSingleTimeCommands();
+	void endSingleTimeCommands(VkCommandBuffer commandBuffer);
+	void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
+	void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
+	void createTextureImageView(VkTextureImage* textureImage);
+	void createTextureSampler(VkTextureImage* textureImage);
 
 	constexpr std::array<VkVertexInputAttributeDescription, 3> getVertexAttributeDescriptions() const;
 	constexpr VkVertexInputBindingDescription getVertexBindingDescription() const;
