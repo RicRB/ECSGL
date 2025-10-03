@@ -2,7 +2,7 @@
 
 TextureData::TextureData()
 {
-	id = 0;
+	id = "";
 	pixels = nullptr;
 	width = 0;
 	height = 0;

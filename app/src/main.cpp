@@ -31,7 +31,8 @@ int main(void)
     Entity pLight = engine::CreatePointLight();
 
     engine::currentEngine->registry.scenegraph.ParentEntity(pLight, engine::currentEngine->currentCameraEntity);
-
+    Texture text = engine::currentEngine->resourceManager.LoadTexture(RES_DIR"images/container2.png");
+	engine::currentEngine->resourceManager.bindTextureToMaterial(engine::currentEngine->defaultMaterial, text, 0);
     game.Start();
 	return 0;
 }

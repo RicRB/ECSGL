@@ -28,10 +28,10 @@ public:
 		const glm::mat4 projectionMatrix,
 		const GlobalUBO* globalUniformObject,
 		const int entityCount, 
-		const std::vector<Transform*> transforms, 
-		const std::vector<MeshData*> meshes, 
-		const std::vector<MaterialData*> materials, 
-		const std::vector<ShaderData>* shaders
+		const std::vector<Transform*>& transforms, 
+		const std::vector<MeshData*>& meshes, 
+		const std::vector<MaterialData*>& materials, 
+		const std::vector<ShaderData>& shaders
 	) = 0;
 	virtual void beginDrawImGui() = 0;
 	virtual void endDrawImGui() = 0;
@@ -46,6 +46,7 @@ public:
 	virtual void unloadMaterial(MaterialData* materialData) = 0;
 	virtual void unloadMesh(MeshData* mesh) = 0;
 	virtual void unloadTexture(TextureData* textureData) = 0;
+	virtual void bindTextureToMaterial(MaterialData* materialData, TextureData* textureData, int binding) = 0;
 	GraphicsAPIType getType() {
 		return graphicsAPIType;
 	}

@@ -32,6 +32,8 @@ public:
 	std::string& SaveScene();
 	int GetUniformLocation(const unsigned int rendererID, const std::string& name);
 	void unloadAll();
+
+	void bindTextureToMaterial(const Material& material, const Texture& texture, int binding);
 private:
 
 	// SHADER STUFFS

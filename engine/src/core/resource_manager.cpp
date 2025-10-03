@@ -67,6 +67,7 @@ Texture ResourceManager::LoadTexture(const std::string& path)
         return tex;
     }
     TextureData texInfo;
+    texInfo.id = path;
     stbi_set_flip_vertically_on_load(1); // play with it if upside down
     texInfo.pixels = stbi_load(path.c_str(), &texInfo.width, &texInfo.height, &texInfo.bpp, 4);
     //GLCall(glGenTextures(1, &texInfo.mRendererID));
@@ -133,6 +134,11 @@ void ResourceManager::unloadAll()
 	mMaterials.clear();
 	mMeshes.clear();
 	mTextures.clear();
+}
+
+void ResourceManager::bindTextureToMaterial(const Material& material, const Texture& texture, int binding)
+{
+	engine::currentEngine->renderer.graphicsAPI->bindTextureToMaterial(&mMaterials[material.id], &mTextures[texture.id], binding);
 }
 
 /////////////////////// PRIVATE ///////////////////////
@@ -293,9 +299,9 @@ Mesh ResourceManager::ProcessMesh(std::fstream& fstream)
                 unsigned int normIndex = std::stoi(vn);
 
                 Vertex vertex;
-				vertex.position = positions[vertexIndex - 1];
-				vertex.normal = normals[normIndex - 1];
-				vertex.textCoords = textCoords[texIndex - 1];
+				vertex.position = positions[vertexIndex-1];
+				vertex.normal = normals[normIndex-1];
+				vertex.textCoords = textCoords[texIndex-1];
 				vertices.push_back(vertex);
 				indices.push_back(static_cast<unsigned int>(vertices.size() - 1)); // store index of the vertex
 				//triangle[i] = static_cast<unsigned int>(vertices.size() - 1); // store index of the vertex

@@ -52,7 +52,14 @@ void OpenGl::initializeImGui()
     isImGuiInitialized = true;
 }
 
-void OpenGl::drawFrame(const glm::mat4 viewMatrix, const glm::mat4 projectionMatrix, const GlobalUBO* globalUniformObject, const int entityCount, const std::vector<Transform*> transforms, const std::vector<MeshData*> meshes, const std::vector<MaterialData*> materials, const std::vector<ShaderData>* shaders)
+void OpenGl::drawFrame(const glm::mat4 viewMatrix, 
+    const glm::mat4 projectionMatrix, 
+    const GlobalUBO* globalUniformObject, 
+    const int entityCount, 
+    const std::vector<Transform*>& transforms, 
+    const std::vector<MeshData*>& meshes,
+    const std::vector<MaterialData*>& materials, 
+    const std::vector<ShaderData>& shaders)
 {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glm::mat4 projectView = projectionMatrix * viewMatrix;
@@ -73,7 +80,7 @@ void OpenGl::drawFrame(const glm::mat4 viewMatrix, const glm::mat4 projectionMat
 		Transform* transform = transforms[i];
 		const MeshData* mesh = meshes[i];
 		const MaterialData* material = materials[i];
-		const ShaderData* shader = &(*shaders)[material->shaderID];
+		const ShaderData* shader = &(shaders)[material->shaderID];
         int textureIndex = 0;
 		// Bind vertex array
 		GLCall(glBindVertexArray(std::static_pointer_cast<GlVertexBuffer>(mesh->vertexBuffer)->vertexID));
@@ -302,6 +309,10 @@ void OpenGl::unloadMesh(MeshData* mesh)
 }
 
 void OpenGl::unloadTexture(TextureData* textureData)
+{
+}
+
+void OpenGl::bindTextureToMaterial(MaterialData* materialData, TextureData* textureData, int binding)
 {
 }
 

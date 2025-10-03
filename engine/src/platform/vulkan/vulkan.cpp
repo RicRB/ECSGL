@@ -16,6 +16,7 @@
 #include "renderer/uniform_objects.h"
 #include "vk_program.h"
 #include "vk_image.h"
+#include "vk_descriptors.h"
 void Vulkan::initialize(GLFWwindow* window)
 {
 	glfwSwapInterval(0);
@@ -164,10 +165,10 @@ void Vulkan::drawFrame(
 	const glm::mat4 projectionMatrix,
 	const GlobalUBO* globalUniformObject,
 	const int entityCount,
-	const std::vector<Transform*> transforms,
-	const std::vector<MeshData*> meshes,
-	const std::vector<MaterialData*> materials,
-	const std::vector<ShaderData>* shaders
+	const std::vector<Transform*>& transforms,
+	const std::vector<MeshData*>& meshes,
+	const std::vector<MaterialData*>& materials,
+	const std::vector<ShaderData>& shaders
 )
 {
 	vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
@@ -257,17 +258,20 @@ void Vulkan::drawFrame(
 	VkPipeline lastPipeline = VK_NULL_HANDLE;
 	MeshData* lastMesh = nullptr;
 	MaterialData* lastMaterial = nullptr;
+
 	glm::mat4 realProjectionMatrix = projectionMatrix;
 	realProjectionMatrix[1][1] *= -1.0f; // flip the y-axis for Vulkan
+	
 	const glm::mat4 projectView = realProjectionMatrix * viewMatrix;
 	glm::vec3 cameraWorldPos = glm::inverse(viewMatrix)[3];
 	const glm::vec4 cameraPosition = glm::vec4(cameraWorldPos, 1.0f);
+
 	for (size_t orderedIndex = 0; orderedIndex < entityCount; orderedIndex++)
 	{
 		const size_t i = drawObjects[orderedIndex].index;
 		// get the draw object
 
-		const ShaderData& shader = shaders->at(materials[i]->shaderID);
+		const ShaderData& shader = shaders[materials[i]->shaderID];
 		auto program = std::static_pointer_cast<VkProgram>(shader.program).get();
 		if (program->pipeline != lastPipeline) {
 			// bind pipeline if it has changed
@@ -403,6 +407,8 @@ void Vulkan::loadMesh(MeshData* mesh) {
 
 void Vulkan::loadTexture(TextureData* textureData)
 {
+	auto textureImage = std::static_pointer_cast<VkTextureImage>(textureData->image).get();
+
 	VkBuffer stagingBuffer;
 	VkDeviceMemory stagingBufferMemory;
 	VkDeviceSize size = textureData->width * textureData->height * 4;
@@ -413,19 +419,19 @@ void Vulkan::loadTexture(TextureData* textureData)
 	memcpy(data, textureData->pixels, size);
 	vkUnmapMemory(device, stagingBufferMemory);
 
-	VkImage textureImage;
-	VkDeviceMemory textureImageMemory;
 
-	createImage(textureData->width, textureData->height, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, textureImage, textureImageMemory);
+	createImage(textureData->width, textureData->height, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, textureImage->image, textureImage->memory);
 
-	transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-	copyBufferToImage(stagingBuffer, textureImage, static_cast<uint32_t>(textureData->width), static_cast<uint32_t>(textureData->height));
+	transitionImageLayout(textureImage->image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+	copyBufferToImage(stagingBuffer, textureImage->image, static_cast<uint32_t>(textureData->width), static_cast<uint32_t>(textureData->height));
 
-	transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	transitionImageLayout(textureImage->image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 	vkDestroyBuffer(device, stagingBuffer, nullptr);
 	vkFreeMemory(device, stagingBufferMemory, nullptr);
 
+	createTextureImageView(textureImage);
+	createTextureSampler(textureImage);
 }
 
 void Vulkan::cleanup()
@@ -524,6 +530,16 @@ void Vulkan::unloadTexture(TextureData* textureData)
 		textureImage->imageView = VK_NULL_HANDLE;
 		textureImage->image = VK_NULL_HANDLE;
 	}
+}
+
+void Vulkan::bindTextureToMaterial(MaterialData* materialData, TextureData* textureData, int binding)
+{
+	DescriptorWriter writer;
+	auto image = std::static_pointer_cast<VkTextureImage>(textureData->image);
+	int textureBinding = binding + 1;
+	writer.writeImage(textureBinding, image->imageView, image->sampler, VK_IMAGE_LAYOUT_GENERAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+
+	writer.updateSet(device, std::static_pointer_cast<VkDescriptorSetWrapper>(materialData->descriptorSet)->set);
 }
 
 VKAPI_ATTR VkBool32 VKAPI_CALL Vulkan::debugCallback(
@@ -1354,8 +1370,8 @@ void Vulkan::createDescriptorSetLayouts()
 	// sampler
 	VkDescriptorSetLayoutBinding samplerLayoutBinding{};
 	samplerLayoutBinding.binding = 1;
-	samplerLayoutBinding.descriptorCount = 1;
 	samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	samplerLayoutBinding.descriptorCount = 1;
 	samplerLayoutBinding.pImmutableSamplers = nullptr;
 	samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
@@ -1364,6 +1380,7 @@ void Vulkan::createDescriptorSetLayouts()
 	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 	layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
 	layoutInfo.pBindings = bindings.data();
+
 	if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &materialDescriptorSetLayout) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create descriptor set layout!");
 	}
@@ -1418,11 +1435,6 @@ void Vulkan::createDescriptorSet(VkUniformBuffer* buffer, const VkDescriptorSetL
 	bufferInfo.buffer = buffer->buffer;
 	bufferInfo.offset = 0;
 	bufferInfo.range = buffer->bufferSize;
-
-	//VkDescriptorImageInfo imageInfo{};
-	//imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-	//imageInfo.imageView = VK_NULL_HANDLE;
-	//imageInfo.sampler = VK_NULL_HANDLE;
 
 	VkWriteDescriptorSet descriptorWrite{};
 	descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;

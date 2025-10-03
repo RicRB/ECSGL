@@ -30,8 +30,8 @@ void Renderer::DrawElements(Registry& registry, ResourceManager& resourceManager
 
 	for (size_t i = 0; i < currentView.size(); i++)
 	{
-		meshes.push_back(&resourceManager.mMeshes[std::get<2>(currentView[i])->id]);
-		materials.push_back(&resourceManager.mMaterials[std::get<3>(currentView[i])->id]);
+		meshes.emplace_back(&resourceManager.mMeshes[std::get<2>(currentView[i])->id]);
+		materials.emplace_back(&resourceManager.mMaterials[std::get<3>(currentView[i])->id]);
 	}
 	// GLOBAL UNIFORM OBJECT
 
@@ -98,7 +98,7 @@ void Renderer::DrawElements(Registry& registry, ResourceManager& resourceManager
 		currentView.GetComponents<Transform>(),
 		meshes,
 		materials,
-		&resourceManager.mShaders
+		resourceManager.mShaders
 	);
 	//for (size_t i = 0; i < currentView.size(); i++)
 	//{

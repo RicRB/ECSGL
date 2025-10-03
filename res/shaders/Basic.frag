@@ -52,6 +52,8 @@ layout( push_constant ) uniform constants {
 	mat3x4 model;
 	vec4 cameraPosition;
 };
+
+layout(set = 1, binding = 1) uniform sampler2D colorTexture;
 #endif
 #ifdef OPENGL
 layout(std140, binding = 0) uniform GlobalUniformBufferObject {
@@ -145,7 +147,7 @@ void main()
 	}
 	else
 	{
-		diffuseMaterial = diffuseColor.xyz;
+		diffuseMaterial = texture(colorTexture, v_TextCoord).rgb;
 	}
 	// GET SPECULAR MATERIAL
 	vec3 specularMaterial;

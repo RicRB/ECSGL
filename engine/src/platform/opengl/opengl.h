@@ -13,10 +13,10 @@ public:
 		const glm::mat4 projectionMatrix,
 		const GlobalUBO* globalUniformObject,
 		const int entityCount,
-		const std::vector<Transform*> transforms,
-		const std::vector<MeshData*> meshes,
-		const std::vector<MaterialData*> materials,
-		const std::vector<ShaderData>* shaders
+		const std::vector<Transform*>& transforms,
+		const std::vector<MeshData*>& meshes,
+		const std::vector<MaterialData*>& materials,
+		const std::vector<ShaderData>& shaders
 	) override;
 	void beginDrawImGui() override;
 	void endDrawImGui() override;
@@ -29,6 +29,7 @@ public:
 	void unloadMaterial(MaterialData* materialData) override;
 	void unloadMesh(MeshData* mesh) override;
 	void unloadTexture(TextureData* textureData) override;
+	void bindTextureToMaterial(MaterialData* materialData, TextureData* textureData, int binding) override;
 
 private:
 	GLuint createUniformBuffer(const size_t size);

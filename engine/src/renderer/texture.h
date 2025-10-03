@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
 #include "image.h"
-using TextureID = unsigned int;
+using TextureID = std::string;
 enum class TextureType
 {
 	UNKOWN,
@@ -20,5 +20,5 @@ struct TextureData
 struct Texture
 {
 	 TextureID id;
-	 Texture(TextureID id = 0) : id(id) {}
+	 Texture(TextureID id = "") : id(id) {}
 };
