@@ -85,6 +85,11 @@ private:
 	VkDescriptorSet globalDescriptorSet;
 	VkDescriptorSetLayout globalDescriptorSetLayout;
 	QueueFamilyIndices indices;
+
+	VkImage depthImage;
+	VkDeviceMemory depthImageMemory;
+	VkImageView depthImageView;
+
 public:
 	Vulkan() {
 		graphicsAPIType = GRAPHICS_API_VULKAN;
@@ -135,7 +140,7 @@ private:
 	VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
 	void createSwapChain();
 	void createImageViews();
-	VkImageView createImageView(VkImage image, VkFormat format);
+	VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT);
 	void createGraphicsPipeline(const char* name, const std::string& vertexSource, const std::string& fragmentSource, VkPipeline* pipeline, VkPipelineLayout* pipelineLayout);
 	VkShaderModule createShaderModule(const std::vector<uint32_t>& code);
 	void createRenderPass();
@@ -158,8 +163,9 @@ private:
 	void createDescriptorSet(VkUniformBuffer* buffer, const VkDescriptorSetLayout* descriptorSetLayout, const VkDescriptorType type, VkDescriptorSet* descriptorSet);
 	inline void updateUniformBufferData(VkUniformBuffer* buffer, const void* data);
 	void createDepthResources();
-	void findDepthFormat();
-	void findSupportedFormat();
+	VkFormat findDepthFormat();
+	VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
+	bool hasStencilComponent(VkFormat format);
 	void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
 	VkCommandBuffer beginSingleTimeCommands();
 	void endSingleTimeCommands(VkCommandBuffer commandBuffer);
@@ -167,7 +173,6 @@ private:
 	void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
 	void createTextureImageView(VkTextureImage* textureImage);
 	void createTextureSampler(VkTextureImage* textureImage);
-
 	constexpr std::array<VkVertexInputAttributeDescription, 3> getVertexAttributeDescriptions() const;
 	constexpr VkVertexInputBindingDescription getVertexBindingDescription() const;
 };
