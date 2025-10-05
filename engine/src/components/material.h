@@ -7,6 +7,9 @@
 #include "renderer/uniform_objects.h"
 
 using MaterialID = unsigned int;
+constexpr uint32_t ALBEDO_MAP_BINDING = 0;
+constexpr uint32_t SPECULAR_MAP_BINDING = 1;
+constexpr uint32_t NORMAL_MAP_BINDING = 2;
 
 struct MaterialData {
 	MaterialData();
@@ -14,6 +17,9 @@ struct MaterialData {
 	ShaderID shaderID;
 	MaterialUBO ubo;
 	// vulkan specific
+	Texture albedoMap;
+	Texture specularMap;
+	Texture normalMap;
 	std::shared_ptr<DescriptorSet> descriptorSet;
 	std::shared_ptr<UniformBuffer> uniformBuffer;
 };

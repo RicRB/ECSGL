@@ -124,11 +124,11 @@ namespace engine {
 		return entity;
 	}
 
-	Entity engine::CreatePointLight(const glm::vec3 ambient, const glm::vec3 diffuse, const glm::vec3 specular, const float intensity, const float constant, const float linear, const float quadratic)
+	Entity engine::CreatePointLight(const Transform transform, const glm::vec3 ambient, const glm::vec3 diffuse, const glm::vec3 specular, const float intensity, const float constant, const float linear, const float quadratic)
 	{
 		Registry& registry = currentEngine->registry;
 		Entity entity = registry.CreateEntity();
-		registry.AssignComponent(entity, Transform());
+		registry.AssignComponent(entity, transform);
 		registry.AssignComponent(entity, PointLight(ambient, diffuse, specular, intensity, constant, linear, quadratic));
 		return entity;
 	}

@@ -2,9 +2,9 @@
 class Time
 {
 private:
-	static double deltaTime;
-	static double time;
-	static double lastFrame;
+	inline static double deltaTime = 0;
+	inline static double time = 0;
+	inline static double lastFrame = 0;
 
 public:
 	static void Init();

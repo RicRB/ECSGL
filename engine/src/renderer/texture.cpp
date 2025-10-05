@@ -9,3 +9,8 @@ TextureData::TextureData()
 	bpp = 0;
 	image = TextureImage::Create();
 }
+
+Texture::Texture(TextureID id)
+{
+	this->id = id;
+}

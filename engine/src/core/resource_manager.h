@@ -33,7 +33,7 @@ public:
 	int GetUniformLocation(const unsigned int rendererID, const std::string& name);
 	void unloadAll();
 
-	void bindTextureToMaterial(const Material& material, const Texture& texture, int binding);
+	void bindTextureToMaterial(const Material& material, const Texture& texture, uint32_t binding);
 private:
 
 	// SHADER STUFFS

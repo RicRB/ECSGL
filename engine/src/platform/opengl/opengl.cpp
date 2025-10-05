@@ -56,7 +56,7 @@ void OpenGl::drawFrame(const glm::mat4 viewMatrix,
     const glm::mat4 projectionMatrix, 
     const GlobalUBO* globalUniformObject, 
     const int entityCount, 
-    const std::vector<Transform*>& transforms, 
+    const std::vector<glm::mat4x4>& modelMatrices, 
     const std::vector<MeshData*>& meshes,
     const std::vector<MaterialData*>& materials, 
     const std::vector<ShaderData>& shaders)
@@ -77,7 +77,6 @@ void OpenGl::drawFrame(const glm::mat4 viewMatrix,
 
 	for (size_t i = 0; i < entityCount; i++)
 	{
-		Transform* transform = transforms[i];
 		const MeshData* mesh = meshes[i];
 		const MaterialData* material = materials[i];
 		const ShaderData* shader = &(shaders)[material->shaderID];
@@ -92,9 +91,9 @@ void OpenGl::drawFrame(const glm::mat4 viewMatrix,
 
         // bind material
         PushConstants pushConstants;
-        pushConstants.mvp = projectView * transforms[i]->getMatrix();
+        pushConstants.mvp = projectView * modelMatrices[i];
 
-        glm::mat4 model = transforms[i]->getMatrix();
+        glm::mat4 model = modelMatrices[i];
         pushConstants.model = glm::mat3x4(
             glm::vec4(model[0].x, model[0].y, model[0].z, model[3].x),
             glm::vec4(model[1].x, model[1].y, model[1].z, model[3].y),

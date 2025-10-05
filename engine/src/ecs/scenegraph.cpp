@@ -60,11 +60,15 @@ glm::mat4x4 SceneGraph::_GetParentWorldMatrix(Registry& registry, Entity child)
 {
 	Entity parent = GetParent(registry, child);
 
-	// parent doesnt exist
-	if (parent.entityID == ECS_INVALID_ID)
-	{
+	// no parent -> identity
+	if (parent.entityID == ECS_INVALID_ID) {
 		return glm::mat4(1.0f);
 	}
-	glm::mat4x4 parentMatrix = glm::inverse(registry.GetComponent<Transform>(parent).getMatrix());
-	return  _GetParentWorldMatrix(registry, parent) * parentMatrix;
+
+	// parent's local transform (local -> parent)
+	glm::mat4x4 parentLocal = registry.GetComponent<Transform>(parent).getMatrix();
+
+	// parent's world = ancestorWorld * parentLocal
+	glm::mat4x4 ancestorWorld = _GetParentWorldMatrix(registry, parent);
+	return ancestorWorld * parentLocal;
 }

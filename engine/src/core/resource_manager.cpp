@@ -66,31 +66,19 @@ Texture ResourceManager::LoadTexture(const std::string& path)
 		tex.id = textureInfo->second.id;
         return tex;
     }
-    TextureData texInfo;
-    texInfo.id = path;
+    auto it = mTextures.emplace(path, TextureData()).first;
+    auto& texInfo = it->second;
+	texInfo.id = it->first;
     stbi_set_flip_vertically_on_load(1); // play with it if upside down
     texInfo.pixels = stbi_load(path.c_str(), &texInfo.width, &texInfo.height, &texInfo.bpp, 4);
-    //GLCall(glGenTextures(1, &texInfo.mRendererID));
-    //GLCall(glBindTexture(GL_TEXTURE_2D, texInfo.mRendererID));
-
-    //// you need to specify these or else black texture
-    //GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
-    //GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
-    //GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
-    //GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
-    //// give data
-    //GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, texInfo.mWidth, texInfo.mHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, texInfo.mLocalBuffer));
-    //GLCall(glBindTexture(GL_TEXTURE_2D, 0));
 
     if (texInfo.pixels)
 		engine::currentEngine->renderer.graphicsAPI->loadTexture(&texInfo);
 
-    mTextures[path] = texInfo;
-
 	if (texInfo.pixels)
 		stbi_image_free(texInfo.pixels);
-
-    return Texture(texInfo.id);
+    Texture tex(it->first);
+    return tex;
 }
 
 Mesh ResourceManager::LoadOBJ(const std::string& filepath)
@@ -128,6 +116,10 @@ void ResourceManager::unloadAll()
 	{
 		engine::currentEngine->renderer.graphicsAPI->unloadMesh(&mesh);
 	}
+	for (auto& texture : mTextures)
+	{
+		engine::currentEngine->renderer.graphicsAPI->unloadTexture(&texture.second);
+	}
     // TODO: TEXTURES
 
     mShaders.clear();
@@ -136,9 +128,25 @@ void ResourceManager::unloadAll()
 	mTextures.clear();
 }
 
-void ResourceManager::bindTextureToMaterial(const Material& material, const Texture& texture, int binding)
+void ResourceManager::bindTextureToMaterial(const Material& material, const Texture& texture, uint32_t binding)
 {
-	engine::currentEngine->renderer.graphicsAPI->bindTextureToMaterial(&mMaterials[material.id], &mTextures[texture.id], binding);
+	auto& texIt = mTextures[texture.id.data()];
+	engine::currentEngine->renderer.graphicsAPI->bindTextureToMaterial(&mMaterials[material.id], &mTextures[texture.id.data()], binding);
+	MaterialData& matData = mMaterials[material.id];
+    switch (binding)
+    {
+	case(ALBEDO_MAP_BINDING):
+		matData.albedoMap = texture;
+		break;
+	case(SPECULAR_MAP_BINDING):
+		matData.specularMap = texture;
+		break;
+	case(NORMAL_MAP_BINDING):
+		matData.normalMap = texture;
+		break;
+	default:
+		std::cout << "Warning: trying to bind texture to invalid binding point " << binding << "!\n";
+    }
 }
 
 /////////////////////// PRIVATE ///////////////////////

@@ -1,14 +1,11 @@
 #include "time.h"
 #include "GLFW/glfw3.h"
-double Time::deltaTime = 0.0f;
-double Time::time = 0.0f;
-double Time::lastFrame = 0.0f;
 
 void Time::Init()
 {
-	deltaTime = 0.0f;
-	time = 0.0f;
-	lastFrame = 0.0f;
+	deltaTime = 0.0;
+	time = 0.0;
+	lastFrame = 0.0;
 }
 void Time::Update()
 {

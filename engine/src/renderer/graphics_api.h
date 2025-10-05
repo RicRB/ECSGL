@@ -28,7 +28,7 @@ public:
 		const glm::mat4 projectionMatrix,
 		const GlobalUBO* globalUniformObject,
 		const int entityCount, 
-		const std::vector<Transform*>& transforms, 
+		const std::vector<glm::mat4x4>& modelMatrices,
 		const std::vector<MeshData*>& meshes, 
 		const std::vector<MaterialData*>& materials, 
 		const std::vector<ShaderData>& shaders

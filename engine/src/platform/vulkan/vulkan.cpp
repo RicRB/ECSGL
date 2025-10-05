@@ -166,7 +166,7 @@ void Vulkan::drawFrame(
 	const glm::mat4 projectionMatrix,
 	const GlobalUBO* globalUniformObject,
 	const int entityCount,
-	const std::vector<Transform*>& transforms,
+	const std::vector<glm::mat4x4>& modelMatrices,
 	const std::vector<MeshData*>& meshes,
 	const std::vector<MaterialData*>& materials,
 	const std::vector<ShaderData>& shaders
@@ -306,9 +306,9 @@ void Vulkan::drawFrame(
 		}
 		// push constants
 		PushConstants pushConstants;
-		pushConstants.mvp = projectView * transforms[i]->getMatrix();
+		pushConstants.mvp = projectView * modelMatrices[i];
 
-		glm::mat4 model = transforms[i]->getMatrix();
+		glm::mat4 model = modelMatrices[i];
 		pushConstants.model = glm::mat3x4(
 			glm::vec4(model[0].x, model[0].y, model[0].z, model[3].x),
 			glm::vec4(model[1].x, model[1].y, model[1].z, model[3].y),
@@ -338,7 +338,8 @@ void Vulkan::drawFrame(
 	submitInfo.commandBufferCount = 1;
 	submitInfo.pCommandBuffers = &commandBuffers[currentFrame];
 
-	VkSemaphore signalSemaphores[] = { renderFinishedSemaphores[currentFrame] };
+	VkSemaphore renderFinished = renderFinishedSemaphores[imageIndex];
+	VkSemaphore signalSemaphores[] = { renderFinished };
 	submitInfo.signalSemaphoreCount = 1;
 	submitInfo.pSignalSemaphores = signalSemaphores;
 
@@ -351,7 +352,7 @@ void Vulkan::drawFrame(
 	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 
 	presentInfo.waitSemaphoreCount = 1;
-	presentInfo.pWaitSemaphores = signalSemaphores;
+	presentInfo.pWaitSemaphores = &renderFinished;
 
 	VkSwapchainKHR swapChains[] = { swapChain };
 	presentInfo.swapchainCount = 1;
@@ -484,11 +485,14 @@ void Vulkan::cleanup()
 void Vulkan::unloadShader(ShaderData* shaderData)
 {
 	auto program = std::static_pointer_cast<VkProgram>(shaderData->program).get();
+	vkDeviceWaitIdle(device);
+
 	if (program->pipeline != VK_NULL_HANDLE) {
 		vkDestroyPipeline(device, program->pipeline, nullptr);
 		program->pipeline = VK_NULL_HANDLE;
 	}
 	if (program->pipelineLayout != VK_NULL_HANDLE) {
+
 		vkDestroyPipelineLayout(device, program->pipelineLayout, nullptr);
 		program->pipelineLayout = VK_NULL_HANDLE;
 	}
@@ -543,7 +547,7 @@ void Vulkan::bindTextureToMaterial(MaterialData* materialData, TextureData* text
 	DescriptorWriter writer;
 	auto image = std::static_pointer_cast<VkTextureImage>(textureData->image);
 	int textureBinding = binding + 1;
-	writer.writeImage(textureBinding, image->imageView, image->sampler, VK_IMAGE_LAYOUT_GENERAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+	writer.writeImage(textureBinding, image->imageView, image->sampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 
 	writer.updateSet(device, std::static_pointer_cast<VkDescriptorSetWrapper>(materialData->descriptorSet)->set);
 }
@@ -1232,9 +1236,12 @@ void Vulkan::createCommandBuffers()
 
 void Vulkan::createSyncObjects()
 {
+	// per-frame (small, reused slots)
 	imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-	renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
 	inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
+
+	// per-swapchain-image render finished semaphores
+	renderFinishedSemaphores.resize(swapChainImages.size());
 
 	VkSemaphoreCreateInfo semaphoreInfo{};
 	semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -1243,12 +1250,18 @@ void Vulkan::createSyncObjects()
 	fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 	fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
+	// create per-frame semaphores + fences
 	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 		if (vkCreateSemaphore(device, &semaphoreInfo, nullptr, &imageAvailableSemaphores[i]) != VK_SUCCESS ||
-			vkCreateSemaphore(device, &semaphoreInfo, nullptr, &renderFinishedSemaphores[i]) != VK_SUCCESS ||
 			vkCreateFence(device, &fenceInfo, nullptr, &inFlightFences[i]) != VK_SUCCESS) {
+			throw std::runtime_error("failed to create per-frame sync objects!");
+		}
+	}
 
-			throw std::runtime_error("failed to create synchronization objects for a frame!");
+	// create per-image renderFinished semaphores
+	for (uint32_t i = 0; i < swapChainImages.size(); ++i) {
+		if (vkCreateSemaphore(device, &semaphoreInfo, nullptr, &renderFinishedSemaphores[i]) != VK_SUCCESS) {
+			throw std::runtime_error("failed to create renderFinished semaphore for swapchain image!");
 		}
 	}
 }

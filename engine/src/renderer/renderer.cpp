@@ -28,48 +28,60 @@ void Renderer::DrawElements(Registry& registry, ResourceManager& resourceManager
 	std::vector<MeshData*> meshes;
 	std::vector<MaterialData*> materials;
 
+	std::vector<Transform*>& transforms = currentView.GetComponents<Transform>();
+	std::vector<glm::mat4x4> modelMatrices;
+	modelMatrices.reserve(transforms.size());
+
 	for (size_t i = 0; i < currentView.size(); i++)
 	{
 		meshes.emplace_back(&resourceManager.mMeshes[std::get<2>(currentView[i])->id]);
 		materials.emplace_back(&resourceManager.mMaterials[std::get<3>(currentView[i])->id]);
+		modelMatrices.emplace_back(registry.GetLocalToWorldMatrix(std::get<0>(currentView[i])) * transforms[i]->getMatrix());
 	}
+
 	// GLOBAL UNIFORM OBJECT
 
 	GlobalUBO globalUniformObject;
 	globalUniformObject.dirLightCount = 0;
 	globalUniformObject.pointLightCount = 0;
-	std::vector<PointLightUniform> pointLights;
-	auto dirView = registry.GetView<DirectionalLight>();
-	for (auto dirLight : dirView.GetComponents<DirectionalLight>())
-	{
-		DirectionLightUniform ubo;
-		ubo.direction = glm::vec4(dirLight->direction, 1.0);
-		ubo.ambient = glm::vec4(dirLight->ambient, 1.0);
-		ubo.diffuse = glm::vec4(dirLight->diffuse, 1.0);
-		ubo.specular = glm::vec4(dirLight->specular, 1.0);
-		
-		globalUniformObject.dirLights[globalUniformObject.dirLightCount] = ubo;
-		globalUniformObject.dirLightCount++;
+
+	if (registry.PoolExists<DirectionalLight>()) {
+		auto dirView = registry.GetView<DirectionalLight>();
+		auto dirLightsView = dirView.GetComponents<DirectionalLight>();
+		for (size_t i = 0; i < dirView.size(); i++)
+		{
+			auto dirLight = dirLightsView[i];
+			DirectionLightUniform& ubo = globalUniformObject.dirLights[i];
+			ubo.direction = glm::vec4(dirLight->direction, 1.0);
+			ubo.ambient = glm::vec4(dirLight->ambient, 1.0);
+			ubo.diffuse = glm::vec4(dirLight->diffuse, 1.0);
+			ubo.specular = glm::vec4(dirLight->specular, 1.0);
+
+			globalUniformObject.dirLights[globalUniformObject.dirLightCount] = ubo;
+		}
+		globalUniformObject.pointLightCount = static_cast<uint32_t>(dirView.size());
 	}
 
-	auto pointView = registry.GetView<PointLight, Transform>();
-	auto pointLightsView = pointView.GetComponents<PointLight>();
-	auto pointTransforms = pointView.GetComponents<Transform>();
-	for (size_t i = 0; i < pointView.size(); i++)
-	{
-		PointLightUniform ubo;
-		glm::mat4 localToWorld = registry.GetLocalToWorldMatrix(std::get<0>(pointView[i]));
-		ubo.position = localToWorld * glm::vec4(pointTransforms[i]->getPosition(), 1.0);
-		ubo.constant = pointLightsView[i]->constant;
-		ubo.linear = pointLightsView[i]->linear;
-		ubo.quadratic = pointLightsView[i]->quadratic;
-		ubo.ambient = glm::vec4(pointLightsView[i]->ambient, 1.0);
-		ubo.diffuse = glm::vec4(pointLightsView[i]->diffuse, 1.0);
-		ubo.specular = glm::vec4(pointLightsView[i]->specular, 1.0);
+	if (registry.PoolExists<PointLight>()) {
+		auto pointView = registry.GetView<PointLight, Transform>();
+		auto pointLightsView = pointView.GetComponents<PointLight>();
+		auto pointTransforms = pointView.GetComponents<Transform>();
+		for (size_t i = 0; i < pointView.size(); i++)
+		{
+			PointLightUniform ubo;
+			glm::mat4 localToWorld = registry.GetLocalToWorldMatrix(std::get<0>(pointView[i]));
+			ubo.position = localToWorld * glm::vec4(pointTransforms[i]->getPosition(), 1.0);
+			ubo.constant = pointLightsView[i]->constant;
+			ubo.linear = pointLightsView[i]->linear;
+			ubo.quadratic = pointLightsView[i]->quadratic;
+			ubo.ambient = glm::vec4(pointLightsView[i]->ambient, 1.0);
+			ubo.diffuse = glm::vec4(pointLightsView[i]->diffuse, 1.0);
+			ubo.specular = glm::vec4(pointLightsView[i]->specular, 1.0);
 
-		globalUniformObject.pointLights[i] = ubo;
+			globalUniformObject.pointLights[i] = ubo;
+		}
+		globalUniformObject.pointLightCount = static_cast<uint32_t>(pointView.size());
 	}
-	globalUniformObject.pointLightCount = static_cast<uint32_t>(pointView.size());
 	// ImGui
 	times += 1.0f;
 	if (times >= 1000)
@@ -95,7 +107,7 @@ void Renderer::DrawElements(Registry& registry, ResourceManager& resourceManager
 		cameraComponent.projection,
 		&globalUniformObject,
 		currentView.size(),
-		currentView.GetComponents<Transform>(),
+		modelMatrices,
 		meshes,
 		materials,
 		resourceManager.mShaders
