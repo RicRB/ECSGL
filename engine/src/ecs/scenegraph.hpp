@@ -10,9 +10,9 @@ class SceneGraph
 public:
 
 private:
-	std::array<HierarchyData, MAX_ENTITIES> sceneGraph;
+	std::unique_ptr<std::array<HierarchyData, MAX_ENTITIES>> sceneGraph;
 public:
-	SceneGraph() = default;
+	SceneGraph();
 	~SceneGraph() = default;
 	/**
 	* @brief sets the parent of the first entity to the second entity. leave second parameter empty for no parent

@@ -1,5 +1,15 @@
 #include "ecs/registry.hpp"
 
+SceneGraph::SceneGraph()
+{
+	sceneGraph = std::make_unique<std::array<HierarchyData, MAX_ENTITIES>>();
+	for (auto& data : *sceneGraph)
+	{
+		data.parent = ECS_INVALID_ID;
+		data.children = std::vector<uint32_t>();
+	}
+}
+
 void SceneGraph::ParentEntity(Entity child, Entity parent)
 {
 	_ParentEntity(child, parent);

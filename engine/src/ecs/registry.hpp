@@ -13,15 +13,16 @@ class Registry
 public:
 	SceneGraph scenegraph;
 private:
-	std::unordered_map<std::type_index, std::shared_ptr<PoolBase>> pools;
-	dense_array<Entity, MAX_ENTITIES> entities;
+	std::unordered_map<std::type_index, std::unique_ptr<PoolBase>> pools;
+	std::unique_ptr<dense_array<Entity, MAX_ENTITIES>> entities;
 	std::vector<std::shared_ptr<System>> systems; // List of systems
 	std::queue<unsigned int> destroyed;
 public:
 
 	Registry()
 	{
-		for (auto& entity : entities.array)
+		entities = std::make_unique<dense_array<Entity, MAX_ENTITIES>>();
+		for (auto& entity : entities->array)
 		{
 			entity.entityID = ECS_INVALID_ID;
 			entity.version = 0;
@@ -148,11 +149,11 @@ public:
 	const std::vector<Entity> GetActiveEntities()
 	{
 		std::vector<Entity> activeEntities;
-		for (unsigned int i = 0; i < entities.size(); i++)
+		for (unsigned int i = 0; i < entities->size(); i++)
 		{
-			if (entities[i].entityID != ECS_INVALID_ID)
+			if ((*entities)[i].entityID != ECS_INVALID_ID)
 			{
-				activeEntities.push_back(entities[i]);
+				activeEntities.push_back((*entities)[i]);
 			}
 		}
 		return activeEntities;
@@ -162,14 +163,14 @@ public:
 		Entity entity;
 		if (destroyed.empty())
 		{
-			entities.nextEmpty().entityID = entities.size();
-			entity = entities.nextEmpty();
-			entities.size()++;
+			entities->nextEmpty().entityID = entities->size();
+			entity = entities->nextEmpty();
+			entities->size()++;
 		}
 		else
 		{
-			entities[destroyed.front()].entityID = destroyed.front();
-			entity = entities[destroyed.front()];
+			(*entities)[destroyed.front()].entityID = destroyed.front();
+			entity = (*entities)[destroyed.front()];
 			destroyed.pop();
 		}
 		return entity;
@@ -178,8 +179,8 @@ public:
 	void DestroyEntity(Entity entity)
 	{
 		destroyed.push(entity.entityID);
-		entities[entity.entityID].entityID = ECS_INVALID_ID;
-		entities[entity.entityID].version++;
+		(*entities)[entity.entityID].entityID = ECS_INVALID_ID;
+		(*entities)[entity.entityID].version++;
 		// TODO: Get Children and delete aswell
 		for (auto& pool : pools)
 		{
@@ -189,7 +190,7 @@ public:
 	void Clear()
 	{
 		pools.clear();
-		entities = dense_array<Entity, MAX_ENTITIES>();
+		entities.reset();
 		destroyed = std::queue<unsigned int>();
 	}
 
@@ -245,8 +246,7 @@ private:
 		if (pools.find(typeid(ComponentType)) == pools.end())
 		{
 			// cast pool into base pool and store it in map
-			std::unique_ptr<PoolBase> base = std::make_unique<Pool<ComponentType>>();
-			pools[typeid(ComponentType)] = std::move(base);
+			pools[typeid(ComponentType)] = std::make_unique<Pool<ComponentType>>();
 		}
 	}
 };
