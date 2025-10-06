@@ -34,8 +34,8 @@ void Renderer::DrawElements(Registry& registry, ResourceManager& resourceManager
 
 	for (size_t i = 0; i < currentView.size(); i++)
 	{
-		meshes.emplace_back(&resourceManager.mMeshes[std::get<2>(currentView[i])->id]);
-		materials.emplace_back(&resourceManager.mMaterials[std::get<3>(currentView[i])->id]);
+		meshes.emplace_back(&resourceManager.m_meshes[std::get<2>(currentView[i])->id]);
+		materials.emplace_back(&resourceManager.m_materials[std::get<3>(currentView[i])->id]);
 		modelMatrices.emplace_back(registry.GetLocalToWorldMatrix(std::get<0>(currentView[i])) * transforms[i]->getMatrix());
 	}
 
@@ -110,7 +110,7 @@ void Renderer::DrawElements(Registry& registry, ResourceManager& resourceManager
 		modelMatrices,
 		meshes,
 		materials,
-		resourceManager.mShaders
+		resourceManager.m_shaders
 	);
 	//for (size_t i = 0; i < currentView.size(); i++)
 	//{

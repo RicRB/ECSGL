@@ -12,16 +12,16 @@ class ResourceManager
 public:
 	ResourceManager();
 	~ResourceManager() = default;
-	std::vector<ShaderData> mShaders;
-	std::vector<MaterialData> mMaterials;
-	std::vector<MeshData> mMeshes;
+	std::vector<ShaderData> m_shaders;
+	std::vector<MaterialData> m_materials;
+	std::vector<MeshData> m_meshes;
 private:
 	bool initialized = false;
 
 	// TODO: add a map string -> ShaderID to avoid copies
-	std::unordered_map<ShaderID, std::unordered_map<std::string, int>> mUniformLocationCache;
-	std::unordered_map<ShaderID, std::unordered_map<std::string, GLenum>> mUniforms;
-	std::unordered_map<std::string, TextureData> mTextures;
+	std::unordered_map<ShaderID, std::unordered_map<std::string, int>> m_uniformLocationCache;
+	std::unordered_map<ShaderID, std::unordered_map<std::string, GLenum>> m_uniforms;
+	std::unordered_map<std::string, TextureData> m_textures;
 
 public: 
 	Shader LoadShader(const std::string& vertexShaderPath, const std::string& fragmentShaderPath);

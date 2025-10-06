@@ -10,19 +10,19 @@ ResourceManager::ResourceManager()
 	{
 		initialized = true;
 		// Initialize shaders
-		mShaders.reserve(256); // reserve space for 256 shaders to avoid reallocations
-		mTextures.reserve(256); // reserve space for 256 textures to avoid reallocations
-		mMaterials.reserve(256); // reserve space for 256 materials to avoid reallocations
-		mMeshes.reserve(256); // reserve space for 256 meshes to avoid reallocations
+		m_shaders.reserve(256); // reserve space for 256 shaders to avoid reallocations
+		m_textures.reserve(256); // reserve space for 256 textures to avoid reallocations
+		m_materials.reserve(256); // reserve space for 256 materials to avoid reallocations
+		m_meshes.reserve(256); // reserve space for 256 meshes to avoid reallocations
 	}
 }
 
 Shader ResourceManager::LoadShader(const std::string& vertexShaderPath, const std::string& fragmentShaderPath)
 {
     Shader returnShader;
-	std::cout << mShaders.size() << " shaders loaded\n";
-    ShaderData& shader = mShaders.emplace_back();
-	shader.id = static_cast<ShaderID>(mShaders.size() - 1); // Assign a unique ID based on the index
+	std::cout << m_shaders.size() << " shaders loaded\n";
+    ShaderData& shader = m_shaders.emplace_back();
+	shader.id = static_cast<ShaderID>(m_shaders.size() - 1); // Assign a unique ID based on the index
     returnShader.id = shader.id;
 	returnShader.data = &shader;
     ParseShader(shader, vertexShaderPath, fragmentShaderPath);
@@ -40,9 +40,9 @@ Shader ResourceManager::LoadShader(const std::string& vertexShaderPath, const st
 Material ResourceManager::LoadMaterial(const ShaderID shaderID)
 {
 	Material returnMaterial;
-	MaterialData& material = mMaterials.emplace_back();
+	MaterialData& material = m_materials.emplace_back();
 	material.shaderID = shaderID;
-	material.id = static_cast<MaterialID>(mMaterials.size() - 1); // Assign a unique ID based on the index
+	material.id = static_cast<MaterialID>(m_materials.size() - 1); // Assign a unique ID based on the index
 	material.ubo.ambientColor = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
 	material.ubo.diffuseColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 	material.ubo.specularColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
@@ -50,7 +50,7 @@ Material ResourceManager::LoadMaterial(const ShaderID shaderID)
 
 	engine::currentEngine->renderer.graphicsAPI->loadMaterial(
 		std::to_string(material.id).c_str(),
-		mShaders[shaderID],
+		m_shaders[shaderID],
 		&material
 	);
 
@@ -59,14 +59,14 @@ Material ResourceManager::LoadMaterial(const ShaderID shaderID)
 
 Texture ResourceManager::LoadTexture(const std::string& path)
 {
-    auto textureInfo = mTextures.find(path);
-    if (textureInfo != mTextures.end())
+    auto textureInfo = m_textures.find(path);
+    if (textureInfo != m_textures.end())
     {
         Texture tex;
 		tex.id = textureInfo->second.id;
         return tex;
     }
-    auto it = mTextures.emplace(path, TextureData()).first;
+    auto it = m_textures.emplace(path, TextureData()).first;
     auto& texInfo = it->second;
 	texInfo.id = it->first;
     stbi_set_flip_vertically_on_load(1); // play with it if upside down
@@ -94,8 +94,8 @@ Scene ResourceManager::ParseScene(const std::string& shaderPath)
 
 int ResourceManager::GetUniformLocation(const unsigned int rendererID, const std::string& name)
 {
-    if (mUniformLocationCache[rendererID].find(name) != mUniformLocationCache[rendererID].end())
-        return mUniformLocationCache[rendererID][name];
+    if (m_uniformLocationCache[rendererID].find(name) != m_uniformLocationCache[rendererID].end())
+        return m_uniformLocationCache[rendererID][name];
     else
         printf("Warning: uniform '%s' doesn't exist!\n", name.c_str());
 
@@ -104,35 +104,35 @@ int ResourceManager::GetUniformLocation(const unsigned int rendererID, const std
 
 void ResourceManager::unloadAll()
 {
-	for (auto& shader : mShaders)
+	for (auto& shader : m_shaders)
 	{
 		engine::currentEngine->renderer.graphicsAPI->unloadShader(&shader);
 	}
-	for (auto& material : mMaterials)
+	for (auto& material : m_materials)
 	{
 		engine::currentEngine->renderer.graphicsAPI->unloadMaterial(&material);
 	}
-	for (auto& mesh : mMeshes)
+	for (auto& mesh : m_meshes)
 	{
 		engine::currentEngine->renderer.graphicsAPI->unloadMesh(&mesh);
 	}
-	for (auto& texture : mTextures)
+	for (auto& texture : m_textures)
 	{
 		engine::currentEngine->renderer.graphicsAPI->unloadTexture(&texture.second);
 	}
     // TODO: TEXTURES
 
-    mShaders.clear();
-	mMaterials.clear();
-	mMeshes.clear();
-	mTextures.clear();
+    m_shaders.clear();
+	m_materials.clear();
+	m_meshes.clear();
+	m_textures.clear();
 }
 
 void ResourceManager::bindTextureToMaterial(const Material& material, const Texture& texture, uint32_t binding)
 {
-	auto& texIt = mTextures[texture.id.data()];
-	engine::currentEngine->renderer.graphicsAPI->bindTextureToMaterial(&mMaterials[material.id], &mTextures[texture.id.data()], binding);
-	MaterialData& matData = mMaterials[material.id];
+	auto& texIt = m_textures[texture.id.data()];
+	engine::currentEngine->renderer.graphicsAPI->bindTextureToMaterial(&m_materials[material.id], &m_textures[texture.id.data()], binding);
+	MaterialData& matData = m_materials[material.id];
     switch (binding)
     {
 	case(ALBEDO_MAP_BINDING):
@@ -197,8 +197,8 @@ void ResourceManager::CompileUniforms(const unsigned int programID)
     {
         glGetActiveUniform(programID, (GLuint)i, bufSize, &length, &size, &type, name);
         int location = glGetUniformLocation(programID, name);
-        mUniformLocationCache[programID].insert(std::pair<std::string, int>(name, location));
-        mUniforms[programID].insert(std::pair<std::string, GLenum>(name, type));
+        m_uniformLocationCache[programID].insert(std::pair<std::string, int>(name, location));
+        m_uniforms[programID].insert(std::pair<std::string, GLenum>(name, type));
         //printf("Uniform #%d Type: %u Name: %s\n", i, type, name);
     }
 }
@@ -320,11 +320,11 @@ Mesh ResourceManager::ProcessMesh(std::fstream& fstream)
             //indices.push_back(triangle[1]);
 		}
     }
-    MeshData& meshData = mMeshes.emplace_back();
+    MeshData& meshData = m_meshes.emplace_back();
 	meshData.vertices = vertices;
 	meshData.indices = indices;
     meshData.vertexCount = static_cast<unsigned int>(vertices.size());
-	meshData.id = static_cast<MeshID>(mMeshes.size() - 1); // TODO : UUID????
+	meshData.id = static_cast<MeshID>(m_meshes.size() - 1); // TODO : UUID????
 	engine::currentEngine->renderer.graphicsAPI->loadMesh(&meshData);
 	Mesh meshComponent;
 	meshComponent.id = meshData.id;
