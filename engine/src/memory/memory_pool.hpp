@@ -1,5 +1,6 @@
 #pragma once
 #include <array>
+#include <stack>
 class MemoryHandle {
 public:
 	MemoryHandle(const uint32_t idx) : m_index(idx) {};
@@ -16,24 +17,32 @@ struct MemoryPool {
 	~MemoryPool() = default;
 	template<typename... Args>
 	MemoryHandle allocate(Args&&... args) {
-		uint32_t index = firstEmpty;
-		pool[firstEmpty] = T(std::forward<Args>(args)...);
-		if (firstEmpty < lastAllocated)
-			firstEmpty = lastAllocated++;
+		uint32_t index;
+		if (!destroyedIndices.empty()) {
+			index = destroyedIndices.top();
+			destroyedIndices.pop();
+		}
 		else
-			firstEmpty++;
+		{
+			index = allocationPointer++;
+			if (index >= n) {
+				throw std::runtime_error("MemoryPool: Out of memory");
+				return MemoryHandle(-1);
+			}
+		}
 
-		lastAllocated = firstEmpty;
+		pool[index] = T(std::forward<Args>(args)...);
 
 		return index;
 	}
 	void deallocate(MemoryHandle& memoryHandle) {
 		uint32_t& index = memoryHandle.m_index;
-		if (index >= n) return;
-		if (index < pool.size()) {
-			~pool[index];
-			firstEmpty = index;
+		if (index >= n) {
+			throw std::runtime_error("MemoryPool: Invalid handle");
+			return;
 		}
+		destroyedIndices.push(index);
+		pool[index].~T();
 	}
 
 	T& operator[](const MemoryHandle& handle) {
@@ -43,15 +52,8 @@ struct MemoryPool {
 	const T& operator[](const MemoryHandle& handle) const {
 		return pool[handle.m_index];
 	}
-
-	const bool isValid(const MemoryHandle& handle) const {
-		// TODO: FIGURE OUT THE LOGIC FOR THIS.
-		bool valid = handle.m_index < n;
-		
-		return ;
-	}
 private:
 	std::array<T, n> pool;
-	uint32_t firstEmpty = 0;
-	uint32_t lastAllocated = 0;
+	uint32_t allocationPointer = 0;
+	std::stack<uint32_t> destroyedIndices;
 };
