@@ -1,15 +1,25 @@
 #pragma once
 #include <array>
 #include <stack>
+#include <stdint.h>
 
 template <typename T>
 class MemoryHandle {
 public:
-	MemoryHandle(const uint32_t idx) : m_index(idx) {};
-	const uint32_t m_index;
+	static constexpr uint32_t INVALID_INDEX = UINT32_MAX;
+
+	uint32_t m_index;
 public:
+	MemoryHandle(const uint32_t idx = INVALID_INDEX) : m_index(idx) {};
+
+	const bool isValid() const {
+		return m_index == INVALID_INDEX;
+	}
 	bool operator==(const MemoryHandle& other) const {
 		return m_index == other.m_index;
+	}
+	operator uint32_t() const {
+		return m_index;
 	}
 };
 
@@ -55,6 +65,14 @@ struct MemoryPool {
 
 	const T& operator[](const MemoryHandle<T>& handle) const {
 		return pool[handle.m_index];
+	}
+
+	T& at(const MemoryHandle<T>& handle) {
+		return pool.at(handle.m_index);
+	}
+
+	const T& at(const MemoryHandle<T>& handle) const {
+		return pool.at(handle.m_index);
 	}
 
 	auto begin() { return pool.begin(); }

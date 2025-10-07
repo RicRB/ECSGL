@@ -1,7 +1,9 @@
 #pragma once
 #include <string>
 #include "image.h"
-using TextureID = std::string_view;
+#include "memory/memory_pool.hpp"
+
+
 enum class TextureType
 {
 	UNKOWN,
@@ -12,13 +14,13 @@ enum class TextureType
 struct TextureData
 {
 	TextureData();
-	TextureID id;
 	unsigned char* pixels;
 	int width, height, bpp;
 	std::shared_ptr<TextureImage> image;
 };
+using TextureDataHandle = MemoryHandle<TextureData>;
 struct Texture
 {
-	 TextureID id;
-	 Texture(TextureID id = "");
+	 TextureDataHandle handle;
+	 Texture(TextureDataHandle h = TextureDataHandle()) : handle(h) {};
 };

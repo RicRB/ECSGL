@@ -35,9 +35,9 @@ struct SwapChainSupportDetails {
 };
 struct DrawObject {
 	size_t index;
-	ShaderID shader;
-	MaterialID material;
-	MeshID mesh;
+	ShaderData& shader;
+	MaterialData& material;
+	MeshData& mesh;
 };
 class Vulkan : public GraphicsAPI {
 public:

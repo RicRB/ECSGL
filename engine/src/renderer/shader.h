@@ -3,7 +3,7 @@
 #include <unordered_map>
 #include "glm/glm.hpp"
 #include "program.h"
-using ShaderID = unsigned int;
+#include "memory/memory_pool.hpp"
 using GLProgramID = unsigned int;
 using GLenum = unsigned int;
 struct ShaderUniformMetaData
@@ -17,17 +17,24 @@ struct ShaderUniformMetaData
 struct ShaderData
 {
 	ShaderData();
-	ShaderID id;
-	
 	std::shared_ptr<Program> program;
 	// sources
-	std::string VertexSource;
-	std::string FragmentSource;
+	std::string vertexSource;
+	std::string fragmentSource;
+	// metadata
+	size_t sourceHash;
+	bool operator==(const ShaderData& other) const {
+		return sourceHash == other.sourceHash;
+	}
+	bool operator!=(const ShaderData& other) const {
+		return sourceHash != other.sourceHash;
+	}
 };
+using ShaderDataHandle = MemoryHandle<ShaderData>;
 struct Shader
 {
-	ShaderID id;
-	ShaderData* data;
+	ShaderDataHandle handle;
+	Shader(const ShaderDataHandle h = ShaderDataHandle()) : handle(h) {};
 };
 
 namespace shader

@@ -35,7 +35,7 @@ void Renderer::DrawElements(Registry& registry, ResourceManager& resourceManager
 	for (size_t i = 0; i < currentView.size(); i++)
 	{
 		meshes.emplace_back(&(*resourceManager.m_meshes)[std::get<2>(currentView[i])->id]);
-		materials.emplace_back(&(*resourceManager.m_materials)[std::get<3>(currentView[i])->id]);
+		materials.emplace_back(&resourceManager.m_materials->at(std::get<3>(currentView[i])->handle));
 		modelMatrices.emplace_back(registry.GetLocalToWorldMatrix(std::get<0>(currentView[i])) * transforms[i]->getMatrix());
 	}
 

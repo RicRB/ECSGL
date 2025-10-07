@@ -19,5 +19,4 @@ public:
 	void Run();
 	void DrawElements(Registry& registry, ResourceManager& resourceManager, Entity camera);
 	void Clear() const;
-	inline void DrawEntity(const Entity entity);
 };

@@ -7,75 +7,69 @@
 
 void ResourceManager::CreateResourcePools()
 {
-	m_shaders = std::make_unique<MemoryPool<ShaderData, 32>>();
-	m_materials = std::make_unique<MemoryPool<MaterialData, 32>>();
-	m_meshes = std::make_unique<MemoryPool<MeshData, 32>>();
+	m_shaders = std::make_unique<MemoryPool<ShaderData, MAX_RESOURCE_POOL_SIZE>>();
+	m_materials = std::make_unique<MemoryPool<MaterialData, MAX_RESOURCE_POOL_SIZE>>();
+	m_meshes = std::make_unique<MemoryPool<MeshData, MAX_RESOURCE_POOL_SIZE>>();
+	m_textures = std::make_unique<MemoryPool<TextureData, MAX_RESOURCE_POOL_SIZE>>();
 }
 
 Shader ResourceManager::LoadShader(const std::string& vertexShaderPath, const std::string& fragmentShaderPath)
 {
-    Shader returnShader;
 	std::cout << m_shaders->size() << " shaders loaded\n";
     MemoryHandle<ShaderData> shaderHandle = m_shaders->allocate();
-	ShaderData& shader = (*m_shaders)[shaderHandle];
-	shader.id = static_cast<ShaderID>(m_shaders->size() - 1); // Assign a unique ID based on the index
-    returnShader.id = shader.id;
-	returnShader.data = &shader;
+	ShaderData& shader = m_shaders->at(shaderHandle);
     ParseShader(shader, vertexShaderPath, fragmentShaderPath);
 
 	engine::currentEngine->renderer.graphicsAPI->compileShader(
-		std::to_string(shader.id).c_str(),
-		shader.VertexSource,
-		shader.FragmentSource,
+		std::to_string(static_cast<uint32_t>(shaderHandle)).c_str(),
+		shader.vertexSource,
+		shader.fragmentSource,
 		&shader
 	);
 
-	return returnShader;
+	return Shader(shaderHandle);
 }
 
-Material ResourceManager::LoadMaterial(const ShaderID shaderID)
+Material ResourceManager::LoadMaterial(const Shader shader)
 {
-	Material returnMaterial;
-	MemoryHandle<MaterialData> materialHandle = m_materials->allocate();
-	MaterialData& material = (*m_materials)[materialHandle];
-	material.shaderID = shaderID;
-	material.id = static_cast<MaterialID>(m_materials->size() - 1); // Assign a unique ID based on the index
-	material.ubo.ambientColor = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-	material.ubo.diffuseColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-	material.ubo.specularColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-	returnMaterial.id = material.id;
+    MaterialDataHandle materialHandle = m_materials->allocate();
+    MaterialData& material = (*m_materials)[materialHandle];
+	material.shaderHandle = shader.handle;
+    material.ubo.ambientColor = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+    material.ubo.diffuseColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+    material.ubo.specularColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 
-	engine::currentEngine->renderer.graphicsAPI->loadMaterial(
-		std::to_string(material.id).c_str(),
-		(*m_shaders)[shaderID],
-		&material
-	);
+    engine::currentEngine->renderer.graphicsAPI->loadMaterial(
+        std::to_string((uint32_t)materialHandle).c_str(),
+        m_shaders->at(shader.handle),
+        &material
+    );
 
-    return returnMaterial;
+    return Material(materialHandle);
 }
 
 Texture ResourceManager::LoadTexture(const std::string& path)
 {
-    auto textureInfo = m_textures.find(path);
-    if (textureInfo != m_textures.end())
     {
-        Texture tex;
-		tex.id = textureInfo->second.id;
-        return tex;
+        auto textureHandleResult = m_textureHandles.find(path);
+        if (textureHandleResult != m_textureHandles.end())
+        {
+            return Texture(textureHandleResult->second);
+        }
     }
-    auto it = m_textures.emplace(path, TextureData()).first;
-    auto& texInfo = it->second;
-	texInfo.id = it->first;
+
+    auto textureHandle = m_textures->allocate();
+	m_textureHandles.emplace(path, textureHandle);
+    auto& textureData = m_textures->at(textureHandle);
     stbi_set_flip_vertically_on_load(1); // play with it if upside down
-    texInfo.pixels = stbi_load(path.c_str(), &texInfo.width, &texInfo.height, &texInfo.bpp, 4);
+    textureData.pixels = stbi_load(path.c_str(), &textureData.width, &textureData.height, &textureData.bpp, 4);
 
-    if (texInfo.pixels)
-		engine::currentEngine->renderer.graphicsAPI->loadTexture(&texInfo);
+    if (textureData.pixels)
+		engine::currentEngine->renderer.graphicsAPI->loadTexture(&textureData);
 
-	if (texInfo.pixels)
-		stbi_image_free(texInfo.pixels);
-    Texture tex(it->first);
-    return tex;
+	if (textureData.pixels)
+		stbi_image_free(textureData.pixels);
+    return Texture(textureHandle);
 }
 
 Mesh ResourceManager::LoadOBJ(const std::string& filepath)
@@ -87,16 +81,6 @@ Mesh ResourceManager::LoadOBJ(const std::string& filepath)
 Scene ResourceManager::ParseScene(const std::string& shaderPath)
 {
     return Scene();
-}
-
-int ResourceManager::GetUniformLocation(const unsigned int rendererID, const std::string& name)
-{
-    if (m_uniformLocationCache[rendererID].find(name) != m_uniformLocationCache[rendererID].end())
-        return m_uniformLocationCache[rendererID][name];
-    else
-        printf("Warning: uniform '%s' doesn't exist!\n", name.c_str());
-
-    return -1;
 }
 
 void ResourceManager::unloadAll()
@@ -113,22 +97,22 @@ void ResourceManager::unloadAll()
 	{
 		engine::currentEngine->renderer.graphicsAPI->unloadMesh(&mesh);
 	}
-	for (auto& texture : m_textures)
+	for (auto& texture : *m_textures)
 	{
-		engine::currentEngine->renderer.graphicsAPI->unloadTexture(&texture.second);
+		engine::currentEngine->renderer.graphicsAPI->unloadTexture(&texture);
 	}
 
     m_shaders->clear();
 	m_materials->clear();
 	m_meshes->clear();
-	m_textures.clear();
+	m_textures->clear();
 }
 
 void ResourceManager::bindTextureToMaterial(const Material& material, const Texture& texture, uint32_t binding)
 {
-	auto& texIt = m_textures[texture.id.data()];
-	engine::currentEngine->renderer.graphicsAPI->bindTextureToMaterial(&(*m_materials)[material.id], &m_textures[texture.id.data()], binding);
-	MaterialData& matData = (*m_materials)[material.id];
+	auto& textureData = m_textures->at(texture.handle);
+    engine::currentEngine->renderer.graphicsAPI->bindTextureToMaterial(&m_materials->at(material.handle), &m_textures->at(texture.handle), binding);
+	MaterialData& matData = m_materials->at(material.handle);
     switch (binding)
     {
 	case(ALBEDO_MAP_BINDING):
@@ -170,34 +154,12 @@ void ResourceManager::ParseShader(ShaderData& shader, const std::string& vertex,
         ss[1] << line << '\n';
     }
     fragmentStream.close();
-    shader.VertexSource = ss[0].str();
-    shader.FragmentSource = ss[1].str();
+    shader.vertexSource = ss[0].str();
+    shader.fragmentSource = ss[1].str();
+	std::hash<std::string> hasher;
+	shader.sourceHash = hasher(shader.vertexSource + shader.fragmentSource);
 }
 
-void ResourceManager::CompileUniforms(const unsigned int programID)
-{
-    GLint i;
-    GLint count; // amount of uniforms
-
-    GLint size; // sizeS of the variable
-    GLenum type; // type of the variable (float, vec3 or mat4, etc)
-
-    const GLsizei bufSize = 32; // maximum name length
-    GLchar name[bufSize]; // variable name in GLSL
-    GLsizei length; // name length
-
-    glGetProgramiv(programID, GL_ACTIVE_UNIFORMS, &count);
-    //printf("Active Uniforms: %d\n", count);
-
-    for (i = 0; i < count; i++)
-    {
-        glGetActiveUniform(programID, (GLuint)i, bufSize, &length, &size, &type, name);
-        int location = glGetUniformLocation(programID, name);
-        m_uniformLocationCache[programID].insert(std::pair<std::string, int>(name, location));
-        m_uniforms[programID].insert(std::pair<std::string, GLenum>(name, type));
-        //printf("Uniform #%d Type: %u Name: %s\n", i, type, name);
-    }
-}
 unsigned int ResourceManager::CompileShader(unsigned int type, const std::string& source)
 {
     unsigned int id = glCreateShader(type);
@@ -224,21 +186,6 @@ unsigned int ResourceManager::CompileShader(unsigned int type, const std::string
 }
 
 
-
-unsigned int ResourceManager::CreateShader(const std::string& vertexShader, const std::string& fragmentShader)
-{
-    unsigned int program = glCreateProgram();
-    unsigned int vs = CompileShader(GL_VERTEX_SHADER, vertexShader);
-    unsigned int fs = CompileShader(GL_FRAGMENT_SHADER, fragmentShader);
-    glAttachShader(program, vs);
-    glAttachShader(program, fs);
-    glLinkProgram(program);
-    glValidateProgram(program);
-    CompileUniforms(program);
-    glDeleteShader(vs);
-    glDeleteShader(fs);
-    return program;
-}
 
 Mesh ResourceManager::ProcessMesh(std::fstream& fstream)
 {

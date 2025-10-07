@@ -4,7 +4,7 @@
 #include <vector>
 #include "renderer/buffer.h"
 #include <glm/glm.hpp>
-using MeshID = unsigned int;
+#include "memory/memory_pool.hpp"
 
 struct Vertex
 {
@@ -12,17 +12,20 @@ struct Vertex
 	glm::vec3 normal;
 	glm::vec2 textCoords;
 };
-struct Mesh
-{
-	MeshID id;
-};
+
 struct MeshData
 {
 	MeshData();
-	MeshID id;
+	MeshDataHandle handle;
 	std::shared_ptr<VertexBuffer> vertexBuffer;
 	std::shared_ptr<IndexBuffer> indexBuffer;
 	std::vector<Vertex> vertices;
 	std::vector<unsigned int> indices;
 	unsigned int vertexCount;
+};
+using MeshDataHandle = MemoryHandle<MeshData>;
+struct Mesh
+{
+	MeshDataHandle handle;
+	Mesh(const MeshDataHandle h = MeshDataHandle()) : handle(h) {};
 };

@@ -161,12 +161,12 @@ void Vulkan::initializeImGui()
 
 }
 // TODO : REALLY NEED TO MAKE THIS ONE STRUCT
-void Vulkan::drawFrame(FrameDrawData& frameDrawData)
+void Vulkan::drawFrame(const FrameDrawData& frameDrawData)
 {
 	auto& viewMatrix = frameDrawData.viewMatrix;
 	auto& projectionMatrix = frameDrawData.projectionMatrix;
 	auto& globalUniformObject = frameDrawData.globalUniformObject;
-	auto& entityCount = frameDrawData.entityCount;
+	const int entityCount = frameDrawData.entityCount;
 	auto& modelMatrices = frameDrawData.modelMatrices;
 	auto& meshes = frameDrawData.meshes;
 	auto& materials = frameDrawData.materials;
@@ -191,11 +191,15 @@ void Vulkan::drawFrame(FrameDrawData& frameDrawData)
 	// update global 
 	updateUniformBufferData(&globalUniformBuffer, globalUniformObject);
 	// get new uniforms
-	std::unordered_set<MaterialID> updatedMaterials;
-	for (auto material : materials) {
-		if (updatedMaterials.contains(material->id)) continue;
-		updatedMaterials.insert(material->id);
-		updateUniformBufferData(std::static_pointer_cast<VkUniformBuffer>(material->uniformBuffer).get(), &material->ubo);
+	std::unordered_set<MaterialData*> updatedMaterials;
+	updatedMaterials.reserve(materials.size()); // avoid rehashing
+
+	for (MaterialData* material : materials) {
+		if (!material) continue;
+		if (!updatedMaterials.insert(material).second) continue;                           
+
+		auto ubPtr = std::static_pointer_cast<VkUniformBuffer>(material->uniformBuffer);
+		updateUniformBufferData(ubPtr.get(), &material->ubo);
 	}
 
 	// SORTING TIME
@@ -203,9 +207,9 @@ void Vulkan::drawFrame(FrameDrawData& frameDrawData)
 	for (size_t i = 0; i < entityCount; i++)
 	{
 		drawObjects[i].index = i;
-		drawObjects[i].mesh = meshes[i]->id;
-		drawObjects[i].material = materials[i]->id;
-		drawObjects[i].shader = materials[i]->shaderID;
+		drawObjects[i].mesh = *(meshes[i]);
+		drawObjects[i].material = *materials[i];
+		drawObjects[i].shader = shaders[materials[i]->shaderHandle];
 	}
 	// sort draw objects by shaderID, then by materialID, then by meshID
 	std::sort(drawObjects.begin(), drawObjects.end(), [](const DrawObject& a, const DrawObject& b) {
