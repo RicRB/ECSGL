@@ -6,9 +6,22 @@
 #include <vector>
 #include "stb_image/stb_image.h"
 #include "core/window.h"
+#include "memory/memory_pool.hpp"
 using GraphicsAPIType = uint32_t;
 constexpr GraphicsAPIType GRAPHICS_API_OPENGL = 0;
 constexpr GraphicsAPIType GRAPHICS_API_VULKAN = 1;
+
+struct FrameDrawData {
+	const glm::mat4 viewMatrix;
+	const glm::mat4 projectionMatrix;
+	const GlobalUBO* globalUniformObject;
+	const int entityCount;
+	const std::vector<glm::mat4x4>& modelMatrices;
+	const std::vector<MeshData*>& meshes;
+	const std::vector<MaterialData*>& materials;
+	const MemoryPool<ShaderData, 32>& shaders;
+};
+
 class GraphicsAPI {
 protected:
 	GraphicsAPIType graphicsAPIType;
@@ -23,16 +36,7 @@ public:
 	virtual void initialize(GLFWwindow* window) = 0;
 	virtual void initializeImGui() = 0;
 	// Render a frame
-	virtual void drawFrame(
-		const glm::mat4 viewMatrix,
-		const glm::mat4 projectionMatrix,
-		const GlobalUBO* globalUniformObject,
-		const int entityCount, 
-		const std::vector<glm::mat4x4>& modelMatrices,
-		const std::vector<MeshData*>& meshes, 
-		const std::vector<MaterialData*>& materials, 
-		const std::vector<ShaderData>& shaders
-	) = 0;
+	virtual void drawFrame(FrameDrawData& frameDrawData) = 0;
 	virtual void beginDrawImGui() = 0;
 	virtual void endDrawImGui() = 0;
 	// Cleanup resources

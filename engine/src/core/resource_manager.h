@@ -6,24 +6,23 @@
 #include <unordered_map>
 #include <fstream>
 #include <string>
-
+#include "memory/memory_pool.hpp"
 class ResourceManager
 {
 public:
-	ResourceManager();
+	ResourceManager() = default;
 	~ResourceManager() = default;
-	std::vector<ShaderData> m_shaders;
-	std::vector<MaterialData> m_materials;
-	std::vector<MeshData> m_meshes;
+	std::unique_ptr<MemoryPool<ShaderData, 32>> m_shaders = nullptr;
+	std::unique_ptr<MemoryPool<MaterialData, 32>> m_materials = nullptr;
+	std::unique_ptr<MemoryPool<MeshData, 32>> m_meshes = nullptr;
 private:
-	bool initialized = false;
-
 	// TODO: add a map string -> ShaderID to avoid copies
 	std::unordered_map<ShaderID, std::unordered_map<std::string, int>> m_uniformLocationCache;
 	std::unordered_map<ShaderID, std::unordered_map<std::string, GLenum>> m_uniforms;
 	std::unordered_map<std::string, TextureData> m_textures;
 
 public: 
+	void CreateResourcePools();
 	Shader LoadShader(const std::string& vertexShaderPath, const std::string& fragmentShaderPath);
 	Material LoadMaterial(const ShaderID shaderID);
 	Texture LoadTexture(const std::string& path);

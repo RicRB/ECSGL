@@ -4,25 +4,21 @@
 #include "components/lights.h"
 #include "renderer/vertex_buffer_layout.h"
 #include "core/engine.h"
-ResourceManager::ResourceManager()
+
+void ResourceManager::CreateResourcePools()
 {
-	if (!initialized)
-	{
-		initialized = true;
-		// Initialize shaders
-		m_shaders.reserve(256); // reserve space for 256 shaders to avoid reallocations
-		m_textures.reserve(256); // reserve space for 256 textures to avoid reallocations
-		m_materials.reserve(256); // reserve space for 256 materials to avoid reallocations
-		m_meshes.reserve(256); // reserve space for 256 meshes to avoid reallocations
-	}
+	m_shaders = std::make_unique<MemoryPool<ShaderData, 32>>();
+	m_materials = std::make_unique<MemoryPool<MaterialData, 32>>();
+	m_meshes = std::make_unique<MemoryPool<MeshData, 32>>();
 }
 
 Shader ResourceManager::LoadShader(const std::string& vertexShaderPath, const std::string& fragmentShaderPath)
 {
     Shader returnShader;
-	std::cout << m_shaders.size() << " shaders loaded\n";
-    ShaderData& shader = m_shaders.emplace_back();
-	shader.id = static_cast<ShaderID>(m_shaders.size() - 1); // Assign a unique ID based on the index
+	std::cout << m_shaders->size() << " shaders loaded\n";
+    MemoryHandle<ShaderData> shaderHandle = m_shaders->allocate();
+	ShaderData& shader = (*m_shaders)[shaderHandle];
+	shader.id = static_cast<ShaderID>(m_shaders->size() - 1); // Assign a unique ID based on the index
     returnShader.id = shader.id;
 	returnShader.data = &shader;
     ParseShader(shader, vertexShaderPath, fragmentShaderPath);
@@ -40,9 +36,10 @@ Shader ResourceManager::LoadShader(const std::string& vertexShaderPath, const st
 Material ResourceManager::LoadMaterial(const ShaderID shaderID)
 {
 	Material returnMaterial;
-	MaterialData& material = m_materials.emplace_back();
+	MemoryHandle<MaterialData> materialHandle = m_materials->allocate();
+	MaterialData& material = (*m_materials)[materialHandle];
 	material.shaderID = shaderID;
-	material.id = static_cast<MaterialID>(m_materials.size() - 1); // Assign a unique ID based on the index
+	material.id = static_cast<MaterialID>(m_materials->size() - 1); // Assign a unique ID based on the index
 	material.ubo.ambientColor = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
 	material.ubo.diffuseColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 	material.ubo.specularColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
@@ -50,7 +47,7 @@ Material ResourceManager::LoadMaterial(const ShaderID shaderID)
 
 	engine::currentEngine->renderer.graphicsAPI->loadMaterial(
 		std::to_string(material.id).c_str(),
-		m_shaders[shaderID],
+		(*m_shaders)[shaderID],
 		&material
 	);
 
@@ -104,15 +101,15 @@ int ResourceManager::GetUniformLocation(const unsigned int rendererID, const std
 
 void ResourceManager::unloadAll()
 {
-	for (auto& shader : m_shaders)
+	for (auto& shader : *m_shaders)
 	{
 		engine::currentEngine->renderer.graphicsAPI->unloadShader(&shader);
 	}
-	for (auto& material : m_materials)
+	for (auto& material : *m_materials)
 	{
 		engine::currentEngine->renderer.graphicsAPI->unloadMaterial(&material);
 	}
-	for (auto& mesh : m_meshes)
+	for (auto& mesh : *m_meshes)
 	{
 		engine::currentEngine->renderer.graphicsAPI->unloadMesh(&mesh);
 	}
@@ -120,19 +117,18 @@ void ResourceManager::unloadAll()
 	{
 		engine::currentEngine->renderer.graphicsAPI->unloadTexture(&texture.second);
 	}
-    // TODO: TEXTURES
 
-    m_shaders.clear();
-	m_materials.clear();
-	m_meshes.clear();
+    m_shaders->clear();
+	m_materials->clear();
+	m_meshes->clear();
 	m_textures.clear();
 }
 
 void ResourceManager::bindTextureToMaterial(const Material& material, const Texture& texture, uint32_t binding)
 {
 	auto& texIt = m_textures[texture.id.data()];
-	engine::currentEngine->renderer.graphicsAPI->bindTextureToMaterial(&m_materials[material.id], &m_textures[texture.id.data()], binding);
-	MaterialData& matData = m_materials[material.id];
+	engine::currentEngine->renderer.graphicsAPI->bindTextureToMaterial(&(*m_materials)[material.id], &m_textures[texture.id.data()], binding);
+	MaterialData& matData = (*m_materials)[material.id];
     switch (binding)
     {
 	case(ALBEDO_MAP_BINDING):
@@ -320,11 +316,12 @@ Mesh ResourceManager::ProcessMesh(std::fstream& fstream)
             //indices.push_back(triangle[1]);
 		}
     }
-    MeshData& meshData = m_meshes.emplace_back();
+    MemoryHandle<MeshData> meshDataHandle = m_meshes->allocate();
+	MeshData& meshData = (*m_meshes)[meshDataHandle];
 	meshData.vertices = vertices;
 	meshData.indices = indices;
     meshData.vertexCount = static_cast<unsigned int>(vertices.size());
-	meshData.id = static_cast<MeshID>(m_meshes.size() - 1); // TODO : UUID????
+	meshData.id = static_cast<MeshID>(m_meshes->size() - 1); // TODO : UUID????
 	engine::currentEngine->renderer.graphicsAPI->loadMesh(&meshData);
 	Mesh meshComponent;
 	meshComponent.id = meshData.id;

@@ -52,15 +52,17 @@ void OpenGl::initializeImGui()
     isImGuiInitialized = true;
 }
 
-void OpenGl::drawFrame(const glm::mat4 viewMatrix, 
-    const glm::mat4 projectionMatrix, 
-    const GlobalUBO* globalUniformObject, 
-    const int entityCount, 
-    const std::vector<glm::mat4x4>& modelMatrices, 
-    const std::vector<MeshData*>& meshes,
-    const std::vector<MaterialData*>& materials, 
-    const std::vector<ShaderData>& shaders)
+void OpenGl::drawFrame(FrameDrawData& frameDrawData)
 {
+    auto& viewMatrix = frameDrawData.viewMatrix;
+    auto& projectionMatrix = frameDrawData.projectionMatrix;
+    auto& globalUniformObject = frameDrawData.globalUniformObject;
+    auto& entityCount = frameDrawData.entityCount;
+    auto& modelMatrices = frameDrawData.modelMatrices;
+    auto& meshes = frameDrawData.meshes;
+    auto& materials = frameDrawData.materials;
+    auto& shaders = frameDrawData.shaders;
+
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glm::mat4 projectView = projectionMatrix * viewMatrix;
     glm::vec3 cameraWorldPos = glm::inverse(viewMatrix)[3];

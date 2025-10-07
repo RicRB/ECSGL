@@ -8,7 +8,6 @@ public:
 	std::unique_ptr<GraphicsAPI> graphicsAPI;
 	GraphicsAPIType rendererType;
 private:
-	View<Transform, Mesh, Material> currentView;
 	float fps = 0.0f;
 	float times = 0.0f;
 	

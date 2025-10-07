@@ -18,13 +18,13 @@ void SceneGraph::ParentEntity(Entity child, Entity parent)
 Entity SceneGraph::GetParent(Registry& registry, Entity child)
 {
 	auto entities = registry.GetActiveEntities();
-	return sceneGraph[child.entityID].parent == ECS_INVALID_ID ? Entity() : entities[sceneGraph[child.entityID].parent];
+	return (*sceneGraph)[child.entityID].parent == ECS_INVALID_ID ? Entity() : entities[(*sceneGraph)[child.entityID].parent];
 }
 std::vector<Entity> SceneGraph::GetChildren(Registry& registry, Entity parent)
 {
 	auto entities = registry.GetActiveEntities();
 	std::vector<Entity> children;
-	for (auto entityID : sceneGraph[parent.entityID].children)
+	for (auto entityID : (*sceneGraph)[parent.entityID].children)
 	{
 		children.push_back(entities[entityID]);
 	}
@@ -43,23 +43,23 @@ void SceneGraph::_ParentEntity(Entity child, Entity parent)
 		return;
 	}
 
-	HierarchyData* childData = &sceneGraph[child.entityID];
+	HierarchyData* childData = &(*sceneGraph)[child.entityID];
 	// remove from previous parent child list
 	if (childData->parent != ECS_INVALID_ID)
 	{
-		sceneGraph[childData->parent].removeChild(child.entityID);
+		(*sceneGraph)[childData->parent].removeChild(child.entityID);
 	}
 	// add to parent's child list
 	if (parent.entityID != ECS_INVALID_ID)
 	{
-		HierarchyData* parentData = &sceneGraph[parent.entityID];
+		HierarchyData* parentData = &(*sceneGraph)[parent.entityID];
 		if (parentData->parent == child.entityID)
 		{
 			std::cout << "Parent cannot be child" << "\n";
 			return;
 		}
 
-		sceneGraph[parent.entityID].children.push_back(child.entityID);
+		(*sceneGraph)[parent.entityID].children.push_back(child.entityID);
 	}
 	// parent
 	childData->parent = parent.entityID;

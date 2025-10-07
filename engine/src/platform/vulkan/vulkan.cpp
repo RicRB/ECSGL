@@ -161,17 +161,17 @@ void Vulkan::initializeImGui()
 
 }
 // TODO : REALLY NEED TO MAKE THIS ONE STRUCT
-void Vulkan::drawFrame(
-	const glm::mat4 viewMatrix,
-	const glm::mat4 projectionMatrix,
-	const GlobalUBO* globalUniformObject,
-	const int entityCount,
-	const std::vector<glm::mat4x4>& modelMatrices,
-	const std::vector<MeshData*>& meshes,
-	const std::vector<MaterialData*>& materials,
-	const std::vector<ShaderData>& shaders
-)
+void Vulkan::drawFrame(FrameDrawData& frameDrawData)
 {
+	auto& viewMatrix = frameDrawData.viewMatrix;
+	auto& projectionMatrix = frameDrawData.projectionMatrix;
+	auto& globalUniformObject = frameDrawData.globalUniformObject;
+	auto& entityCount = frameDrawData.entityCount;
+	auto& modelMatrices = frameDrawData.modelMatrices;
+	auto& meshes = frameDrawData.meshes;
+	auto& materials = frameDrawData.materials;
+	auto& shaders = frameDrawData.shaders;
+
 	vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
 	uint32_t imageIndex;

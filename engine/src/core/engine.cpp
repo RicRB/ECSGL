@@ -7,6 +7,10 @@
 Engine::Engine(const GraphicsAPIType graphicsAPIType)
 {
 	renderer.rendererType = graphicsAPIType;
+	engine::SetCurrentEngine(*this);
+	engine::currentRendererType = &renderer.rendererType;
+
+	resourceManager.CreateResourcePools();
 	switch (graphicsAPIType)
 	{
 	case GRAPHICS_API_OPENGL:
@@ -19,8 +23,7 @@ Engine::Engine(const GraphicsAPIType graphicsAPIType)
 		std::cerr << "Unknown graphics API type!" << std::endl;
 		exit(EXIT_FAILURE);
 	}
-	engine::SetCurrentEngine(*this);
-	engine::currentRendererType = &renderer.rendererType;
+
 }
 void Engine::initialize(const std::shared_ptr<Window>& window)
 {

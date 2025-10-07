@@ -96,16 +96,7 @@ public:
 	}
 	void initialize(GLFWwindow* window) override;
 	void initializeImGui() override;
-	void drawFrame(
-		const glm::mat4 viewMatrix,
-		const glm::mat4 projectionMatrix,
-		const GlobalUBO* globalUniformObject,
-		const int entityCount,
-		const std::vector<glm::mat4x4>& modelMatrices,
-		const std::vector<MeshData*>& meshes,
-		const std::vector<MaterialData*>& materials,
-		const std::vector<ShaderData>& shaders
-	) override;
+	void drawFrame(FrameDrawData& frameDrawData) override;
 	void beginDrawImGui() override;
 	void endDrawImGui() override;
 	std::vector<const char*> getRequiredExtensions();
