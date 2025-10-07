@@ -5,7 +5,7 @@ A work in progress OpenGL/Vulkan game engine using a custom entity-component sys
 ## Features
 
 - EnTT inspired entity-component system (ECS)
-- Rendering pipeline abstraction to support both vulkan or OpenGL
+- common abstraction layer for both both vulkan and OpenGL
 - OBJ loading
 - basic shader that can use textures or vector as color
 - Dear ImGui UI integration
