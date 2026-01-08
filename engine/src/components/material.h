@@ -23,8 +23,8 @@ struct MaterialData {
 	std::shared_ptr<UniformBuffer> uniformBuffer;
 };
 struct Material {
-	MaterialDataHandle handle;
-	Material(const MaterialDataHandle h = MaterialDataHandle()) : handle(h) {};
+	MemoryHandle<MaterialData> handle;
+	Material(const MemoryHandle<MaterialData> h = MemoryHandle<MaterialData>()) : handle(h) {};
 	
 };
 

@@ -8,11 +8,7 @@ ShaderData::ShaderData()
 {
 	program = Program::Create();
 }
-
-int shader::GetShaderUniformLocation(const unsigned int shaderID, const std::string& name)
-{
-	return engine::currentEngine->resourceManager.GetUniformLocation(shaderID, name);
-}
+/*
 void shader::SetUniform1b(const unsigned int shaderID, const std::string& name, bool value)
 {
 	GLCall(glUniform1i(shader::GetShaderUniformLocation(shaderID, name), value));
@@ -45,3 +41,4 @@ void shader::SetUniformMat4f(const unsigned int shaderID, const std::string& nam
 {
 	GLCall(glUniformMatrix4fv(shader::GetShaderUniformLocation(shaderID, name), 1, GL_FALSE, &matrix[0][0]));
 }
+*/

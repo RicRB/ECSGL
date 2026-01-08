@@ -39,9 +39,8 @@ void Engine::initialize(const std::shared_ptr<Window>& window)
 	renderer.graphicsAPI->initializeImGui();
 
 	std::cout << "Working directory: " << std::filesystem::current_path() << std::endl;
-
 	defaultShader = resourceManager.LoadShader(RES_DIR"shaders/Basic.vert", RES_DIR"shaders/Basic.frag");
-	defaultMaterial = resourceManager.LoadMaterial(defaultShader.id);
+	defaultMaterial = resourceManager.LoadMaterial(defaultShader);
 	defaultMesh = resourceManager.LoadOBJ(RES_DIR"models/cube.obj");
 
 	Entity camera = engine::CreateEmptyEntity();

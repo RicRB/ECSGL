@@ -2,7 +2,8 @@
 #include "components/lights.h"
 #include "components/camera.h"
 #include "imgui/imgui.h"
-
+#include <set>
+#include <array>
 Renderer::Renderer()
 {
 }
@@ -25,18 +26,34 @@ void Renderer::DrawElements(Registry& registry, ResourceManager& resourceManager
 	cameraTransform.setCaching(false);
 	Camera& cameraComponent = registry.GetComponent<Camera>(camera);
 
+	const size_t entityCount = currentView.size();
 	std::vector<MeshData*> meshes;
+	meshes.reserve(entityCount);
 	std::vector<MaterialData*> materials;
+	materials.reserve(entityCount);
 
 	std::vector<Transform*>& transforms = currentView.GetComponents<Transform>();
-	std::vector<glm::mat4x4> modelMatrices;
-	modelMatrices.reserve(transforms.size());
 
+	std::vector<glm::mat4x4> modelMatrices;
+	modelMatrices.reserve(entityCount);
+	
+	std::set<ShaderDataHandle> usedShaders;
+	std::unordered_map<ShaderDataHandle, std::vector<size_t>> shaderEntities;
 	for (size_t i = 0; i < currentView.size(); i++)
 	{
-		meshes.emplace_back(&(*resourceManager.m_meshes)[std::get<2>(currentView[i])->id]);
-		materials.emplace_back(&resourceManager.m_materials->at(std::get<3>(currentView[i])->handle));
-		modelMatrices.emplace_back(registry.GetLocalToWorldMatrix(std::get<0>(currentView[i])) * transforms[i]->getMatrix());
+		auto material = currentView.GetComponent<Material>(i);
+		// view.GetComponent<Material>
+		// SORTING BY SHADER TO MINIMIZE STATE CHANGES
+		auto shaderHandle = (*resourceManager.m_materials)[material->handle].shaderHandle;
+		if (usedShaders.find(shaderHandle) == usedShaders.end())
+		{
+			usedShaders.insert(shaderHandle);
+			shaderEntities[shaderHandle] = std::vector<size_t>();
+		}
+		shaderEntities[shaderHandle].push_back(i);
+		meshes.emplace_back(&(*resourceManager.m_meshes)[currentView.GetComponent<Mesh>(i)->handle]);
+		materials.emplace_back(&resourceManager.m_materials->at(currentView.GetComponent<Material>(i)->handle));
+		modelMatrices.emplace_back(registry.GetLocalToWorldMatrix(currentView.GetEntity(i)) * transforms[i]->getMatrix());
 	}
 
 	// GLOBAL UNIFORM OBJECT

@@ -16,16 +16,18 @@ struct Vertex
 struct MeshData
 {
 	MeshData();
-	MeshDataHandle handle;
+	MemoryHandle<MeshData> handle;
 	std::shared_ptr<VertexBuffer> vertexBuffer;
 	std::shared_ptr<IndexBuffer> indexBuffer;
 	std::vector<Vertex> vertices;
 	std::vector<unsigned int> indices;
 	unsigned int vertexCount;
 };
+
 using MeshDataHandle = MemoryHandle<MeshData>;
+
 struct Mesh
 {
-	MeshDataHandle handle;
-	Mesh(const MeshDataHandle h = MeshDataHandle()) : handle(h) {};
+	MemoryHandle<MeshData> handle;
+	Mesh(const MemoryHandle<MeshData> h = MemoryHandle<MeshData>()) : handle(h) {};
 };

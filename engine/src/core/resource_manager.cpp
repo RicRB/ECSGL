@@ -268,10 +268,10 @@ Mesh ResourceManager::ProcessMesh(std::fstream& fstream)
 	meshData.vertices = vertices;
 	meshData.indices = indices;
     meshData.vertexCount = static_cast<unsigned int>(vertices.size());
-	meshData.id = static_cast<MeshID>(m_meshes->size() - 1); // TODO : UUID????
+	meshData.handle = meshDataHandle;
 	engine::currentEngine->renderer.graphicsAPI->loadMesh(&meshData);
 	Mesh meshComponent;
-	meshComponent.id = meshData.id;
+	meshComponent.handle = meshDataHandle;
     return meshComponent;
 }
 

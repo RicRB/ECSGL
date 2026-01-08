@@ -2,18 +2,18 @@
 #include <array>
 #include <stack>
 #include <stdint.h>
-
+#include <limits>
 template <typename T>
 class MemoryHandle {
 public:
-	static constexpr uint32_t INVALID_INDEX = UINT32_MAX;
+	static constexpr uint32_t HANDLE_INVALID_INDEX = std::numeric_limits<uint32_t>::max();
 
 	uint32_t m_index;
 public:
-	MemoryHandle(const uint32_t idx = INVALID_INDEX) : m_index(idx) {};
+	MemoryHandle(const uint32_t idx = HANDLE_INVALID_INDEX) : m_index(idx) {};
 
 	const bool isValid() const {
-		return m_index == INVALID_INDEX;
+		return m_index != HANDLE_INVALID_INDEX;
 	}
 	bool operator==(const MemoryHandle& other) const {
 		return m_index == other.m_index;
@@ -21,8 +21,18 @@ public:
 	operator uint32_t() const {
 		return m_index;
 	}
+
 };
 
+namespace std
+{
+	template<typename T>
+	struct hash<MemoryHandle<T>> {
+		size_t operator()(const MemoryHandle<T>& h) const noexcept {
+			return std::hash<uint32_t>{}(h.m_index);
+		}
+	};
+}
 template <typename T, size_t n>
 struct MemoryPool {
 	MemoryPool() = default;

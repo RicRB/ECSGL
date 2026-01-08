@@ -161,7 +161,7 @@ void Vulkan::initializeImGui()
 
 }
 // TODO : REALLY NEED TO MAKE THIS ONE STRUCT
-void Vulkan::drawFrame(const FrameDrawData& frameDrawData)
+void Vulkan::drawFrame(FrameDrawData& frameDrawData)
 {
 	auto& viewMatrix = frameDrawData.viewMatrix;
 	auto& projectionMatrix = frameDrawData.projectionMatrix;
@@ -203,20 +203,17 @@ void Vulkan::drawFrame(const FrameDrawData& frameDrawData)
 	}
 
 	// SORTING TIME
-	std::vector<DrawObject> drawObjects(entityCount);
+	//std::vector<DrawObject> drawObjects;
+	//drawObjects.resize(entityCount);
+	/*
 	for (size_t i = 0; i < entityCount; i++)
 	{
-		drawObjects[i].index = i;
-		drawObjects[i].mesh = *(meshes[i]);
-		drawObjects[i].material = *materials[i];
-		drawObjects[i].shader = shaders[materials[i]->shaderHandle];
+		auto& shader = shaders[materials[i]->shaderHandle.m_index];
+		drawObjects.emplace_back(i, shader, *materials[i], *(meshes[i]));
 	}
-	// sort draw objects by shaderID, then by materialID, then by meshID
-	std::sort(drawObjects.begin(), drawObjects.end(), [](const DrawObject& a, const DrawObject& b) {
-		if (a.shader != b.shader) return a.shader < b.shader;
-		if (a.material != b.material) return a.material < b.material;
-		return a.mesh < b.mesh;
-		});
+	*/
+	// TODO : sort draw objects by shaderID, then by materialID, then by meshID
+
 	// recording command buffer
 	vkResetCommandBuffer(commandBuffers[currentFrame], 0);
 
@@ -278,10 +275,10 @@ void Vulkan::drawFrame(const FrameDrawData& frameDrawData)
 
 	for (size_t orderedIndex = 0; orderedIndex < entityCount; orderedIndex++)
 	{
-		const size_t i = drawObjects[orderedIndex].index;
+		const size_t i = orderedIndex;
 		// get the draw object
 
-		const ShaderData& shader = shaders[materials[i]->shaderID];
+		const ShaderData& shader = shaders[materials[i]->shaderHandle.m_index];
 		auto program = std::static_pointer_cast<VkProgram>(shader.program).get();
 		if (program->pipeline != lastPipeline) {
 			// bind pipeline if it has changed
@@ -406,7 +403,6 @@ void Vulkan::compileShader(const char* name, const std::string& vertexSource, co
 }
 
 void Vulkan::loadMaterial(const char* name, const ShaderData& shaderData, MaterialData* materialData) {
-	materialData->shaderID = shaderData.id;
 	createUniformBuffer(std::static_pointer_cast<VkUniformBuffer>(materialData->uniformBuffer).get(), sizeof(MaterialUBO));
 	createDescriptorSet(std::static_pointer_cast<VkUniformBuffer>(materialData->uniformBuffer).get(), &materialDescriptorSetLayout, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, &std::static_pointer_cast<VkDescriptorSetWrapper>(materialData->descriptorSet)->set);
 }

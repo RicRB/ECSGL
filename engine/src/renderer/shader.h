@@ -39,7 +39,7 @@ struct Shader
 
 namespace shader
 {
-	int GetShaderUniformLocation(const unsigned int shaderID, const std::string& name);
+	/*
 	void SetUniform1b(const unsigned int shaderID, const std::string& name, bool value);
 	void SetUniform1i(const unsigned int shaderID, const std::string& name, int value);
 	void SetUniform1f(const unsigned int shaderID, const std::string& name, float value);
@@ -48,5 +48,5 @@ namespace shader
 	void SetUniform4f(const unsigned int shaderID, const std::string& name, glm::vec4 vec);
 	void SetUniformMat3f(const unsigned int shaderID, const std::string& name, glm::mat3& matrix);
 	void SetUniformMat4f(const unsigned int shaderID, const std::string& name, const glm::mat4& matrix);
-
+	*/
 }

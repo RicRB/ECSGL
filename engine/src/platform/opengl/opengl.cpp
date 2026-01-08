@@ -70,10 +70,11 @@ void OpenGl::drawFrame(FrameDrawData& frameDrawData)
 	updateUniformBuffer(globalUniformBuffer, globalUniformObject, sizeof(GlobalUBO));
 
     // get new uniforms
-    std::unordered_set<MaterialID> updatedMaterials;
+    std::unordered_set<MaterialData*> updatedMaterials;
     for (auto material : materials) {
-        if (updatedMaterials.contains(material->id)) continue;
-        updatedMaterials.insert(material->id);
+        // TODO: COMPARE MATERIALS insTEAD OF CONTAINS...  also never insert them all the way
+        if (updatedMaterials.contains(material)) continue;
+        updatedMaterials.insert(material);
         updateUniformBuffer(std::static_pointer_cast<GlUniformBuffer>(material->uniformBuffer)->uniformID, &material->ubo, sizeof(MaterialUBO));
     }
 
@@ -81,7 +82,7 @@ void OpenGl::drawFrame(FrameDrawData& frameDrawData)
 	{
 		const MeshData* mesh = meshes[i];
 		const MaterialData* material = materials[i];
-		const ShaderData* shader = &(shaders)[material->shaderID];
+		const ShaderData* shader = &(shaders)[material->shaderHandle.m_index];
         int textureIndex = 0;
 		// Bind vertex array
 		GLCall(glBindVertexArray(std::static_pointer_cast<GlVertexBuffer>(mesh->vertexBuffer)->vertexID));
@@ -234,13 +235,12 @@ void OpenGl::compileShader(const char* name, const std::string& vertexSource, co
 	glDeleteShader(vertexID);
 	glDeleteShader(fragmentID);
 	std::static_pointer_cast<GlProgram>(shaderData->program)->programID = programID;
-	shaderData->VertexSource = vertexSource;
-	shaderData->FragmentSource = fragmentSource;
+	shaderData->vertexSource = vertexSource;
+	shaderData->fragmentSource = fragmentSource;
 }
 
 void OpenGl::loadMaterial(const char* name, const ShaderData& shaderData, MaterialData* materialData)
 {
-	materialData->shaderID = shaderData.id;
     std::static_pointer_cast<GlUniformBuffer>(materialData->uniformBuffer)->uniformID = createUniformBuffer(sizeof(MaterialUBO));
 }
 

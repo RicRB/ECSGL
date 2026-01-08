@@ -47,6 +47,19 @@ public:
 		return nullptr;
 	}
 	template <typename RequestedType>
+	RequestedType* GetComponent(const size_t index)
+	{
+		std::vector<Entity>& entities = std::get<0>(components);
+		std::vector<RequestedType*>& componentVector = std::get<std::vector<RequestedType*>>(components);
+
+		return componentVector[index];
+	}
+	Entity GetEntity(const size_t index)
+	{
+		std::vector<Entity>& entities = std::get<0>(components);
+		return entities[index];
+	}
+	template <typename RequestedType>
 	std::pair<Entity, RequestedType*> operator[](unsigned int index)
 	{
 		std::pair<Entity, RequestedType*> pair;
@@ -55,7 +68,7 @@ public:
 		return pair;
 	}
 	template <typename... RequestedTypes>
-	std::tuple<Entity, RequestedTypes*...> get(unsigned int index) {
+	std::tuple<Entity, RequestedTypes*...> Get(unsigned int index) {
 		std::tuple<Entity, RequestedTypes*...> result;
 
 		// Assuming components is a tuple containing data of various types
@@ -74,7 +87,7 @@ public:
 		int _[] = { 0, ((std::get<ComponentTypes*>(result) = std::get<std::vector<ComponentTypes*>>(components)[index]), 0)... };
 		return result;
 	}
-	size_t size() const
+	const size_t size() const
 	{
 		return std::get<0>(components).size();
 	}

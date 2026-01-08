@@ -21,6 +21,16 @@ struct FrameDrawData {
 	const std::vector<MaterialData*>& materials;
 	const MemoryPool<ShaderData, 32>& shaders;
 };
+struct DrawObject {
+	size_t index;
+	ShaderData& shader;
+	MaterialData& material;
+	MeshData& mesh;
+
+	DrawObject(size_t i, ShaderData& s, MaterialData& m, MeshData& md)
+		: index(i), shader(s), material(m), mesh(md) {
+	}
+};
 
 class GraphicsAPI {
 protected:
