@@ -33,3 +33,8 @@ A work in progress OpenGL/Vulkan game engine using a custom entity-component sys
 ```bash
 cmake ..
 ```
+
+or with VS2026 on cmake version 4.2+
+```bash
+cmake .. -G "Visual Studio 18 2026"
+```
