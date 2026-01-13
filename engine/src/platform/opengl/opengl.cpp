@@ -239,6 +239,50 @@ void OpenGl::compileShader(const char* name, const std::string& vertexSource, co
 	shaderData->fragmentSource = fragmentSource;
 }
 
+void OpenGl::compileComputeShader(const char* name, ComputeShaderData* computeShaderData)
+{
+    /*
+    unsigned int computeID = glCreateShader(GL_COMPUTE_SHADER);
+    {
+        // compute
+        const char* computeSrc = computeShaderData->source.c_str();
+        glShaderSource(computeID, 1, &computeSrc, nullptr);
+        glCompileShader(computeID);
+        int result;
+        glGetShaderiv(computeID, GL_COMPILE_STATUS, &result);
+        if (result == GL_FALSE)
+        {
+            int length;
+            glGetShaderiv(computeID, GL_INFO_LOG_LENGTH, &length);
+            char* message = (char*)_malloca(length * sizeof(char));
+            glGetShaderInfoLog(computeID, length, &length, message);
+            std::cout << "Failed to compile compute shader!" << std::endl;
+            std::cout << message << std::endl;
+            glDeleteShader(computeID);
+            return;
+        }
+    }
+    unsigned int programID = glCreateProgram();
+    glAttachShader(programID, computeID);
+    glLinkProgram(programID);
+    int success;
+    glGetProgramiv(programID, GL_LINK_STATUS, &success);
+    if (!success) {
+        int length;
+        glGetProgramiv(programID, GL_INFO_LOG_LENGTH, &length);
+        char* message = (char*)_malloca(length);
+        glGetProgramInfoLog(programID, length, &length, message);
+        std::cout << "Failed to link compute shader program!" << std::endl;
+        std::cout << message << std::endl;
+        glDeleteProgram(programID);
+        return;
+    }
+    glValidateProgram(programID);
+    // Clean up shaders
+    glDeleteShader(computeID);
+    std::static_pointer_cast<GlProgram>(computeShaderData->program)->programID = programID;
+    */
+}
 void OpenGl::loadMaterial(const char* name, const ShaderData& shaderData, MaterialData* materialData)
 {
     std::static_pointer_cast<GlUniformBuffer>(materialData->uniformBuffer)->uniformID = createUniformBuffer(sizeof(MaterialUBO));

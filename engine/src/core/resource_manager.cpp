@@ -8,6 +8,7 @@
 void ResourceManager::CreateResourcePools()
 {
 	m_shaders = std::make_unique<MemoryPool<ShaderData, MAX_RESOURCE_POOL_SIZE>>();
+	m_computeShaders = std::make_unique<MemoryPool<ComputeShaderData, MAX_RESOURCE_POOL_SIZE>>();
 	m_materials = std::make_unique<MemoryPool<MaterialData, MAX_RESOURCE_POOL_SIZE>>();
 	m_meshes = std::make_unique<MemoryPool<MeshData, MAX_RESOURCE_POOL_SIZE>>();
 	m_textures = std::make_unique<MemoryPool<TextureData, MAX_RESOURCE_POOL_SIZE>>();
@@ -18,7 +19,14 @@ Shader ResourceManager::LoadShader(const std::string& vertexShaderPath, const st
 	std::cout << m_shaders->size() << " shaders loaded\n";
     MemoryHandle<ShaderData> shaderHandle = m_shaders->allocate();
 	ShaderData& shader = m_shaders->at(shaderHandle);
-    ParseShader(shader, vertexShaderPath, fragmentShaderPath);
+	int vertexHash, fragmentHash;
+    ParseShader(shader.vertexSource, vertexShaderPath);
+	ParseShader(shader.fragmentSource, fragmentShaderPath);
+
+	// combine hashes
+	std::hash<std::string> hasher;
+	shader.sourceHash = hasher(shader.vertexSource + shader.fragmentSource);
+
 
 	engine::currentEngine->renderer.graphicsAPI->compileShader(
 		std::to_string(static_cast<uint32_t>(shaderHandle)).c_str(),
@@ -28,6 +36,30 @@ Shader ResourceManager::LoadShader(const std::string& vertexShaderPath, const st
 	);
 
 	return Shader(shaderHandle);
+}
+
+ComputeShader ResourceManager::LoadComputeShader(const std::string& computeShaderPath)
+{
+    MemoryHandle<ComputeShaderData> computeShaderHandle = m_computeShaders->allocate();
+    ComputeShaderData& computeShader = m_computeShaders->at(computeShaderHandle);
+    std::string line;
+    std::stringstream ss;
+    // Compute
+    std::ifstream computeStream(computeShaderPath);
+    while (std::getline(computeStream, line))
+    {
+        ss << line << '\n';
+    }
+    computeStream.close();
+    computeShader.source = ss.str();
+    std::hash<std::string> hasher;
+    computeShader.sourceHash = hasher(computeShader.source);
+
+    engine::currentEngine->renderer.graphicsAPI->compileComputeShader(
+        std::to_string(static_cast<uint32_t>(computeShaderHandle)).c_str(),
+        &computeShader
+	);
+	return ComputeShader(computeShaderHandle);
 }
 
 Material ResourceManager::LoadMaterial(const Shader shader)
@@ -135,29 +167,19 @@ void ResourceManager::bindTextureToMaterial(const Material& material, const Text
 /////////////////////////////////////////
 // SHADER STUFF /////////////////////////
 /////////////////////////////////////////
-
-void ResourceManager::ParseShader(ShaderData& shader, const std::string& vertex, const std::string& fragment)
+void ResourceManager::ParseShader(std::string& parseDestination, const std::string& shaderPath)
 {
     std::string line;
     std::stringstream ss[2];
     // Vertex
-    std::ifstream vertexStream(vertex);
+    std::ifstream vertexStream(shaderPath);
     while (std::getline(vertexStream, line))
     {
         ss[0] << line << '\n';
     }
     vertexStream.close();
-    // Fragment
-    std::ifstream fragmentStream(fragment);
-    while (getline(fragmentStream, line))
-    {
-        ss[1] << line << '\n';
-    }
-    fragmentStream.close();
-    shader.vertexSource = ss[0].str();
-    shader.fragmentSource = ss[1].str();
-	std::hash<std::string> hasher;
-	shader.sourceHash = hasher(shader.vertexSource + shader.fragmentSource);
+    
+    parseDestination = ss[0].str();
 }
 
 unsigned int ResourceManager::CompileShader(unsigned int type, const std::string& source)

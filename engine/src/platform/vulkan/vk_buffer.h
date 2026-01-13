@@ -16,3 +16,10 @@ struct VkUniformBuffer : public UniformBuffer {
 	void* mapped = nullptr;
 	VkDeviceSize bufferSize;
 };
+
+struct VkComputeBuffer : public ComputeBuffer {
+	VkBuffer buffer = nullptr;
+	VkDeviceMemory memory = nullptr;
+	int count;
+	int stride;
+};

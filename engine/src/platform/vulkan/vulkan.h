@@ -95,6 +95,7 @@ public:
 	void endDrawImGui() override;
 	std::vector<const char*> getRequiredExtensions();
 	void compileShader(const char* name, const std::string& vertexSource, const std::string& fragmentSource, ShaderData* shaderData) override;
+	void compileComputeShader(const char* name, ComputeShaderData* computeShaderData);
 	void loadMaterial(const char* name, const ShaderData& shaderData, MaterialData* materialData) override;
 	void loadMesh(MeshData* mesh) override;
 	void loadTexture(TextureData* textureData) override;

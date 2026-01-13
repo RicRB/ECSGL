@@ -402,6 +402,13 @@ void Vulkan::compileShader(const char* name, const std::string& vertexSource, co
 	createGraphicsPipeline(name, vertexSource, fragmentSource, &program->pipeline, &program->pipelineLayout);
 }
 
+void Vulkan::compileComputeShader(const char* name, ComputeShaderData* computeShaderData) {
+	/*
+	auto program = std::static_pointer_cast<VkProgram>(computeShaderData->program).get();
+	createComputePipeline(name, &program->pipeline, &program->pipelineLayout);
+	*/
+}
+
 void Vulkan::loadMaterial(const char* name, const ShaderData& shaderData, MaterialData* materialData) {
 	createUniformBuffer(std::static_pointer_cast<VkUniformBuffer>(materialData->uniformBuffer).get(), sizeof(MaterialUBO));
 	createDescriptorSet(std::static_pointer_cast<VkUniformBuffer>(materialData->uniformBuffer).get(), &materialDescriptorSetLayout, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, &std::static_pointer_cast<VkDescriptorSetWrapper>(materialData->descriptorSet)->set);
@@ -1384,7 +1391,6 @@ void Vulkan::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryP
 void Vulkan::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
 {
 	VkCommandBuffer commandBuffer = beginSingleTimeCommands();
-
 	VkBufferCopy copyRegion{};
 	copyRegion.srcOffset = 0; // Optional
 	copyRegion.dstOffset = 0; // Optional

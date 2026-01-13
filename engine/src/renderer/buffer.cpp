@@ -29,3 +29,12 @@ std::shared_ptr<UniformBuffer> UniformBuffer::Create()
 	}
 	return nullptr;
 }
+
+std::shared_ptr<ComputeBuffer> ComputeBuffer::Create()
+{
+	switch (engine::currentEngine->renderer.rendererType) {
+	case GRAPHICS_API_VULKAN: return std::make_shared<VkComputeBuffer>();
+	case GRAPHICS_API_OPENGL: return std::make_shared<GlComputeBuffer>();
+	}
+	return nullptr;
+}

@@ -11,3 +11,7 @@ struct IndexBuffer {
 struct UniformBuffer {
 	static std::shared_ptr<UniformBuffer> Create();
 };
+
+struct ComputeBuffer {
+	static std::shared_ptr<ComputeBuffer> Create();
+};
