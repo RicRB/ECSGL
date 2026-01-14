@@ -72,6 +72,7 @@ private:
 	const int MAX_FRAMES_IN_FLIGHT = 2;
 	const int MAX_OBJECTS = 1024;
 	const unsigned int MAX_MATERIALS = 1024;
+	const unsigned int MAX_COMPUTE = 1024;
 	uint32_t currentFrame = 0;
 
 	GlobalUBO globalUBO;
@@ -83,6 +84,10 @@ private:
 	VkImage depthImage;
 	VkDeviceMemory depthImageMemory;
 	VkImageView depthImageView;
+
+	// compute
+	VkDescriptorSetLayout computeDescriptorSetLayout;
+	
 
 public:
 	Vulkan() {
@@ -128,9 +133,9 @@ private:
 	void createImageViews();
 	VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT);
 	void createGraphicsPipeline(const char* name, const std::string& vertexSource, const std::string& fragmentSource, VkPipeline* pipeline, VkPipelineLayout* pipelineLayout);
+	void createComputePipeline(const char* name, const std::string& computeSource, VkPipeline* pipeline, VkPipelineLayout* pipelineLayout);
 	VkShaderModule createShaderModule(const std::vector<uint32_t>& code);
 	void createRenderPass();
-	std::vector<uint32_t> compileShaderGLSLToSPIRV(const std::string& source, shaderc_shader_kind kind, bool optimize);
 	void createFramebuffers();
 	void createCommandPool();
 	void createCommandBuffers();

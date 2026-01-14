@@ -16,7 +16,6 @@ void ResourceManager::CreateResourcePools()
 
 Shader ResourceManager::LoadShader(const std::string& vertexShaderPath, const std::string& fragmentShaderPath)
 {
-	std::cout << m_shaders->size() << " shaders loaded\n";
     MemoryHandle<ShaderData> shaderHandle = m_shaders->allocate();
 	ShaderData& shader = m_shaders->at(shaderHandle);
 	int vertexHash, fragmentHash;

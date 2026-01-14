@@ -17,6 +17,8 @@
 #include "vk_program.h"
 #include "vk_image.h"
 #include "vk_descriptors.h"
+#include "platform/common/shaders/ShaderCompiler.h"
+
 void Vulkan::initialize(GLFWwindow* window)
 {
 	glfwSwapInterval(0);
@@ -403,10 +405,8 @@ void Vulkan::compileShader(const char* name, const std::string& vertexSource, co
 }
 
 void Vulkan::compileComputeShader(const char* name, ComputeShaderData* computeShaderData) {
-	/*
-	auto program = std::static_pointer_cast<VkProgram>(computeShaderData->program).get();
-	createComputePipeline(name, &program->pipeline, &program->pipelineLayout);
-	*/
+	//auto program = std::static_pointer_cast<VkProgram>(computeShaderData->program).get();
+	//createComputePipeline(name, &program->pipeline, &program->pipelineLayout);
 }
 
 void Vulkan::loadMaterial(const char* name, const ShaderData& shaderData, MaterialData* materialData) {
@@ -921,8 +921,8 @@ VkImageView Vulkan::createImageView(VkImage image, VkFormat format, VkImageAspec
 
 
 void Vulkan::createGraphicsPipeline(const char* name, const std::string& vertexSource, const std::string& fragmentSource, VkPipeline* pipeline, VkPipelineLayout* pipelineLayout) {
-	auto vertShaderCode = compileShaderGLSLToSPIRV(vertexSource, shaderc_shader_kind::shaderc_glsl_vertex_shader, false);
-	auto fragShaderCode = compileShaderGLSLToSPIRV(fragmentSource, shaderc_shader_kind::shaderc_glsl_fragment_shader, false);
+	auto vertShaderCode = ShaderCompiler::compileShaderGLSLToSPIRV(vertexSource, ShaderType::Vertex, false);
+	auto fragShaderCode = ShaderCompiler::compileShaderGLSLToSPIRV(fragmentSource, ShaderType::Fragment, false);
 	VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
 	VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
 
@@ -1091,6 +1091,37 @@ void Vulkan::createGraphicsPipeline(const char* name, const std::string& vertexS
 	vkDestroyShaderModule(device, vertShaderModule, nullptr);
 }
 
+void Vulkan::createComputePipeline(const char* name, const std::string& computeSource, VkPipeline* computePipeline, VkPipelineLayout* pipelineLayout)
+{
+	VkShaderModule computeShaderModule = createShaderModule(ShaderCompiler::compileShaderGLSLToSPIRV(computeSource, ShaderType::Compute, false));
+
+	VkPipelineShaderStageCreateInfo computeShaderStageInfo{};
+	computeShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+	computeShaderStageInfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+	computeShaderStageInfo.module = computeShaderModule;
+	computeShaderStageInfo.pName = name;
+	
+	// pipeline layout
+	VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+	pipelineLayoutInfo.setLayoutCount = 1; // Optional
+	VkDescriptorSetLayout descriptorSetLayouts[] = { globalDescriptorSetLayout, materialDescriptorSetLayout };
+	pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts; // Optional
+
+	if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, pipelineLayout) != VK_SUCCESS) {
+		throw std::runtime_error("failed to create pipeline layout!");
+	}
+
+	VkComputePipelineCreateInfo pipelineInfo{};
+	pipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+	pipelineInfo.layout = *pipelineLayout;
+	pipelineInfo.stage = computeShaderStageInfo;
+
+	if (vkCreateComputePipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, computePipeline) != VK_SUCCESS) {
+		throw std::runtime_error("failed to create compute pipeline!");
+	}
+}
+
 VkShaderModule Vulkan::createShaderModule(const std::vector<uint32_t>& code)
 {
 	VkShaderModuleCreateInfo createInfo{};
@@ -1167,25 +1198,6 @@ void Vulkan::createRenderPass() {
 		throw std::runtime_error("failed to create render pass!");
 	}
 }
-
-std::vector<uint32_t> Vulkan::compileShaderGLSLToSPIRV(const std::string& source, shaderc_shader_kind kind, bool optimize)
-{
-	shaderc::Compiler compiler;
-	shaderc::CompileOptions options;
-	if (optimize) {
-		options.SetOptimizationLevel(shaderc_optimization_level_performance);
-	}
-	options.SetTargetEnvironment(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_2);
-	options.SetTargetSpirv(shaderc_spirv_version_1_0); // Or 1_5 for newer Vulkan
-	shaderc::SpvCompilationResult result = compiler.CompileGlslToSpv(source, kind, "Shader", options);
-	std::cerr << result.GetErrorMessage();
-	if (result.GetCompilationStatus() != shaderc_compilation_status_success) {
-		std::cerr << result.GetErrorMessage();
-		return std::vector<uint32_t>();
-	}
-	return { result.cbegin(), result.cend() };
-}
-
 
 
 void Vulkan::createFramebuffers()
@@ -1444,6 +1456,25 @@ void Vulkan::createDescriptorSetLayouts()
 	if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &materialDescriptorSetLayout) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create descriptor set layout!");
 	}
+
+	/*
+	// COMPUTE
+	VkDescriptorSetLayoutBinding computeSsboLayoutBinding{};
+	computeSsboLayoutBinding.binding = 0;
+	computeSsboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+	computeSsboLayoutBinding.descriptorCount = 1;
+	computeSsboLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+
+	VkDescriptorSetLayoutCreateInfo computeLayoutInfo{};
+	computeLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	computeLayoutInfo.bindingCount = 1;
+	computeLayoutInfo.pBindings = &computeSsboLayoutBinding;
+
+	if (vkCreateDescriptorSetLayout(device, &computeLayoutInfo, nullptr, &computeDescriptorSetLayout) != VK_SUCCESS) {
+		throw std::runtime_error("failed to create compute descriptor set layout!");
+	}
+	*/
+
 }
 
 void Vulkan::createGlobalUniformBuffer()
@@ -1455,19 +1486,20 @@ void Vulkan::createGlobalUniformBuffer()
 
 void Vulkan::createDescriptorPool()
 {
-	VkDescriptorPoolSize poolSizes[3];
+	VkDescriptorPoolSize poolSizes[4];
 	poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
 	poolSizes[0].descriptorCount = MAX_MATERIALS;
 	poolSizes[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	poolSizes[1].descriptorCount = MAX_FRAMES_IN_FLIGHT;
 	poolSizes[2].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 	poolSizes[2].descriptorCount = MAX_MATERIALS;
-
+	poolSizes[3].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+	poolSizes[3].descriptorCount = MAX_COMPUTE;
 	VkDescriptorPoolCreateInfo poolInfo{};
 	poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-	poolInfo.poolSizeCount = 3;
+	poolInfo.poolSizeCount = 4;
 	poolInfo.pPoolSizes = poolSizes;
-	poolInfo.maxSets = MAX_MATERIALS * MAX_FRAMES_IN_FLIGHT;
+	poolInfo.maxSets = MAX_MATERIALS * MAX_FRAMES_IN_FLIGHT * 2;
 
 	if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create descriptor pool!");
