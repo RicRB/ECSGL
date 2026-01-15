@@ -59,6 +59,7 @@ public:
 	virtual void loadMesh(MeshData* mesh) = 0;
 	virtual void loadTexture(TextureData* textureData) = 0;
 	virtual void unloadShader(ShaderData* shaderData) = 0;
+	virtual void unloadComputeShader(ComputeShaderData* computeShaderData) = 0;
 	virtual void unloadMaterial(MaterialData* materialData) = 0;
 	virtual void unloadMesh(MeshData* mesh) = 0;
 	virtual void unloadTexture(TextureData* textureData) = 0;

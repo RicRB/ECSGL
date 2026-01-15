@@ -405,8 +405,8 @@ void Vulkan::compileShader(const char* name, const std::string& vertexSource, co
 }
 
 void Vulkan::compileComputeShader(const char* name, ComputeShaderData* computeShaderData) {
-	//auto program = std::static_pointer_cast<VkProgram>(computeShaderData->program).get();
-	//createComputePipeline(name, &program->pipeline, &program->pipelineLayout);
+	auto program = std::static_pointer_cast<VkProgram>(computeShaderData->program).get();
+	createComputePipeline(name, computeShaderData->source, &program->pipeline, &program->pipelineLayout, computeShaderData->descriptorReflection);
 }
 
 void Vulkan::loadMaterial(const char* name, const ShaderData& shaderData, MaterialData* materialData) {
@@ -500,6 +500,20 @@ void Vulkan::unloadShader(ShaderData* shaderData)
 	}
 	if (program->pipelineLayout != VK_NULL_HANDLE) {
 
+		vkDestroyPipelineLayout(device, program->pipelineLayout, nullptr);
+		program->pipelineLayout = VK_NULL_HANDLE;
+	}
+}
+
+void Vulkan::unloadComputeShader(ComputeShaderData* computeShaderData)
+{
+	auto program = std::static_pointer_cast<VkProgram>(computeShaderData->program).get();
+	vkDeviceWaitIdle(device);
+	if (program->pipeline != VK_NULL_HANDLE) {
+		vkDestroyPipeline(device, program->pipeline, nullptr);
+		program->pipeline = VK_NULL_HANDLE;
+	}
+	if (program->pipelineLayout != VK_NULL_HANDLE) {
 		vkDestroyPipelineLayout(device, program->pipelineLayout, nullptr);
 		program->pipelineLayout = VK_NULL_HANDLE;
 	}
@@ -1091,10 +1105,18 @@ void Vulkan::createGraphicsPipeline(const char* name, const std::string& vertexS
 	vkDestroyShaderModule(device, vertShaderModule, nullptr);
 }
 
-void Vulkan::createComputePipeline(const char* name, const std::string& computeSource, VkPipeline* computePipeline, VkPipelineLayout* pipelineLayout)
+void Vulkan::createComputePipeline(const char* name, const std::string& computeSource, VkPipeline* computePipeline, VkPipelineLayout* computePipelineLayout, DescriptorSetReflection& descriptorSetReflection)
 {
-	VkShaderModule computeShaderModule = createShaderModule(ShaderCompiler::compileShaderGLSLToSPIRV(computeSource, ShaderType::Compute, false));
+	// shader module
+	std::vector<uint32_t> computeShaderCode = ShaderCompiler::compileShaderGLSLToSPIRV(computeSource, ShaderType::Compute, false);
+	VkShaderModule computeShaderModule = createShaderModule(computeShaderCode);
 
+	// set layout
+	descriptorSetReflection = ShaderReflection::reflectSPIRV(computeShaderCode);
+	VkDescriptorSetLayout layout;
+	createDescriptorSetLayoutFromReflection(descriptorSetReflection, VK_SHADER_STAGE_COMPUTE_BIT, &layout);
+
+	// shader stage
 	VkPipelineShaderStageCreateInfo computeShaderStageInfo{};
 	computeShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 	computeShaderStageInfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
@@ -1105,16 +1127,16 @@ void Vulkan::createComputePipeline(const char* name, const std::string& computeS
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
 	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 	pipelineLayoutInfo.setLayoutCount = 1; // Optional
-	VkDescriptorSetLayout descriptorSetLayouts[] = { globalDescriptorSetLayout, materialDescriptorSetLayout };
+	VkDescriptorSetLayout descriptorSetLayouts[] = { layout };
 	pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts; // Optional
 
-	if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, pipelineLayout) != VK_SUCCESS) {
+	if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, computePipelineLayout) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create pipeline layout!");
 	}
 
 	VkComputePipelineCreateInfo pipelineInfo{};
 	pipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-	pipelineInfo.layout = *pipelineLayout;
+	pipelineInfo.layout = *computePipelineLayout;
 	pipelineInfo.stage = computeShaderStageInfo;
 
 	if (vkCreateComputePipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, computePipeline) != VK_SUCCESS) {
@@ -1833,3 +1855,45 @@ constexpr VkVertexInputBindingDescription Vulkan::getVertexBindingDescription() 
 	return bindingDescription;
 }
 
+void Vulkan::createDescriptorSetLayoutFromReflection(const DescriptorSetReflection& reflectionData, const VkShaderStageFlags stageFlags, VkDescriptorSetLayout* descriptorSetLayout)
+{
+	std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBindings;
+	descriptorSetLayoutBindings.reserve(reflectionData.bindings.size());
+	for (size_t i = 0; i < reflectionData.bindings.size(); i++)
+	{
+		VkDescriptorSetLayoutBinding layoutBinding{};
+		layoutBinding.binding = reflectionData.bindings[i].binding;
+		VkDescriptorType descriptorType;
+		switch (reflectionData.bindings[i].type)
+		{
+		case DescriptorType::UniformBuffer:
+			descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			break;
+		case DescriptorType::StorageBuffer:
+			descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+			break;
+		case DescriptorType::CombinedImageSampler:
+			descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			break;
+		default:
+			throw std::runtime_error("Unsupported descriptor type!");
+		}
+		layoutBinding.descriptorType = descriptorType;
+		layoutBinding.descriptorCount = 1;
+
+		layoutBinding.stageFlags = stageFlags;
+		layoutBinding.pImmutableSamplers = nullptr; // Optional
+
+		descriptorSetLayoutBindings.push_back(layoutBinding);
+	}
+
+	VkDescriptorSetLayoutCreateInfo layoutInfo{};
+	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	layoutInfo.bindingCount = static_cast<uint32_t>(descriptorSetLayoutBindings.size());
+	layoutInfo.pBindings = descriptorSetLayoutBindings.data();
+
+	if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, descriptorSetLayout) != VK_SUCCESS) {
+		throw std::runtime_error("failed to create descriptor set layout from reflection!");
+	}
+
+}

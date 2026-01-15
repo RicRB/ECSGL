@@ -17,6 +17,8 @@
 #include "renderer/buffer.h"
 #include "vk_buffer.h"
 #include "vk_image.h"
+#include "vk_descriptors.h"
+#include "platform/common/shaders/ShaderReflection.h"
 #ifdef max
 #undef max
 #endif
@@ -86,8 +88,7 @@ private:
 	VkImageView depthImageView;
 
 	// compute
-	VkDescriptorSetLayout computeDescriptorSetLayout;
-	
+	DescriptorAllocatorGrowable computeDescriptorAllocator;
 
 public:
 	Vulkan() {
@@ -107,6 +108,7 @@ public:
 
 	void cleanup();
 	void unloadShader(ShaderData* shaderData) override;
+	void unloadComputeShader(ComputeShaderData* computeShaderData) override;
 	void unloadMaterial(MaterialData* materialData) override;
 	void unloadMesh(MeshData* mesh) override;
 	void unloadTexture(TextureData* textureData) override;
@@ -133,7 +135,7 @@ private:
 	void createImageViews();
 	VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT);
 	void createGraphicsPipeline(const char* name, const std::string& vertexSource, const std::string& fragmentSource, VkPipeline* pipeline, VkPipelineLayout* pipelineLayout);
-	void createComputePipeline(const char* name, const std::string& computeSource, VkPipeline* pipeline, VkPipelineLayout* pipelineLayout);
+	void createComputePipeline(const char* name, const std::string& computeSource, VkPipeline* computePipeline, VkPipelineLayout* computePipelineLayout, DescriptorSetReflection& descriptorReflectio);
 	VkShaderModule createShaderModule(const std::vector<uint32_t>& code);
 	void createRenderPass();
 	void createFramebuffers();
@@ -166,4 +168,5 @@ private:
 	void createTextureSampler(VkTextureImage* textureImage);
 	constexpr std::array<VkVertexInputAttributeDescription, 3> getVertexAttributeDescriptions() const;
 	constexpr VkVertexInputBindingDescription getVertexBindingDescription() const;
+	void createDescriptorSetLayoutFromReflection(const DescriptorSetReflection& reflectionData, const VkShaderStageFlags stageFlags, VkDescriptorSetLayout* descriptorSetLayout);
 };

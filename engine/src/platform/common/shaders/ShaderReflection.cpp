@@ -1,16 +1,16 @@
 #include "ShaderReflection.h"
 #include <spirv_cross/spirv_cross.hpp>
 
-ReflectionData ShaderReflection::reflectSPIRV(const std::vector<uint32_t>& spirvBinary)
+DescriptorSetReflection ShaderReflection::reflectSPIRV(const std::vector<uint32_t>& spirvBinary)
 {
     spirv_cross::Compiler compiler(spirvBinary);
     spirv_cross::ShaderResources resources = compiler.get_shader_resources();
 
-    ReflectionData reflection;
+    DescriptorSetReflection reflection;
 
     // Reflect storage buffers (SSBOs)
     for (auto& resource : resources.storage_buffers) {
-        ReflectionData::Binding binding;
+        DescriptorSetReflection::Binding binding;
         binding.set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
         binding.binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
         binding.type = DescriptorType::StorageBuffer;
@@ -19,7 +19,7 @@ ReflectionData ShaderReflection::reflectSPIRV(const std::vector<uint32_t>& spirv
     }
 	// Reflect uniform buffers (UBOs)
     for (auto& resource : resources.uniform_buffers) {
-        ReflectionData::Binding binding;
+        DescriptorSetReflection::Binding binding;
         binding.set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
         binding.binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
         binding.type = DescriptorType::UniformBuffer;
@@ -28,7 +28,7 @@ ReflectionData ShaderReflection::reflectSPIRV(const std::vector<uint32_t>& spirv
 	}
 	// Reflect sampled images
     for (auto& resource : resources.sampled_images) {
-        ReflectionData::Binding binding;
+        DescriptorSetReflection::Binding binding;
         binding.set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
         binding.binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
         binding.type = DescriptorType::CombinedImageSampler;
@@ -37,7 +37,7 @@ ReflectionData ShaderReflection::reflectSPIRV(const std::vector<uint32_t>& spirv
 	}
 	// Reflect storage images
     for (auto& resource : resources.storage_images) {
-        ReflectionData::Binding binding;
+        DescriptorSetReflection::Binding binding;
         binding.set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
         binding.binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
         binding.type = DescriptorType::StorageImage;
@@ -46,7 +46,7 @@ ReflectionData ShaderReflection::reflectSPIRV(const std::vector<uint32_t>& spirv
     }
 	// Reflect samplers
     for (auto& resource : resources.separate_samplers) {
-        ReflectionData::Binding binding;
+        DescriptorSetReflection::Binding binding;
         binding.set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
         binding.binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
         binding.type = DescriptorType::Sampler;
@@ -56,7 +56,7 @@ ReflectionData ShaderReflection::reflectSPIRV(const std::vector<uint32_t>& spirv
 
 	// Sort bindings by set and binding number
     std::sort(reflection.bindings.begin(), reflection.bindings.end(),
-        [](const ReflectionData::Binding& a, const ReflectionData::Binding& b) {
+        [](const DescriptorSetReflection::Binding& a, const DescriptorSetReflection::Binding& b) {
             if (a.set != b.set) return a.set < b.set;
             return a.binding < b.binding;
         });

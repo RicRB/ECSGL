@@ -114,12 +114,6 @@ VkDescriptorPool DescriptorAllocatorGrowable::createPool(VkDevice device, uint32
 
 
 
-
-
-
-
-
-
 void DescriptorWriter::writeBuffer(int binding, VkBuffer buffer, size_t size, size_t offset, VkDescriptorType type)
 {
     VkDescriptorBufferInfo& info = bufferInfos.emplace_back(VkDescriptorBufferInfo{
