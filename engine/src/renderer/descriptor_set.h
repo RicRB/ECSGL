@@ -1,5 +1,7 @@
 #pragma once
 #include <memory>
+#include <string>
+#include <unordered_map>
 struct DescriptorSet {
 	static std::shared_ptr<DescriptorSet> Create();
 };

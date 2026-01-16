@@ -16,7 +16,6 @@
 #include "renderer/uniform_objects.h"
 #include "vk_program.h"
 #include "vk_image.h"
-#include "vk_descriptors.h"
 #include "platform/common/shaders/ShaderCompiler.h"
 
 void Vulkan::initialize(GLFWwindow* window)

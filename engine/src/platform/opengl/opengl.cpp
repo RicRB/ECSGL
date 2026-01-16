@@ -337,6 +337,12 @@ void OpenGl::unloadShader(ShaderData* shaderData)
     std::static_pointer_cast<GlProgram>(shaderData->program)->programID = 0;
 }
 
+void OpenGl::unloadComputeShader(ComputeShaderData* computeShaderData)
+{
+    GLCall(glDeleteProgram(std::static_pointer_cast<GlProgram>(computeShaderData->program)->programID));
+    std::static_pointer_cast<GlProgram>(computeShaderData->program)->programID = 0;
+}
+
 void OpenGl::unloadMaterial(MaterialData* materialData)
 {
 	GLCall(glDeleteBuffers(1, &std::static_pointer_cast<GlUniformBuffer>(materialData->uniformBuffer)->uniformID));

@@ -18,6 +18,7 @@ public:
 	void loadMesh(MeshData* mesh) override;
 	void loadTexture(TextureData* textureData) override;
 	void unloadShader(ShaderData* shaderData) override;
+	void unloadComputeShader(ComputeShaderData* computeShaderData);
 	void unloadMaterial(MaterialData* materialData) override;
 	void unloadMesh(MeshData* mesh) override;
 	void unloadTexture(TextureData* textureData) override;

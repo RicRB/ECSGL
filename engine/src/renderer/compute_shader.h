@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include "renderer/program.h"
 #include "memory/memory_pool.hpp"
 #include "renderer/descriptor_set.h"
 struct ComputeShaderData

@@ -10,9 +10,11 @@ vendor/imgui/backends/imgui_impl_vulkan.cpp
 vendor/imgui/imgui_draw.cpp
 vendor/imgui/imgui_tables.cpp
 vendor/imgui/imgui_widgets.cpp
+vendor/spirv_reflect/spirv_reflect.c
 )
 file(GLOB_RECURSE ENGINE_SOURCES
     src/*.cpp
+    src/*.c
 )
 
 file(GLOB_RECURSE HEADERS
@@ -43,4 +45,5 @@ target_include_directories(Engine PUBLIC
     "vendor/stb_image"
     "vendor/glm"
     "vendor/imgui"
+    "vendor/spirv_reflect"
 )
