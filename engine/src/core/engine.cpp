@@ -4,6 +4,8 @@
 #include "platform/vulkan/vulkan.h"
 #include "platform/opengl/opengl.h"
 #include "time.h"
+#include "platform/vulkan/vk_compute_manager.h"
+#include "platform/opengl/gl_compute_manager.h"
 Engine::Engine(const GraphicsAPIType graphicsAPIType)
 {
 	renderer.rendererType = graphicsAPIType;
@@ -15,9 +17,11 @@ Engine::Engine(const GraphicsAPIType graphicsAPIType)
 	{
 	case GRAPHICS_API_OPENGL:
 		renderer.graphicsAPI = std::make_unique<OpenGl>();
+		this->computeManager = std::make_unique<GlComputeManager>();
 		break;
 	case GRAPHICS_API_VULKAN:
 		renderer.graphicsAPI = std::make_unique<Vulkan>();
+		this->computeManager = std::make_unique<VulkanComputeManager>();
 		break;
 	default:
 		std::cerr << "Unknown graphics API type!" << std::endl;

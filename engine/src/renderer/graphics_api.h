@@ -8,6 +8,7 @@
 #include "stb_image/stb_image.h"
 #include "core/window.h"
 #include "memory/memory_pool.hpp"
+#include "renderer/compute_manager.h"
 using GraphicsAPIType = uint32_t;
 constexpr GraphicsAPIType GRAPHICS_API_OPENGL = 0;
 constexpr GraphicsAPIType GRAPHICS_API_VULKAN = 1;
@@ -42,6 +43,8 @@ public:
 	GLFWwindow* window = nullptr;
 	bool frameBufferResized = false;
 	bool isImGuiInitialized = false;
+
+
 	virtual ~GraphicsAPI() = default;
 	// Initialize the graphics API
 	virtual void initialize(GLFWwindow* window) = 0;

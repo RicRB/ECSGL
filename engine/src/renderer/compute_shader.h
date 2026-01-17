@@ -10,6 +10,7 @@ struct ComputeShaderData
 	std::string source;
 	std::shared_ptr<Program> program;
 	DescriptorSetReflection descriptorReflection;
+	std::shared_ptr<DescriptorSet> descriptorSet;
 	// metadata
 	int sourceHash;
 	bool operator==(const ComputeShaderData& other) const {

@@ -5,4 +5,5 @@
 struct VkProgram : public Program {
 	VkPipeline pipeline = nullptr;
 	VkPipelineLayout pipelineLayout = nullptr;
+	VkDescriptorSetLayout descriptorSetLayout = nullptr;
 };

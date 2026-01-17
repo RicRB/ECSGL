@@ -135,7 +135,7 @@ private:
 	void createImageViews();
 	VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT);
 	void createGraphicsPipeline(const char* name, const std::string& vertexSource, const std::string& fragmentSource, VkPipeline* pipeline, VkPipelineLayout* pipelineLayout);
-	void createComputePipeline(const char* name, const std::string& computeSource, VkPipeline* computePipeline, VkPipelineLayout* computePipelineLayout, DescriptorSetReflection& descriptorReflectio);
+	void createComputePipeline(const char* name, const std::string& computeSource, VkPipeline* computePipeline, VkPipelineLayout* computePipelineLayout, DescriptorSetReflection& descriptorSetReflection, VkDescriptorSetLayout& descriptorSetLayout);
 	VkShaderModule createShaderModule(const std::vector<uint32_t>& code);
 	void createRenderPass();
 	void createFramebuffers();

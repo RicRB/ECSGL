@@ -3,6 +3,7 @@
 #include "components/lights.h"
 #include "components/camera.h"
 #include "renderer/renderer.h"
+#include "renderer/compute_manager.h"
 #include <memory>
 #include "window.h"
 class Engine
@@ -12,6 +13,7 @@ public:
 	Registry registry;
 	ResourceManager resourceManager;
 	Renderer renderer;
+	std::unique_ptr<ComputeManager> computeManager;
 	Shader defaultShader;
 	Material defaultMaterial;
 	Mesh defaultMesh;
