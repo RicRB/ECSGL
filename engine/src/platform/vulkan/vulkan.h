@@ -113,6 +113,7 @@ public:
 	void unloadMesh(MeshData* mesh) override;
 	void unloadTexture(TextureData* textureData) override;
 	void bindTextureToMaterial(MaterialData* materialData, TextureData* textureData, int binding) override;
+	void createDescriptorSet(Program* program, DescriptorSet* descriptorSet) override;
 private:
 	static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
 		VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,

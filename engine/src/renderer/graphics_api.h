@@ -67,6 +67,7 @@ public:
 	virtual void unloadMesh(MeshData* mesh) = 0;
 	virtual void unloadTexture(TextureData* textureData) = 0;
 	virtual void bindTextureToMaterial(MaterialData* materialData, TextureData* textureData, int binding) = 0;
+	virtual void createDescriptorSet(Program* program, DescriptorSet* descriptorSet) = 0;
 	// Compute stuff
 	GraphicsAPIType getType() {
 		return graphicsAPIType;

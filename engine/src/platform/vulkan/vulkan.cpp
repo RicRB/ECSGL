@@ -304,7 +304,7 @@ void Vulkan::drawFrame(FrameDrawData& frameDrawData)
 			lastMaterial = materials[i];
 			uint32_t dynamicOffset = currentFrame * static_cast<uint32_t>(std::static_pointer_cast<VkUniformBuffer>(materials[i]->uniformBuffer)->bufferSize);
 			uint32_t dynamicOffsets[] = { 0, dynamicOffset };
-			VkDescriptorSet descriptorSets[] = { globalDescriptorSet, std::static_pointer_cast<VkDescriptorSetWrapper>(materials[i]->descriptorSet)->set};
+			VkDescriptorSet descriptorSets[] = { globalDescriptorSet, std::static_pointer_cast<VulkanDescriptorSet>(materials[i]->descriptorSet)->set};
 			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, program->pipelineLayout, 0, 2, descriptorSets, 1, dynamicOffsets);
 		}
 		// push constants
@@ -411,7 +411,7 @@ void Vulkan::compileComputeShader(const char* name, ComputeShaderData* computeSh
 
 void Vulkan::loadMaterial(const char* name, const ShaderData& shaderData, MaterialData* materialData) {
 	createUniformBuffer(std::static_pointer_cast<VkUniformBuffer>(materialData->uniformBuffer).get(), sizeof(MaterialUBO));
-	createDescriptorSet(std::static_pointer_cast<VkUniformBuffer>(materialData->uniformBuffer).get(), &materialDescriptorSetLayout, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, &std::static_pointer_cast<VkDescriptorSetWrapper>(materialData->descriptorSet)->set);
+	createDescriptorSet(std::static_pointer_cast<VkUniformBuffer>(materialData->uniformBuffer).get(), &materialDescriptorSetLayout, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, &std::static_pointer_cast<VulkanDescriptorSet>(materialData->descriptorSet)->set);
 }
 void Vulkan::loadMesh(MeshData* mesh) {
 	createVertexBuffer(mesh->vertices, std::static_pointer_cast<VkVertexBuffer>(mesh->vertexBuffer).get());
@@ -570,7 +570,22 @@ void Vulkan::bindTextureToMaterial(MaterialData* materialData, TextureData* text
 	int textureBinding = binding + 1;
 	writer.writeImage(textureBinding, image->imageView, image->sampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 
-	writer.updateSet(device, std::static_pointer_cast<VkDescriptorSetWrapper>(materialData->descriptorSet)->set);
+	writer.updateSet(device, std::static_pointer_cast<VulkanDescriptorSet>(materialData->descriptorSet)->set);
+}
+
+void Vulkan::createDescriptorSet(Program* program, DescriptorSet* descriptorSet)
+{
+	// TODO : USE GROWABLE DESCRIPTOR ALLOCATOR
+	auto vkProgram = (VkProgram*)program;
+	auto vkDescriptorSet = (VulkanDescriptorSet*)descriptorSet;
+	VkDescriptorSetAllocateInfo allocInfo{};
+	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	allocInfo.descriptorPool = descriptorPool;
+	allocInfo.descriptorSetCount = 1;
+	allocInfo.pSetLayouts = &vkProgram->descriptorSetLayout;
+	if (vkAllocateDescriptorSets(device, &allocInfo, &vkDescriptorSet->set) != VK_SUCCESS) {
+		throw std::runtime_error("failed to allocate descriptor sets!");
+	}
 }
 
 VKAPI_ATTR VkBool32 VKAPI_CALL Vulkan::debugCallback(
