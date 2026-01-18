@@ -11,14 +11,14 @@ Window::~Window()
 }
 
 void Window::create() {
-    if (*engine::currentRendererType == GRAPHICS_API_OPENGL)
+    if (graphics::getGraphicsAPIType() == GRAPHICS_API_OPENGL)
     {
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
         glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // For MacOS compatibility
     }
-    else if (*engine::currentRendererType == GRAPHICS_API_VULKAN)
+    else if (graphics::getGraphicsAPIType() == GRAPHICS_API_VULKAN)
     {
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API); // Prevents OpenGL context creation
     }

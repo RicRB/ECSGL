@@ -13,8 +13,8 @@ public:
 int main(void)
 {
 	Game game;
-
-    engine::currentEngine->registry.AddSystem<CameraMovementSystem>();
+    Engine& currentEngine = engine::GetEngine();
+    currentEngine.registry.AddSystem<CameraMovementSystem>();
 
     Transform transform;
     transform.setPosition(glm::vec3(0, 0, -10.0f));
@@ -30,11 +30,11 @@ int main(void)
     //Entity entity = engine::CreateDefaultObject(transform);
     Entity light = engine::CreateDirLight();
 
-    Transform cT = engine::currentEngine->registry.GetComponent<Transform>(engine::currentEngine->currentCameraEntity);
+    Transform cT = currentEngine.registry.GetComponent<Transform>(currentEngine.currentCameraEntity);
     Entity pLight = engine::CreatePointLight(cT);
-    engine::currentEngine->registry.scenegraph.ParentEntity(pLight, engine::currentEngine->currentCameraEntity);
-    Texture text = engine::currentEngine->resourceManager.LoadTexture(RES_DIR"images/container2.png");
-	engine::currentEngine->resourceManager.bindTextureToMaterial(engine::currentEngine->defaultMaterial, text, 0);
+    currentEngine.registry.scenegraph.ParentEntity(pLight, currentEngine.currentCameraEntity);
+    Texture text = currentEngine.resourceManager.LoadTexture(RES_DIR"images/container2.png");
+    currentEngine.resourceManager.bindTextureToMaterial(currentEngine.defaultMaterial, text, 0);
     game.Start();
 	return 0;
 }

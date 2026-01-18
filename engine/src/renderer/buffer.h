@@ -15,3 +15,4 @@ struct UniformBuffer {
 struct ComputeBuffer {
 	static std::shared_ptr<ComputeBuffer> Create();
 };
+

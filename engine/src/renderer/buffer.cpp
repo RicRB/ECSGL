@@ -4,7 +4,7 @@
 #include "platform/opengl/gl_buffer.h"
 std::shared_ptr<VertexBuffer> VertexBuffer::Create()
 {
-	switch (engine::currentEngine->renderer.rendererType) {
+	switch (graphics::getGraphicsAPIType()) {
 	case GRAPHICS_API_VULKAN: return std::make_shared<VkVertexBuffer>();
 	case GRAPHICS_API_OPENGL: return std::make_shared<VertexBuffer>();
 	}
@@ -14,7 +14,7 @@ std::shared_ptr<VertexBuffer> VertexBuffer::Create()
 
 std::shared_ptr<IndexBuffer> IndexBuffer::Create()
 {
-	switch (engine::currentEngine->renderer.rendererType) {
+	switch (graphics::getGraphicsAPIType()) {
 	case GRAPHICS_API_VULKAN: return std::make_shared<VkIndexBuffer>();
 	case GRAPHICS_API_OPENGL: return std::make_shared<GlIndexBuffer>();
 	}
@@ -23,7 +23,7 @@ std::shared_ptr<IndexBuffer> IndexBuffer::Create()
 
 std::shared_ptr<UniformBuffer> UniformBuffer::Create()
 {
-	switch (engine::currentEngine->renderer.rendererType) {
+	switch (graphics::getGraphicsAPIType()) {
 	case GRAPHICS_API_VULKAN: return std::make_shared<VkUniformBuffer>();
 	case GRAPHICS_API_OPENGL: return std::make_shared<GlUniformBuffer>();
 	}
@@ -32,7 +32,7 @@ std::shared_ptr<UniformBuffer> UniformBuffer::Create()
 
 std::shared_ptr<ComputeBuffer> ComputeBuffer::Create()
 {
-	switch (engine::currentEngine->renderer.rendererType) {
+	switch (graphics::getGraphicsAPIType()) {
 	case GRAPHICS_API_VULKAN: return std::make_shared<VkComputeBuffer>();
 	case GRAPHICS_API_OPENGL: return std::make_shared<GlComputeBuffer>();
 	}

@@ -1,12 +1,9 @@
-#pragma 
+#pragma once
 #include "components/transform.h"
-#include "renderer/graphics_api.h"
 #include "core/resource_manager.h"
 class Renderer
 {
 public:
-	std::unique_ptr<GraphicsAPI> graphicsAPI;
-	GraphicsAPIType rendererType;
 private:
 	float fps = 0.0f;
 	float times = 0.0f;

@@ -4,7 +4,7 @@
 #include "platform/opengl/gl_image.h"
 std::shared_ptr<TextureImage> TextureImage::Create()
 {
-	switch (engine::currentEngine->renderer.rendererType) {
+	switch (graphics::getGraphicsAPIType()) {
 	case GRAPHICS_API_VULKAN: return std::make_shared<VkTextureImage>();
 	case GRAPHICS_API_OPENGL: return std::make_shared<GlTextureImage>();
 	}

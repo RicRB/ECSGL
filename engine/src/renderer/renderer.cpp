@@ -4,6 +4,7 @@
 #include "imgui/imgui.h"
 #include <set>
 #include <array>
+#include "core/engine.h"
 Renderer::Renderer()
 {
 }
@@ -18,10 +19,10 @@ void Renderer::Run()
 void Renderer::DrawElements(Registry& registry, ResourceManager& resourceManager, Entity camera)
 {
 	auto currentView = registry.GetView<Transform, Mesh, Material>();
-	if (graphicsAPI == nullptr) {
+	if (graphics::GetGraphicsAPI() == nullptr) {
 		return;
 	}
-
+	auto& graphicsAPI = graphics::GetGraphicsAPI();
 	Transform& cameraTransform = registry.GetComponent<Transform>(camera);
 	cameraTransform.setCaching(false);
 	Camera& cameraComponent = registry.GetComponent<Camera>(camera);

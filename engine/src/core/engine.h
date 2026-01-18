@@ -6,6 +6,7 @@
 #include "renderer/compute_manager.h"
 #include <memory>
 #include "window.h"
+#include "renderer/graphics_api.h"
 class Engine
 {
 public:
@@ -13,6 +14,8 @@ public:
 	Registry registry;
 	ResourceManager resourceManager;
 	Renderer renderer;
+	std::unique_ptr<GraphicsAPI> graphicsAPI;
+	GraphicsAPIType graphicsAPIType;
 	std::unique_ptr<ComputeManager> computeManager;
 	Shader defaultShader;
 	Material defaultMaterial;
@@ -39,9 +42,12 @@ private:
 
 namespace engine
 {
-	extern Engine* currentEngine;
-	extern GraphicsAPIType* currentRendererType;
-	void SetCurrentEngine(Engine& engine);
+	namespace internal
+	{
+		extern Engine* _currentEnginePtr;
+	}
+	inline void SetInstance(Engine* engineInstance);
+	inline Engine& GetEngine();
 	Entity CreateEmptyEntity();
 	Entity CreateDefaultObject(Transform transform = Transform());
 	Entity CreateObject(Transform transform = Transform(), Mesh mesh = {}, Material material = {});
@@ -52,3 +58,8 @@ namespace engine
 	Camera GetCamera();
 	Registry& GetRegistry();
 };
+namespace graphics
+{
+	std::unique_ptr<GraphicsAPI>& GetGraphicsAPI();
+	GraphicsAPIType getGraphicsAPIType();
+}

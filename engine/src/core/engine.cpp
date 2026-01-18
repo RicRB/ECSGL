@@ -6,21 +6,21 @@
 #include "time.h"
 #include "platform/vulkan/vk_compute_manager.h"
 #include "platform/opengl/gl_compute_manager.h"
+#include <stdexcept>
 Engine::Engine(const GraphicsAPIType graphicsAPIType)
 {
-	renderer.rendererType = graphicsAPIType;
-	engine::SetCurrentEngine(*this);
-	engine::currentRendererType = &renderer.rendererType;
+	this->graphicsAPIType = graphicsAPIType;
+	engine::SetInstance(this);
 
 	resourceManager.CreateResourcePools();
 	switch (graphicsAPIType)
 	{
 	case GRAPHICS_API_OPENGL:
-		renderer.graphicsAPI = std::make_unique<OpenGl>();
+		graphicsAPI = std::make_unique<OpenGl>();
 		this->computeManager = std::make_unique<GlComputeManager>();
 		break;
 	case GRAPHICS_API_VULKAN:
-		renderer.graphicsAPI = std::make_unique<Vulkan>();
+		graphicsAPI = std::make_unique<Vulkan>();
 		this->computeManager = std::make_unique<VulkanComputeManager>();
 		break;
 	default:
@@ -32,15 +32,15 @@ Engine::Engine(const GraphicsAPIType graphicsAPIType)
 void Engine::initialize(const std::shared_ptr<Window>& window)
 {
 	this->window = window; // Store the window pointer for later use
-	if (renderer.graphicsAPI == nullptr)
+	if (graphicsAPI == nullptr)
 	{
 		std::cerr << "Graphics API not initialized!" << std::endl;
 		exit(EXIT_FAILURE);
 	}
-	glfwSetWindowUserPointer(window->getHandle(), renderer.graphicsAPI.get());
-	glfwSetFramebufferSizeCallback(window->getHandle(), renderer.graphicsAPI->frameBufferResizeCallback);
-	renderer.graphicsAPI->initialize(window->getHandle()); // Pass the window if needed
-	renderer.graphicsAPI->initializeImGui();
+	glfwSetWindowUserPointer(window->getHandle(), graphicsAPI.get());
+	glfwSetFramebufferSizeCallback(window->getHandle(), graphicsAPI->frameBufferResizeCallback);
+	graphicsAPI->initialize(window->getHandle()); // Pass the window if needed
+	graphicsAPI->initializeImGui();
 
 	std::cout << "Working directory: " << std::filesystem::current_path() << std::endl;
 	defaultShader = resourceManager.LoadShader(RES_DIR"shaders/Basic.vert", RES_DIR"shaders/Basic.frag");
@@ -74,7 +74,7 @@ void Engine::LoadScene(const std::string& scenePath)
 void Engine::cleanup()
 {
 	resourceManager.unloadAll();
-	renderer.graphicsAPI->cleanup();
+	graphicsAPI->cleanup();
 }
 
 Scene Engine::GetScene()
@@ -84,36 +84,38 @@ Scene Engine::GetScene()
 
 Engine::~Engine()
 {
-	if (renderer.graphicsAPI)
-	{
-		renderer.graphicsAPI.reset();
-	}
 }
 
 
 
 namespace engine {
-	Engine* currentEngine = nullptr;
-	GraphicsAPIType* currentRendererType = nullptr;
-	void engine::SetCurrentEngine(Engine& engine)
+	namespace internal {
+		Engine* _currentEnginePtr = nullptr;
+	}
+
+	void SetInstance(Engine* engineInstance)
 	{
-		currentEngine = &engine;
-		currentRendererType = &engine.renderer.rendererType;
+		internal::_currentEnginePtr = engineInstance;
+	}
+
+	Engine& engine::GetEngine()
+	{
+		return *internal::_currentEnginePtr;
 	}
 
 	Entity engine::CreateEmptyEntity()
 	{
-		Entity entity = currentEngine->registry.CreateEntity();
-		Registry& reg = currentEngine->registry;
+		Entity entity = GetEngine().registry.CreateEntity();
+		Registry& reg = GetEngine().registry;
 		return entity;
 	}
 	Entity engine::CreateDefaultObject(Transform transform)
 	{
-		return CreateObject(transform, currentEngine->defaultMesh, currentEngine->defaultMaterial);
+		return CreateObject(transform, GetEngine().defaultMesh, GetEngine().defaultMaterial);
 	}
 	Entity engine::CreateObject(Transform transform, Mesh mesh, Material material)
 	{
-		Registry& registry = currentEngine->registry;
+		Registry& registry = GetEngine().registry;
 		Entity entity = registry.CreateEntity();
 		registry.AssignComponent(entity, transform);
 		registry.AssignComponent(entity, mesh);
@@ -123,7 +125,7 @@ namespace engine {
 
 	Entity engine::CreateDirLight(const glm::vec3 direction, const glm::vec3 ambient, const glm::vec3 diffuse, const glm::vec3 specular, const float intensity)
 	{
-		Registry& registry = currentEngine->registry;
+		Registry& registry = GetEngine().registry;
 		Entity entity = registry.CreateEntity();
 		registry.AssignComponent(entity, Transform());
 		registry.AssignComponent(entity, DirectionalLight(direction, ambient, diffuse, specular, intensity));
@@ -132,7 +134,7 @@ namespace engine {
 
 	Entity engine::CreatePointLight(const Transform transform, const glm::vec3 ambient, const glm::vec3 diffuse, const glm::vec3 specular, const float intensity, const float constant, const float linear, const float quadratic)
 	{
-		Registry& registry = currentEngine->registry;
+		Registry& registry = GetEngine().registry;
 		Entity entity = registry.CreateEntity();
 		registry.AssignComponent(entity, transform);
 		registry.AssignComponent(entity, PointLight(ambient, diffuse, specular, intensity, constant, linear, quadratic));
@@ -140,22 +142,32 @@ namespace engine {
 	}
 	void engine::SetCamera(Entity entity)
 	{
-		currentEngine->currentCameraEntity = entity;
-		Registry& reg = currentEngine->registry;
-		currentEngine->currentCamera = reg.GetComponent<Camera>(entity);
+		GetEngine().currentCameraEntity = entity;
+		Registry& reg = GetEngine().registry;
+		GetEngine().currentCamera = reg.GetComponent<Camera>(entity);
 	}
 	const Entity engine::GetCameraEntity()
 	{
-		return currentEngine->currentCameraEntity;
+		return GetEngine().currentCameraEntity;
 	}
 	Camera engine::GetCamera()
 	{
-		return currentEngine->currentCamera;
+		return GetEngine().currentCamera;
 	}
 	Registry& GetRegistry()
 	{
-		return currentEngine->registry;
+		return GetEngine().registry;
 	}
 }
-
+namespace graphics {
+	std::unique_ptr<GraphicsAPI>& graphics::GetGraphicsAPI()
+	{
+		if (!engine::GetEngine().graphicsAPI) throw std::runtime_error("Graphics not initialized?");
+		return engine::GetEngine().graphicsAPI;
+	}
+	GraphicsAPIType getGraphicsAPIType()
+	{
+		return engine::GetEngine().graphicsAPIType;
+	}
+}
 

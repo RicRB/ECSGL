@@ -27,7 +27,7 @@ Shader ResourceManager::LoadShader(const std::string& vertexShaderPath, const st
 	shader.sourceHash = hasher(shader.vertexSource + shader.fragmentSource);
 
 
-	engine::currentEngine->renderer.graphicsAPI->compileShader(
+    graphics::GetGraphicsAPI()->compileShader(
 		std::to_string(static_cast<uint32_t>(shaderHandle)).c_str(),
 		shader.vertexSource,
 		shader.fragmentSource,
@@ -54,7 +54,7 @@ ComputeShader ResourceManager::LoadComputeShader(const std::string& computeShade
     std::hash<std::string> hasher;
     computeShader.sourceHash = hasher(computeShader.source);
 
-    engine::currentEngine->renderer.graphicsAPI->compileComputeShader(
+    graphics::GetGraphicsAPI()->compileComputeShader(
         std::to_string(static_cast<uint32_t>(computeShaderHandle)).c_str(),
         &computeShader
 	);
@@ -70,7 +70,7 @@ Material ResourceManager::LoadMaterial(const Shader shader)
     material.ubo.diffuseColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
     material.ubo.specularColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 
-    engine::currentEngine->renderer.graphicsAPI->loadMaterial(
+    graphics::GetGraphicsAPI()->loadMaterial(
         std::to_string((uint32_t)materialHandle).c_str(),
         m_shaders->at(shader.handle),
         &material
@@ -96,7 +96,7 @@ Texture ResourceManager::LoadTexture(const std::string& path)
     textureData.pixels = stbi_load(path.c_str(), &textureData.width, &textureData.height, &textureData.bpp, 4);
 
     if (textureData.pixels)
-		engine::currentEngine->renderer.graphicsAPI->loadTexture(&textureData);
+        graphics::GetGraphicsAPI()->loadTexture(&textureData);
 
 	if (textureData.pixels)
 		stbi_image_free(textureData.pixels);
@@ -118,19 +118,19 @@ void ResourceManager::unloadAll()
 {
 	for (auto& shader : *m_shaders)
 	{
-		engine::currentEngine->renderer.graphicsAPI->unloadShader(&shader);
+		graphics::GetGraphicsAPI()->unloadShader(&shader);
 	}
 	for (auto& material : *m_materials)
 	{
-		engine::currentEngine->renderer.graphicsAPI->unloadMaterial(&material);
+        graphics::GetGraphicsAPI()->unloadMaterial(&material);
 	}
 	for (auto& mesh : *m_meshes)
 	{
-		engine::currentEngine->renderer.graphicsAPI->unloadMesh(&mesh);
+        graphics::GetGraphicsAPI()->unloadMesh(&mesh);
 	}
 	for (auto& texture : *m_textures)
 	{
-		engine::currentEngine->renderer.graphicsAPI->unloadTexture(&texture);
+        graphics::GetGraphicsAPI()->unloadTexture(&texture);
 	}
 
     m_shaders->clear();
@@ -142,7 +142,7 @@ void ResourceManager::unloadAll()
 void ResourceManager::bindTextureToMaterial(const Material& material, const Texture& texture, uint32_t binding)
 {
 	auto& textureData = m_textures->at(texture.handle);
-    engine::currentEngine->renderer.graphicsAPI->bindTextureToMaterial(&m_materials->at(material.handle), &m_textures->at(texture.handle), binding);
+    graphics::GetGraphicsAPI()->bindTextureToMaterial(&m_materials->at(material.handle), &m_textures->at(texture.handle), binding);
 	MaterialData& matData = m_materials->at(material.handle);
     switch (binding)
     {
@@ -290,7 +290,7 @@ Mesh ResourceManager::ProcessMesh(std::fstream& fstream)
 	meshData.indices = indices;
     meshData.vertexCount = static_cast<unsigned int>(vertices.size());
 	meshData.handle = meshDataHandle;
-	engine::currentEngine->renderer.graphicsAPI->loadMesh(&meshData);
+    graphics::GetGraphicsAPI()->loadMesh(&meshData);
 	Mesh meshComponent;
 	meshComponent.handle = meshDataHandle;
     return meshComponent;
