@@ -38,3 +38,12 @@ std::shared_ptr<ComputeBuffer> ComputeBuffer::Create()
 	}
 	return nullptr;
 }
+
+std::shared_ptr<Buffer> Buffer::Create()
+{
+	switch (graphics::getGraphicsAPIType()) {
+	case GRAPHICS_API_VULKAN: return std::make_shared<VulkanBuffer>();
+	case GRAPHICS_API_OPENGL: return std::make_shared<GlBuffer>();
+	}
+	return std::shared_ptr<Buffer>();
+}

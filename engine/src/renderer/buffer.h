@@ -16,3 +16,6 @@ struct ComputeBuffer {
 	static std::shared_ptr<ComputeBuffer> Create();
 };
 
+struct Buffer {
+	static std::shared_ptr<Buffer> Create();
+};

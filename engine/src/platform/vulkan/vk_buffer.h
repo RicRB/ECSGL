@@ -1,25 +1,24 @@
 #pragma once
 #include "renderer/buffer.h"
 #include <vulkan/vulkan.h>
-struct VkVertexBuffer : public VertexBuffer {
-	VkBuffer buffer = nullptr;
-	VkDeviceMemory memory = nullptr;
-};
-struct VkIndexBuffer : public IndexBuffer {
-	VkBuffer buffer = nullptr;
-	VkDeviceMemory memory = nullptr;
-};
 
-struct VkUniformBuffer : public UniformBuffer {
+
+struct VulkanBuffer : public Buffer {
 	VkBuffer buffer = nullptr;
 	VkDeviceMemory memory = nullptr;
 	void* mapped = nullptr;
 	VkDeviceSize bufferSize;
-};
-
-struct VkComputeBuffer : public ComputeBuffer {
-	VkBuffer buffer = nullptr;
-	VkDeviceMemory memory = nullptr;
 	int count;
 	int stride;
+};
+
+struct VkVertexBuffer : public VertexBuffer, public VulkanBuffer {
+};
+struct VkIndexBuffer : public IndexBuffer, public VulkanBuffer {
+};
+
+struct VkUniformBuffer : public UniformBuffer, public VulkanBuffer {
+};
+
+struct VkComputeBuffer : public ComputeBuffer, public VulkanBuffer {
 };
