@@ -9,6 +9,7 @@
 #include "core/window.h"
 #include "memory/memory_pool.hpp"
 #include "renderer/compute_manager.h"
+#include "renderer/buffer_manager.h"
 using GraphicsAPIType = uint32_t;
 constexpr GraphicsAPIType GRAPHICS_API_OPENGL = 0;
 constexpr GraphicsAPIType GRAPHICS_API_VULKAN = 1;
@@ -41,6 +42,8 @@ private:
 
 public:
 	GLFWwindow* window = nullptr;
+	std::unique_ptr<ComputeManager> computeManager = nullptr;
+	std::unique_ptr<BufferManager> bufferManager = nullptr;
 	bool frameBufferResized = false;
 	bool isImGuiInitialized = false;
 

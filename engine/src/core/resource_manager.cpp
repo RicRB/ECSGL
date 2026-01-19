@@ -55,7 +55,7 @@ ComputeShader ResourceManager::LoadComputeShader(const std::string& computeShade
     computeShader.sourceHash = hasher(computeShader.source);
 
     graphics::GetGraphicsAPI()->compileComputeShader(
-        std::to_string(static_cast<uint32_t>(computeShaderHandle)).c_str(),
+        "main",
         &computeShader
 	);
 	return ComputeShader(computeShaderHandle);

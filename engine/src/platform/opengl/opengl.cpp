@@ -10,6 +10,8 @@
 #include "renderer/uniform_objects.h"
 #include "gl_program.h"
 #include "GLFW/glfw3.h"
+#include "gl_compute_manager.h"
+#include "gl_buffer_manager.h"
 void OpenGl::initialize(GLFWwindow* window)
 {
 	this->window = window;
@@ -33,6 +35,8 @@ void OpenGl::initialize(GLFWwindow* window)
 	// create global uniform buffer
 	globalUniformBuffer = createUniformBuffer(sizeof(GlobalUBO));
 	pushConstantBuffer = createUniformBuffer(sizeof(PushConstants));
+    computeManager = std::make_unique<GlComputeManager>();
+	bufferManager = std::make_unique<GlBufferManager>();
 }
 void OpenGl::initializeImGui()
 {
@@ -364,6 +368,10 @@ void OpenGl::unloadTexture(TextureData* textureData)
 }
 
 void OpenGl::bindTextureToMaterial(MaterialData* materialData, TextureData* textureData, int binding)
+{
+}
+
+void OpenGl::createDescriptorSet(Program* program, DescriptorSet* descriptorSet)
 {
 }
 

@@ -16,7 +16,8 @@ public:
 	Renderer renderer;
 	std::unique_ptr<GraphicsAPI> graphicsAPI;
 	GraphicsAPIType graphicsAPIType;
-	std::unique_ptr<ComputeManager> computeManager;
+	std::unique_ptr<ComputeManager>* computeManager;
+	std::unique_ptr<BufferManager>* bufferManager;
 	Shader defaultShader;
 	Material defaultMaterial;
 	Mesh defaultMesh;

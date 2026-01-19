@@ -13,7 +13,7 @@ public:
 	void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
 	void destroyBuffer(Buffer* buffer) override;
 	void updateBuffer(Buffer* buffer, const void* data, size_t size) override;
-
+	void getBufferData(Buffer* buffer, void* data);
 
 	//void createVertexBuffer(const std::vector<Vertex>& vertices, VkVertexBuffer* vertexBuffer);
 	//void createIndexBuffer(const std::vector<unsigned int>& indices, VkIndexBuffer* indexBuffer);

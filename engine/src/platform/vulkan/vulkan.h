@@ -19,17 +19,11 @@
 #include "vk_image.h"
 #include "vk_descriptors.h"
 #include "platform/common/shaders/ShaderReflection.h"
+#include "vk_utils.h"
 #ifdef max
 #undef max
 #endif
-struct QueueFamilyIndices {
-	std::optional<uint32_t> graphicsFamily;
-	std::optional<uint32_t> presentFamily;
 
-	bool isComplete() {
-		return graphicsFamily.has_value() && presentFamily.has_value();
-	}
-};
 struct SwapChainSupportDetails {
 	VkSurfaceCapabilitiesKHR capabilities;
 	std::vector<VkSurfaceFormatKHR> formats;
@@ -89,7 +83,7 @@ private:
 
 	// compute
 	DescriptorAllocatorGrowable computeDescriptorAllocator;
-
+	VkQueue computeQueue;
 public:
 	Vulkan() {
 		graphicsAPIType = GRAPHICS_API_VULKAN;
@@ -125,7 +119,6 @@ private:
 	void pickPhysicsalDevice();
 	bool isPhysicalDeviceSuitable(VkPhysicalDevice physicalDevice, int* score);
 	bool checkDeviceExtensionSupport(VkPhysicalDevice device);
-	QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
 	void createLogicalDevice();
 	void createSurface();
 	SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);

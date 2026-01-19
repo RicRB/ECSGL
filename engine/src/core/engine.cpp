@@ -17,11 +17,9 @@ Engine::Engine(const GraphicsAPIType graphicsAPIType)
 	{
 	case GRAPHICS_API_OPENGL:
 		graphicsAPI = std::make_unique<OpenGl>();
-		this->computeManager = std::make_unique<GlComputeManager>();
 		break;
 	case GRAPHICS_API_VULKAN:
 		graphicsAPI = std::make_unique<Vulkan>();
-		this->computeManager = std::make_unique<VulkanComputeManager>();
 		break;
 	default:
 		std::cerr << "Unknown graphics API type!" << std::endl;
@@ -41,6 +39,8 @@ void Engine::initialize(const std::shared_ptr<Window>& window)
 	glfwSetFramebufferSizeCallback(window->getHandle(), graphicsAPI->frameBufferResizeCallback);
 	graphicsAPI->initialize(window->getHandle()); // Pass the window if needed
 	graphicsAPI->initializeImGui();
+	this->computeManager = &graphicsAPI->computeManager;
+	this->bufferManager = &graphicsAPI->bufferManager;
 
 	std::cout << "Working directory: " << std::filesystem::current_path() << std::endl;
 	defaultShader = resourceManager.LoadShader(RES_DIR"shaders/Basic.vert", RES_DIR"shaders/Basic.frag");

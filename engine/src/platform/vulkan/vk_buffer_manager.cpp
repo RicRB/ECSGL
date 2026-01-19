@@ -1,6 +1,6 @@
 #include "vk_buffer_manager.h"
 #include "vk_utils.h"
-
+#include <stdexcept>
 void VkBufferManager::createBuffer(Buffer* buffer, const BufferDesc& desc)
 {
 	VulkanBuffer* vkBuffer = (VulkanBuffer*)buffer;
@@ -64,4 +64,10 @@ void VkBufferManager::updateBuffer(Buffer* buffer, const void* data, size_t size
 	VulkanBuffer* vkBuffer = (VulkanBuffer*)buffer;
 
 	memcpy(static_cast<char*>(vkBuffer->mapped), data, vkBuffer->bufferSize);
+}
+
+void VkBufferManager::getBufferData(Buffer* buffer, void* data)
+{
+	VulkanBuffer* vkBuffer = (VulkanBuffer*)buffer;
+	memcpy(data, static_cast<char*>(vkBuffer->mapped), vkBuffer->bufferSize);
 }

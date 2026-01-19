@@ -1,6 +1,7 @@
 #include "core/application.h"
 #include "core/engine.h" // HOLY SHIT IT WORKS?????????????
 #include "systems/camera_movement.hpp"
+#include "renderer/compute_dispatcher.h"
 class Game : public Core::Application {
 public:
 	Game() : Core::Application() {
@@ -35,6 +36,22 @@ int main(void)
     currentEngine.registry.scenegraph.ParentEntity(pLight, currentEngine.currentCameraEntity);
     Texture text = currentEngine.resourceManager.LoadTexture(RES_DIR"images/container2.png");
     currentEngine.resourceManager.bindTextureToMaterial(currentEngine.defaultMaterial, text, 0);
+	ComputeShader shader = currentEngine.resourceManager.LoadComputeShader(RES_DIR"shaders/compute/test.glsl");
+	ComputeDispatcher dispatcher(shader);
+    Buffer inBuffer;
+	Buffer outBuffer;
+	BufferDesc desc;
+	desc.size = 5 * sizeof(int);
+	desc.type = BufferType::SSBO;
+    currentEngine.bufferManager->get()->createBuffer(&inBuffer, desc);
+	currentEngine.bufferManager->get()->createBuffer(&outBuffer, desc);
+	int data[5] = { 1, 2, 3, 4, 5 };
+	currentEngine.bufferManager->get()->updateBuffer(&inBuffer, data, desc.size);
+	currentEngine.bufferManager->get()->updateBuffer(&outBuffer, data, desc.size);
+	dispatcher.setBuffer("inputBuffer", &inBuffer, desc.size);
+	dispatcher.setBuffer("outputBuffer", &outBuffer, desc.size);
+	dispatcher.dispatch(5, 1, 1);
+	currentEngine.bufferManager->get()->getBufferData(&outBuffer, data);
     game.Start();
 	return 0;
 }

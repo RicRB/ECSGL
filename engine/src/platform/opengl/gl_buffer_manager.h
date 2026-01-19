@@ -1,24 +1,13 @@
 #pragma once
-#include "renderer/buffer.h"
-#include <GL/glew.h>
-using GLVertexID = GLuint;
-using GLIndexID = GLuint;
-using GLUniformID = GLuint;
-using GLComputeID = GLuint;
-struct GlVertexBuffer : public VertexBuffer, public GlBuffer {
-	GLVertexID vertexID;
-};
-struct GlIndexBuffer : public IndexBuffer, public GlBuffer {
-	GLIndexID indexID;
-};
+#include "renderer/buffer_manager.h"
 
-struct GlUniformBuffer : public UniformBuffer, public GlBuffer {
-	GLUniformID uniformID;
-};
-
-struct GlComputeBuffer : public ComputeBuffer, public GlBuffer {
-};
-
-struct GlBuffer {
-	GLuint bufferID;
+class GlBufferManager : public BufferManager {
+public:
+	GlBufferManager() = default;
+	~GlBufferManager() = default;
+public:
+	void createBuffer(Buffer* buffer, const BufferDesc& desc) override;
+	void destroyBuffer(Buffer* buffer) override;
+	void updateBuffer(Buffer* buffer, const void* data, size_t size) override;
+	void getBufferData(Buffer* buffer, void* data) override;
 };
