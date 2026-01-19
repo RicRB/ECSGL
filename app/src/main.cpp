@@ -51,7 +51,6 @@ int main(void)
 	dispatcher.setBuffer("inputBuffer", &inBuffer, desc.size);
 	dispatcher.setBuffer("outputBuffer", &outBuffer, desc.size);
 	dispatcher.dispatch(5, 1, 1);
-	currentEngine.bufferManager->get()->getBufferData(&outBuffer, data);
     game.Start();
 	return 0;
 }
