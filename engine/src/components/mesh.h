@@ -16,7 +16,7 @@ struct Vertex
 struct MeshData
 {
 	MeshData();
-	MemoryHandle<MeshData> handle;
+	MemoryHandle handle;
 	std::shared_ptr<VertexBuffer> vertexBuffer;
 	std::shared_ptr<IndexBuffer> indexBuffer;
 	std::vector<Vertex> vertices;
@@ -24,10 +24,10 @@ struct MeshData
 	unsigned int vertexCount;
 };
 
-using MeshDataHandle = MemoryHandle<MeshData>;
+using MeshDataHandle = MemoryHandle;
 
 struct Mesh
 {
-	MemoryHandle<MeshData> handle;
-	Mesh(const MemoryHandle<MeshData> h = MemoryHandle<MeshData>()) : handle(h) {};
+	MemoryHandle handle;
+	Mesh(const MemoryHandle h = MemoryHandle()) : handle(h) {};
 };

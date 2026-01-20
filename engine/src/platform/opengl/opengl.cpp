@@ -86,7 +86,7 @@ void OpenGl::drawFrame(FrameDrawData& frameDrawData)
 	{
 		const MeshData* mesh = meshes[i];
 		const MaterialData* material = materials[i];
-		const ShaderData* shader = &(shaders)[material->shaderHandle.m_index];
+		const ShaderData* shader = &(shaders)[material->shaderHandle.index];
         int textureIndex = 0;
 		// Bind vertex array
 		GLCall(glBindVertexArray(std::static_pointer_cast<GlVertexBuffer>(mesh->vertexBuffer)->vertexID));

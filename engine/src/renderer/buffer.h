@@ -1,13 +1,13 @@
 #pragma once
 #include <memory>
-
+#include "memory/memory_pool.hpp"
 
 enum class BufferType {
 	Uniform,
 	SSBO,
 };
 
-struct BufferDesc {
+struct BufferDescription {
 	size_t size;
 	BufferType type;
 };
@@ -29,8 +29,14 @@ struct ComputeBuffer {
 	static std::shared_ptr<ComputeBuffer> Create();
 };
 
+struct BufferData {
+	BufferDescription desc;
+	static std::shared_ptr<BufferData> Create();
+	static std::unique_ptr<BufferData> CreateUnique();
+	BufferData() = default;
+};
+
 struct Buffer {
-	BufferDesc desc;
-	static std::shared_ptr<Buffer> Create();
-	static std::unique_ptr<Buffer> CreateUnique();
+	MemoryHandle handle;
+	Buffer(const MemoryHandle h = MemoryHandle()) : handle(h) {};
 };

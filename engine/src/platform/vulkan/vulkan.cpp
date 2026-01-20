@@ -214,7 +214,7 @@ void Vulkan::drawFrame(FrameDrawData& frameDrawData)
 	/*
 	for (size_t i = 0; i < entityCount; i++)
 	{
-		auto& shader = shaders[materials[i]->shaderHandle.m_index];
+		auto& shader = shaders[materials[i]->shaderHandle.index];
 		drawObjects.emplace_back(i, shader, *materials[i], *(meshes[i]));
 	}
 	*/
@@ -284,7 +284,7 @@ void Vulkan::drawFrame(FrameDrawData& frameDrawData)
 		const size_t i = orderedIndex;
 		// get the draw object
 
-		const ShaderData& shader = shaders[materials[i]->shaderHandle.m_index];
+		const ShaderData& shader = shaders[materials[i]->shaderHandle.index];
 		auto program = std::static_pointer_cast<VkProgram>(shader.program).get();
 		if (program->pipeline != lastPipeline) {
 			// bind pipeline if it has changed

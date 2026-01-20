@@ -22,10 +22,12 @@ struct MaterialData {
 	std::shared_ptr<DescriptorSet> descriptorSet;
 	std::shared_ptr<UniformBuffer> uniformBuffer;
 };
+
+using MaterialDataHandle = MemoryHandle;
+
 struct Material {
-	MemoryHandle<MaterialData> handle;
-	Material(const MemoryHandle<MaterialData> h = MemoryHandle<MaterialData>()) : handle(h) {};
+	MaterialDataHandle handle;
+	Material(const MemoryHandle h = MemoryHandle()) : handle(h) {};
 	
 };
 
-using MaterialDataHandle = MemoryHandle<MaterialData>;

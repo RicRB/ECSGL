@@ -16,7 +16,7 @@ void ResourceManager::CreateResourcePools()
 
 Shader ResourceManager::LoadShader(const std::string& vertexShaderPath, const std::string& fragmentShaderPath)
 {
-    MemoryHandle<ShaderData> shaderHandle = m_shaders->allocate();
+    MemoryHandle shaderHandle = m_shaders->allocate();
 	ShaderData& shader = m_shaders->at(shaderHandle);
 	int vertexHash, fragmentHash;
     ParseShader(shader.vertexSource, vertexShaderPath);
@@ -39,7 +39,7 @@ Shader ResourceManager::LoadShader(const std::string& vertexShaderPath, const st
 
 ComputeShader ResourceManager::LoadComputeShader(const std::string& computeShaderPath)
 {
-    MemoryHandle<ComputeShaderData> computeShaderHandle = m_computeShaders->allocate();
+    MemoryHandle computeShaderHandle = m_computeShaders->allocate();
     ComputeShaderData& computeShader = m_computeShaders->at(computeShaderHandle);
     std::string line;
     std::stringstream ss;
@@ -284,7 +284,7 @@ Mesh ResourceManager::ProcessMesh(std::fstream& fstream)
             //indices.push_back(triangle[1]);
 		}
     }
-    MemoryHandle<MeshData> meshDataHandle = m_meshes->allocate();
+    MemoryHandle meshDataHandle = m_meshes->allocate();
 	MeshData& meshData = (*m_meshes)[meshDataHandle];
 	meshData.vertices = vertices;
 	meshData.indices = indices;

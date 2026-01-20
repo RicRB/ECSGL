@@ -57,7 +57,7 @@ void VulkanComputeManager::dispatchComputeShader(ComputeShaderData& computeShade
 	VkUtils::endSingleTimeCommands(m_device, m_commandPool, m_computeQueue, commandBuffer, vkFence);
 }
 
-void VulkanComputeManager::setBuffer(DescriptorSet* set, Buffer* buffer, int binding)
+void VulkanComputeManager::setBuffer(DescriptorSet* set, BufferData* buffer, int binding)
 {
 	DescriptorWriter writer;
 	VulkanBuffer* vulkanBuffer = static_cast<VulkanBuffer*>(buffer);
@@ -65,7 +65,7 @@ void VulkanComputeManager::setBuffer(DescriptorSet* set, Buffer* buffer, int bin
 	writer.updateSet(m_device, static_cast<VulkanDescriptorSet*>(set)->set);
 }
 
-void VulkanComputeManager::setBuffer(ComputeShaderData& shaderData, DescriptorSet* set, Buffer* buffer, std::string_view name)
+void VulkanComputeManager::setBuffer(ComputeShaderData& shaderData, DescriptorSet* set, BufferData* buffer, std::string_view name)
 {
 	DescriptorSetReflection::Binding binding = shaderData.descriptorReflection.bindings[shaderData.descriptorReflection.nameToIndex[name.data()]];
 	this->setBuffer(set, buffer, binding.binding);

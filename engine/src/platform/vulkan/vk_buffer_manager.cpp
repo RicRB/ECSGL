@@ -1,17 +1,25 @@
 #include "vk_buffer_manager.h"
 #include "vk_utils.h"
 #include <stdexcept>
-void VkBufferManager::createBuffer(Buffer* buffer, const BufferDesc& desc)
+
+VkBufferManager::VkBufferManager(VkDevice device, VkPhysicalDevice physicalDevice) : device(device), physicalDevice(physicalDevice)
 {
-	VulkanBuffer* vkBuffer = (VulkanBuffer*)buffer;
+	bufferPool = std::make_unique<MemoryPool<VulkanBuffer, 256>>();
+}
+
+Buffer VkBufferManager::createBuffer(const BufferDescription& desc)
+{
+	Buffer buffer;
+	buffer.handle = static_cast<MemoryHandle>(bufferPool->allocate());
+	VulkanBuffer& vkBuffer = bufferPool->at(buffer.handle);
 	VkDeviceSize size = desc.size;
 
-	vkBuffer->buffer = VK_NULL_HANDLE;
-	vkBuffer->memory = VK_NULL_HANDLE;
-	vkBuffer->mapped = nullptr;
+	vkBuffer.buffer = VK_NULL_HANDLE;
+	vkBuffer.memory = VK_NULL_HANDLE;
+	vkBuffer.mapped = nullptr;
 
-	vkBuffer->bufferSize = desc.size;
-	vkBuffer->desc = desc;
+	vkBuffer.bufferSize = desc.size;
+	vkBuffer.desc = desc;
 
 	VkBufferUsageFlags usage;
 	switch (desc.type)
@@ -26,8 +34,10 @@ void VkBufferManager::createBuffer(Buffer* buffer, const BufferDesc& desc)
 
 	VkMemoryPropertyFlags properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 
-	createBuffer(size, usage, properties, vkBuffer->buffer, vkBuffer->memory);
-	vkMapMemory(device, vkBuffer->memory, 0, desc.size, 0, &vkBuffer->mapped);
+	createBuffer(size, usage, properties, vkBuffer.buffer, vkBuffer.memory);
+	vkMapMemory(device, vkBuffer.memory, 0, desc.size, 0, &vkBuffer.mapped);
+
+	return buffer;
 }
 
 void VkBufferManager::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory)
@@ -57,23 +67,35 @@ void VkBufferManager::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, 
 	vkBindBufferMemory(device, buffer, bufferMemory, 0);
 }
 
-void VkBufferManager::destroyBuffer(Buffer* buffer)
+void VkBufferManager::destroyBuffer(Buffer buffer)
 {
-	VulkanBuffer* vkBuffer = (VulkanBuffer*)buffer;
-	vkDestroyBuffer(device, vkBuffer->buffer, nullptr);
-	vkFreeMemory(device, vkBuffer->memory, nullptr);
-	vkBuffer->buffer = VK_NULL_HANDLE;
+	VulkanBuffer& vkBuffer = bufferPool->at(buffer.handle);
+	vkDestroyBuffer(device, vkBuffer.buffer, nullptr);
+	vkFreeMemory(device, vkBuffer.memory, nullptr);
+	vkBuffer.buffer = VK_NULL_HANDLE;
+	bufferPool->deallocate(buffer.handle);
 }
 
-void VkBufferManager::updateBuffer(Buffer* buffer, const void* data, size_t size)
+void VkBufferManager::updateBuffer(Buffer buffer, const void* data, size_t size)
 {
-	VulkanBuffer* vkBuffer = (VulkanBuffer*)buffer;
+	VulkanBuffer& vkBuffer = bufferPool->at(buffer.handle);
 
-	memcpy(static_cast<char*>(vkBuffer->mapped), data, vkBuffer->bufferSize);
+	memcpy(static_cast<char*>(vkBuffer.mapped), data, vkBuffer.bufferSize);
 }
 
-void VkBufferManager::getBufferData(Buffer* buffer, void* data)
+void VkBufferManager::getBufferData(Buffer buffer, void* data)
 {
-	VulkanBuffer* vkBuffer = (VulkanBuffer*)buffer;
-	memcpy(data, static_cast<char*>(vkBuffer->mapped), vkBuffer->bufferSize);
+	VulkanBuffer& vkBuffer = bufferPool->at(buffer.handle);
+	memcpy(data, static_cast<char*>(vkBuffer.mapped), vkBuffer.bufferSize);
+}
+
+BufferData& VkBufferManager::getBufferData(Buffer buffer)
+{
+	return bufferPool->at(buffer.handle);
+}
+
+BufferDescription VkBufferManager::getBufferDesc(Buffer buffer)
+{
+	VulkanBuffer& vkBuffer = bufferPool->at(buffer.handle);
+	return vkBuffer.desc;
 }

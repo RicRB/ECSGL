@@ -3,33 +3,33 @@
 #include <stack>
 #include <stdint.h>
 #include <limits>
-template <typename T>
+
 class MemoryHandle {
 public:
 	static constexpr uint32_t HANDLE_INVALID_INDEX = std::numeric_limits<uint32_t>::max();
 
-	uint32_t m_index;
+	uint32_t index;
 public:
-	MemoryHandle(const uint32_t idx = HANDLE_INVALID_INDEX) : m_index(idx) {};
+	MemoryHandle(const uint32_t idx = HANDLE_INVALID_INDEX) : index(idx) {};
 
 	const bool isValid() const {
-		return m_index != HANDLE_INVALID_INDEX;
+		return index != HANDLE_INVALID_INDEX;
 	}
 	bool operator==(const MemoryHandle& other) const {
-		return m_index == other.m_index;
+		return index == other.index;
 	}
 	operator uint32_t() const {
-		return m_index;
+		return index;
 	}
 
 };
 
 namespace std
 {
-	template<typename T>
-	struct hash<MemoryHandle<T>> {
-		size_t operator()(const MemoryHandle<T>& h) const noexcept {
-			return std::hash<uint32_t>{}(h.m_index);
+	template<>
+	struct hash<MemoryHandle> {
+		size_t operator()(const MemoryHandle& h) const noexcept {
+			return std::hash<uint32_t>{}(h.index);
 		}
 	};
 }
@@ -39,7 +39,7 @@ struct MemoryPool {
 	~MemoryPool() = default;
 
 	template<typename... Args>
-	MemoryHandle<T> allocate(Args&&... args) {
+	MemoryHandle allocate(Args&&... args) {
 		uint32_t index;
 		if (!destroyedIndices.empty()) {
 			index = destroyedIndices.top();
@@ -50,7 +50,7 @@ struct MemoryPool {
 			index = allocationPointer++;
 			if (index >= n) {
 				throw std::runtime_error("MemoryPool: Out of memory");
-				return MemoryHandle<T>(-1);
+				return MemoryHandle(-1);
 			}
 		}
 
@@ -59,8 +59,8 @@ struct MemoryPool {
 		return index;
 	}
 
-	void deallocate(MemoryHandle<T>& memoryHandle) {
-		uint32_t& index = memoryHandle.m_index;
+	void deallocate(MemoryHandle& memoryHandle) {
+		uint32_t& index = memoryHandle.index;
 		if (index >= n) {
 			throw std::runtime_error("MemoryPool: Invalid handle");
 			return;
@@ -69,20 +69,24 @@ struct MemoryPool {
 		pool[index].~T();
 	}
 
-	T& operator[](const MemoryHandle<T>& handle) {
-		return pool[handle.m_index];
+	T& operator[](const MemoryHandle& handle) {
+		return pool[handle.index];
 	}
 
-	const T& operator[](const MemoryHandle<T>& handle) const {
-		return pool[handle.m_index];
+	const T& operator[](const MemoryHandle& handle) const {
+		return pool[handle.index];
 	}
 
-	T& at(const MemoryHandle<T>& handle) {
-		return pool.at(handle.m_index);
+	T& at(const MemoryHandle& handle) {
+		return pool.at(handle.index);
+	}
+	
+	T& at(uint32_t index) {
+		return pool.at(index);
 	}
 
-	const T& at(const MemoryHandle<T>& handle) const {
-		return pool.at(handle.m_index);
+	const T& at(const MemoryHandle& handle) const {
+		return pool.at(handle.index);
 	}
 
 	auto begin() { return pool.begin(); }

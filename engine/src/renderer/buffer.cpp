@@ -39,16 +39,16 @@ std::shared_ptr<ComputeBuffer> ComputeBuffer::Create()
 	return nullptr;
 }
 
-std::shared_ptr<Buffer> Buffer::Create()
+std::shared_ptr<BufferData> BufferData::Create()
 {
 	switch (graphics::getGraphicsAPIType()) {
 	case GRAPHICS_API_VULKAN: return std::make_shared<VulkanBuffer>();
 	case GRAPHICS_API_OPENGL: return std::make_shared<GlBuffer>();
 	}
-	return std::shared_ptr<Buffer>();
+	return std::shared_ptr<BufferData>();
 }
 
-std::unique_ptr<Buffer> Buffer::CreateUnique()
+std::unique_ptr<BufferData> BufferData::CreateUnique()
 {
 	switch (graphics::getGraphicsAPIType()) {
 	case GRAPHICS_API_VULKAN: return std::make_unique<VulkanBuffer>();

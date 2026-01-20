@@ -4,10 +4,10 @@ void GlComputeManager::dispatchComputeShader(ComputeShaderData& computeShaderDat
 {
 }
 
-void GlComputeManager::setBuffer(DescriptorSet* set, Buffer* buffer, int binding)
+void GlComputeManager::setBuffer(DescriptorSet* set, BufferData* buffer, int binding)
 {
 }
 
-void GlComputeManager::setBuffer(ComputeShaderData& shaderData, DescriptorSet* set, Buffer* buffer, std::string_view name)
+void GlComputeManager::setBuffer(ComputeShaderData& shaderData, DescriptorSet* set, BufferData* buffer, std::string_view name)
 {
 }

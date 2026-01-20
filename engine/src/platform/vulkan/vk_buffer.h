@@ -3,13 +3,14 @@
 #include <vulkan/vulkan.h>
 
 
-struct VulkanBuffer : public Buffer {
+struct VulkanBuffer : public BufferData {
 	VkBuffer buffer = nullptr;
 	VkDeviceMemory memory = nullptr;
 	void* mapped = nullptr;
 	VkDeviceSize bufferSize;
 	int count;
 	int stride;
+	VulkanBuffer() = default;
 };
 
 struct VkVertexBuffer : public VertexBuffer, public VulkanBuffer {

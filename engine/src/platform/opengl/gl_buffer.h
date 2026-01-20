@@ -7,7 +7,7 @@ using GLUniformID = GLuint;
 using GLComputeID = GLuint;
 
 
-struct GlBuffer : public Buffer {
+struct GlBuffer : public BufferData {
 	GLuint bufferID;
 };
 

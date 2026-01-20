@@ -18,7 +18,7 @@ struct TextureData
 	int width, height, bpp;
 	std::shared_ptr<TextureImage> image;
 };
-using TextureDataHandle = MemoryHandle<TextureData>;
+using TextureDataHandle = MemoryHandle;
 struct Texture
 {
 	 TextureDataHandle handle;

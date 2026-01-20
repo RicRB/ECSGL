@@ -39,28 +39,28 @@ int main(void)
 
 	ComputeShader shader = currentEngine.resourceManager.LoadComputeShader(RES_DIR"shaders/compute/test.glsl");
 	ComputeDispatcher dispatcher(shader);
-    std::unique_ptr<Buffer> inBuffer = Buffer::CreateUnique();
-    std::unique_ptr<Buffer> outBuffer = Buffer::CreateUnique();
-	BufferDesc desc;
+    Buffer inBuffer;
+	Buffer outBuffer;
+	BufferDescription desc;
 	desc.size = 5 * sizeof(int);
 	desc.type = BufferType::SSBO;
 
 
-    currentEngine.bufferManager->get()->createBuffer(inBuffer.get(), desc);
-	currentEngine.bufferManager->get()->createBuffer(outBuffer.get(), desc);
+    inBuffer = currentEngine.bufferManager->get()->createBuffer(desc);
+	outBuffer = currentEngine.bufferManager->get()->createBuffer(desc);
 
 	int data[5] = { 1, 2, 3, 4, 5 };
-	currentEngine.bufferManager->get()->updateBuffer(inBuffer.get(), data, desc.size);
-	currentEngine.bufferManager->get()->updateBuffer(outBuffer.get(), data, desc.size);
+	currentEngine.bufferManager->get()->updateBuffer(inBuffer, data, desc.size);
+	currentEngine.bufferManager->get()->updateBuffer(outBuffer, data, desc.size);
 
-	dispatcher.setBuffer("inputData", inBuffer.get(), desc.size);
-	dispatcher.setBuffer("outputData", outBuffer.get(), desc.size);
+	dispatcher.setBuffer("inputData", inBuffer, desc.size);
+	dispatcher.setBuffer("outputData", outBuffer, desc.size);
 
 	dispatcher.dispatch(5, 1, 1);
     dispatcher.wait();
 
     int out[5];
-	currentEngine.bufferManager->get()->getBufferData(outBuffer.get(), out);
+	currentEngine.bufferManager->get()->getBufferData(outBuffer, out);
 
     game.Start();
 	return 0;

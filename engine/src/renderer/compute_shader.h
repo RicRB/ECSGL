@@ -20,7 +20,7 @@ struct ComputeShaderData
 		return sourceHash != other.sourceHash;
 	}
 };
-using ComputeShaderDataHandle = MemoryHandle<ComputeShaderData>;
+using ComputeShaderDataHandle = MemoryHandle;
 struct ComputeShader
 {
 	ComputeShaderDataHandle handle;

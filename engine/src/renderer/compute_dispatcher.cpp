@@ -12,14 +12,16 @@ void ComputeDispatcher::dispatch(uint32_t threadGroupX, uint32_t threadGroupY, u
 	engine::GetEngine().computeManager->get()->dispatchComputeShader(m_shaderData, m_descriptorSet.get(), m_fence.get(), threadGroupX, threadGroupY, threadGroupZ);
 }
 
-void ComputeDispatcher::setBuffer(int binding, Buffer* bufferData, size_t size)
+void ComputeDispatcher::setBuffer(int binding, Buffer buffer, size_t size)
 {
-	engine::GetEngine().computeManager->get()->setBuffer(m_descriptorSet.get(), bufferData, binding);
+	BufferData& bufferData = engine::GetEngine().bufferManager->get()->getBufferData(buffer);
+	engine::GetEngine().computeManager->get()->setBuffer(m_descriptorSet.get(), &bufferData, binding);
 }
 
-void ComputeDispatcher::setBuffer(std::string_view name, Buffer* bufferData, size_t size)
+void ComputeDispatcher::setBuffer(std::string_view name, Buffer buffer, size_t size)
 {
-	engine::GetEngine().computeManager->get()->setBuffer(m_shaderData, m_descriptorSet.get(), bufferData, name);
+	BufferData& bufferData = engine::GetEngine().bufferManager->get()->getBufferData(buffer);
+	engine::GetEngine().computeManager->get()->setBuffer(m_shaderData, m_descriptorSet.get(), &bufferData, name);
 }
 
 bool ComputeDispatcher::isDone() const

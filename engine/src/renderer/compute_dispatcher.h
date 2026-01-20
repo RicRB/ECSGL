@@ -10,8 +10,8 @@ class ComputeDispatcher {
 public:
 	ComputeDispatcher(const ComputeShader& shader);
 	void dispatch(uint32_t threadGroupX, uint32_t threadGroupY, uint32_t threadGroupZ);
-	void setBuffer(int binding, Buffer* bufferData, size_t size);
-	void setBuffer(std::string_view name, Buffer* bufferData, size_t size);
+	void setBuffer(int binding, Buffer buffer, size_t size);
+	void setBuffer(std::string_view name, Buffer buffer, size_t size);
 	bool isDone() const;
 	void wait();
 	//void setImage(int binding, void* imageData, size_t width, size_t height);

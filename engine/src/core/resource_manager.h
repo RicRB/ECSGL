@@ -22,7 +22,7 @@ public:
 	std::unique_ptr<MemoryPool<TextureData, 32>> m_textures = nullptr;
 private:
 	// TODO: add a map string -> ShaderID to avoid copies
-	std::unordered_map<std::string, MemoryHandle<TextureData>> m_textureHandles;
+	std::unordered_map<std::string, MemoryHandle> m_textureHandles;
 
 public: 
 	void CreateResourcePools();

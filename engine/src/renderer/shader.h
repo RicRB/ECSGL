@@ -29,7 +29,7 @@ struct ShaderData
 		return sourceHash != other.sourceHash;
 	}
 };
-using ShaderDataHandle = MemoryHandle<ShaderData>;
+using ShaderDataHandle = MemoryHandle;
 struct Shader
 {
 	ShaderDataHandle handle;
