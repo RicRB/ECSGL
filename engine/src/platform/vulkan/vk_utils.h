@@ -16,5 +16,5 @@ public:
 	static QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface);
 	static uint32_t findComputeQueueFamily(VkPhysicalDevice physicalDevice);
 	static VkCommandBuffer beginSingleTimeCommands(VkDevice device, VkCommandPool commandPool);
-	static void endSingleTimeCommands(VkDevice device, VkCommandPool commandPool, VkQueue queue, VkCommandBuffer commandBuffer);
+	static void endSingleTimeCommands(VkDevice device, VkCommandPool commandPool, VkQueue queue, VkCommandBuffer commandBuffer, VkFence fence = VK_NULL_HANDLE);
 };

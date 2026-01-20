@@ -101,7 +101,7 @@ VkCommandBuffer VkUtils::beginSingleTimeCommands(VkDevice device, VkCommandPool 
 	return commandBuffer;
 }
 
-void VkUtils::endSingleTimeCommands(VkDevice device, VkCommandPool commandPool, VkQueue queue, VkCommandBuffer commandBuffer)
+void VkUtils::endSingleTimeCommands(VkDevice device, VkCommandPool commandPool, VkQueue queue, VkCommandBuffer commandBuffer, VkFence fence)
 {
 	vkEndCommandBuffer(commandBuffer);
 
@@ -110,7 +110,7 @@ void VkUtils::endSingleTimeCommands(VkDevice device, VkCommandPool commandPool, 
 	submitInfo.commandBufferCount = 1;
 	submitInfo.pCommandBuffers = &commandBuffer;
 
-	vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
+	vkQueueSubmit(queue, 1, &submitInfo, fence);
 	vkQueueWaitIdle(queue);
 
 	vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);

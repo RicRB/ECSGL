@@ -2,6 +2,8 @@
 #include "renderer/compute_manager.h"
 #include <vulkan/vulkan.h>
 #include "vk_buffer.h"
+#include "vk_fence.h"
+
 class VulkanComputeManager : public ComputeManager {
 	VkDevice m_device;
 	VkPhysicalDevice m_physicalDevice;
@@ -10,7 +12,7 @@ class VulkanComputeManager : public ComputeManager {
 public:
 	VulkanComputeManager(VkDevice device, VkPhysicalDevice physicalDevice);
 	~VulkanComputeManager() = default;
-	void dispatchComputeShader(ComputeShaderData& computeShaderData, DescriptorSet* set, uint32_t threadsX, uint32_t threadsY, uint32_t threadsZ) override;
+	void dispatchComputeShader(ComputeShaderData& computeShaderData, DescriptorSet* set, Fence* fence, uint32_t threadsX, uint32_t threadsY, uint32_t threadsZ) override;
 	void setBuffer(DescriptorSet* set, Buffer* buffer, int binding) override;
 	void setBuffer(ComputeShaderData& shaderData, DescriptorSet* set, Buffer* buffer, std::string_view name) override;
 };

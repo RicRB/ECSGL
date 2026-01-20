@@ -1,6 +1,6 @@
 #include "gl_compute_manager.h"
 
-void GlComputeManager::dispatchComputeShader(ComputeShaderData& computeShaderData, DescriptorSet* set, uint32_t threadsX, uint32_t threadsY, uint32_t threadsZ)
+void GlComputeManager::dispatchComputeShader(ComputeShaderData& computeShaderData, DescriptorSet* set, Fence* fence, uint32_t threadsX, uint32_t threadsY, uint32_t threadsZ)
 {
 }
 

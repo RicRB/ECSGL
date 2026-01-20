@@ -1,17 +1,6 @@
 #pragma once
 #include "renderer/buffer.h"
 
-enum class BufferType {
-	Uniform,
-	SSBO,
-};
-
-struct BufferDesc {
-	size_t size;
-	BufferType type;
-};
-
-
 class BufferManager {
 public:
 	virtual ~BufferManager() = default;

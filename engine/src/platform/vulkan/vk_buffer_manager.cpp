@@ -5,7 +5,13 @@ void VkBufferManager::createBuffer(Buffer* buffer, const BufferDesc& desc)
 {
 	VulkanBuffer* vkBuffer = (VulkanBuffer*)buffer;
 	VkDeviceSize size = desc.size;
+
+	vkBuffer->buffer = VK_NULL_HANDLE;
+	vkBuffer->memory = VK_NULL_HANDLE;
+	vkBuffer->mapped = nullptr;
+
 	vkBuffer->bufferSize = desc.size;
+	vkBuffer->desc = desc;
 
 	VkBufferUsageFlags usage;
 	switch (desc.type)

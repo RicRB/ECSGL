@@ -47,3 +47,12 @@ std::shared_ptr<Buffer> Buffer::Create()
 	}
 	return std::shared_ptr<Buffer>();
 }
+
+std::unique_ptr<Buffer> Buffer::CreateUnique()
+{
+	switch (graphics::getGraphicsAPIType()) {
+	case GRAPHICS_API_VULKAN: return std::make_unique<VulkanBuffer>();
+	case GRAPHICS_API_OPENGL: return std::make_unique<GlBuffer>();
+	}
+	return nullptr;
+}

@@ -23,8 +23,16 @@ VulkanComputeManager::VulkanComputeManager(VkDevice device, VkPhysicalDevice phy
 	// Get the queue
 	vkGetDeviceQueue(m_device, queueFamilyIndex, 0, &m_computeQueue);
 }
-void VulkanComputeManager::dispatchComputeShader(ComputeShaderData& computeShaderData, DescriptorSet* set, uint32_t threadsX, uint32_t threadsY, uint32_t threadsZ)
+void VulkanComputeManager::dispatchComputeShader(ComputeShaderData& computeShaderData, DescriptorSet* set, Fence* fence, uint32_t threadsX, uint32_t threadsY, uint32_t threadsZ)
 {
+	VkFence& vkFence = ((VulkanFence*)fence)->m_fence;
+	((VulkanFence*)fence)->m_device = m_device;
+	// Submission time
+	VkFenceCreateInfo fenceInfo = {};
+	fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+	vkCreateFence(m_device, &fenceInfo, nullptr, &vkFence);
+
+
 	VkCommandBuffer commandBuffer = VkUtils::beginSingleTimeCommands(m_device, m_commandPool);
 	VkProgram* vkProgram = static_cast<VkProgram*>(computeShaderData.program.get());
 	VulkanDescriptorSet* vkDescriptorSet = static_cast<VulkanDescriptorSet*>(set);
@@ -32,7 +40,21 @@ void VulkanComputeManager::dispatchComputeShader(ComputeShaderData& computeShade
 	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, vkProgram->pipelineLayout, 0, 1, &vkDescriptorSet->set, 0, 0);
 	vkCmdDispatch(commandBuffer, threadsX, threadsY, threadsZ);
 
-	VkUtils::endSingleTimeCommands(m_device, m_commandPool, m_computeQueue, commandBuffer);
+	VkMemoryBarrier memoryBarrier = {};
+	memoryBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+	memoryBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+	memoryBarrier.dstAccessMask = VK_ACCESS_HOST_READ_BIT;
+
+	vkCmdPipelineBarrier(
+		commandBuffer,
+		VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,  // Src stage
+		VK_PIPELINE_STAGE_HOST_BIT,            // Dst stage
+		0,
+		1, &memoryBarrier,
+		0, nullptr,
+		0, nullptr
+	);
+	VkUtils::endSingleTimeCommands(m_device, m_commandPool, m_computeQueue, commandBuffer, vkFence);
 }
 
 void VulkanComputeManager::setBuffer(DescriptorSet* set, Buffer* buffer, int binding)
