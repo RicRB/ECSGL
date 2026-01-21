@@ -11,14 +11,23 @@ enum class TextureType
 	SPECULAR
 };
 
+enum class TextureUsage {
+	Read,
+	ReadWrite
+};
+
+
 struct TextureData
 {
 	TextureData();
 	unsigned char* pixels;
 	int width, height, bpp;
-	std::shared_ptr<TextureImage> image;
+	TextureUsage usage;
+	std::shared_ptr<Image> image;
 };
+
 using TextureDataHandle = MemoryHandle;
+
 struct Texture
 {
 	 TextureDataHandle handle;

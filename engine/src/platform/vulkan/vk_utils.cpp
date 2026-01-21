@@ -115,3 +115,39 @@ void VkUtils::endSingleTimeCommands(VkDevice device, VkCommandPool commandPool, 
 
 	vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
 }
+
+VkDescriptorType VkUtils::getVkDescriptorType(DescriptorType type)
+{
+	VkDescriptorType descriptorType;
+	switch (type)
+	{
+	case DescriptorType::UniformBuffer:
+		descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		break;
+	case DescriptorType::StorageBuffer:
+		descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+		break;
+	case DescriptorType::CombinedImageSampler:
+		descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		break;
+	case DescriptorType::StorageImage:
+		descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+		break;
+	default:
+		throw std::runtime_error("Unsupported descriptor type!");
+	}
+	return descriptorType;
+}
+
+VkImageLayout VkUtils::getVkImageLayout(TextureUsage usage)
+{
+	switch (usage)
+	{
+	case TextureUsage::Read:
+		return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	case TextureUsage::ReadWrite:
+		return VK_IMAGE_LAYOUT_GENERAL;
+	default:
+		return VK_IMAGE_LAYOUT_GENERAL;
+	}
+}

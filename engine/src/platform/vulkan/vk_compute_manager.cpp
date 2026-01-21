@@ -67,6 +67,21 @@ void VulkanComputeManager::setBuffer(DescriptorSet* set, BufferData* buffer, int
 
 void VulkanComputeManager::setBuffer(ComputeShaderData& shaderData, DescriptorSet* set, BufferData* buffer, std::string_view name)
 {
-	DescriptorSetReflection::Binding binding = shaderData.descriptorReflection.bindings[shaderData.descriptorReflection.nameToIndex[name.data()]];
+	DescriptorBinding binding = shaderData.descriptorReflection.bindings[shaderData.descriptorReflection.nameToIndex[name.data()]];
 	this->setBuffer(set, buffer, binding.binding);
+}
+
+void VulkanComputeManager::setImage(DescriptorSet* set, Image* image, DescriptorBinding& binding)
+{
+	DescriptorWriter writer;
+	VulkanImage* vulkanImage = static_cast<VulkanImage*>(image);
+
+	writer.writeImage(binding.binding, vulkanImage->imageView, vulkanImage->sampler, VK_IMAGE_LAYOUT_GENERAL, VkUtils::getVkDescriptorType(binding.type));
+	writer.updateSet(m_device, static_cast<VulkanDescriptorSet*>(set)->set);
+}
+
+void VulkanComputeManager::setImage(ComputeShaderData& shaderData, DescriptorSet* set, Image* image, std::string_view name)
+{
+	DescriptorBinding& binding = shaderData.descriptorReflection.bindings[shaderData.descriptorReflection.nameToIndex[name.data()]];
+	this->setImage(set, image, binding);
 }

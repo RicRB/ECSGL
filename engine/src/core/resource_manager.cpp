@@ -79,7 +79,7 @@ Material ResourceManager::LoadMaterial(const Shader shader)
     return Material(materialHandle);
 }
 
-Texture ResourceManager::LoadTexture(const std::string& path)
+Texture ResourceManager::LoadTexture(const std::string& path, TextureUsage usage)
 {
     {
         auto textureHandleResult = m_textureHandles.find(path);
@@ -94,13 +94,27 @@ Texture ResourceManager::LoadTexture(const std::string& path)
     auto& textureData = m_textures->at(textureHandle);
     stbi_set_flip_vertically_on_load(1); // play with it if upside down
     textureData.pixels = stbi_load(path.c_str(), &textureData.width, &textureData.height, &textureData.bpp, 4);
-
+    textureData.usage = usage;
     if (textureData.pixels)
         graphics::GetGraphicsAPI()->loadTexture(&textureData);
 
 	if (textureData.pixels)
 		stbi_image_free(textureData.pixels);
     return Texture(textureHandle);
+}
+
+Texture ResourceManager::LoadEmptyTexture(int width, int height, TextureUsage usage)
+{
+    auto textureHandle = m_textures->allocate();
+    auto& textureData = m_textures->at(textureHandle);
+    textureData.width = width;
+    textureData.height = height;
+    textureData.bpp = 4;
+    textureData.pixels = new unsigned char[width * height * 4];
+    memset(textureData.pixels, 0, width * height * 4);
+    graphics::GetGraphicsAPI()->loadTexture(&textureData);
+    delete[] textureData.pixels;
+	return Texture(textureHandle);
 }
 
 Mesh ResourceManager::LoadOBJ(const std::string& filepath)
@@ -158,6 +172,13 @@ void ResourceManager::bindTextureToMaterial(const Material& material, const Text
 	default:
 		std::cout << "Warning: trying to bind texture to invalid binding point " << binding << "!\n";
     }
+}
+
+void ResourceManager::setTextureUsage(const Texture texture, TextureUsage newUsage)
+{
+    auto& textureData = m_textures->at(texture.handle);
+    graphics::GetGraphicsAPI()->setTextureUsage(&textureData, newUsage);
+    
 }
 
 /////////////////////// PRIVATE ///////////////////////

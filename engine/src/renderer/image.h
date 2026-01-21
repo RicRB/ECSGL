@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
-struct TextureImage {
-	static std::shared_ptr<TextureImage> Create();
+
+struct Image {
+	static std::shared_ptr<Image> Create();
 };

@@ -19,13 +19,16 @@ enum class DescriptorType {
     UniformBufferDynamic,
     StorageBufferDynamic,
 };
+
+struct DescriptorBinding
+{
+    uint32_t set;
+    uint32_t binding;
+    DescriptorType type;
+    std::string name;
+};
+
 struct DescriptorSetReflection {
-    struct Binding {
-        uint32_t set;
-        uint32_t binding;
-        DescriptorType type;
-        std::string name;
-    };
-    std::vector<Binding> bindings;
+    std::vector<DescriptorBinding> bindings;
     std::unordered_map<std::string, size_t> nameToIndex;
 };

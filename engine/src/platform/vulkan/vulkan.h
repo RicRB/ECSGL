@@ -107,6 +107,7 @@ public:
 	void unloadMesh(MeshData* mesh) override;
 	void unloadTexture(TextureData* textureData) override;
 	void bindTextureToMaterial(MaterialData* materialData, TextureData* textureData, int binding) override;
+	void setTextureUsage(TextureData* textureData, TextureUsage usage) override;
 	void createDescriptorSet(Program* program, DescriptorSet* descriptorSet) override;
 private:
 	static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
@@ -157,8 +158,8 @@ private:
 	void endSingleTimeCommands(VkCommandBuffer commandBuffer);
 	void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
 	void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
-	void createTextureImageView(VkTextureImage* textureImage);
-	void createTextureSampler(VkTextureImage* textureImage);
+	void createTextureImageView(VulkanImage* textureImage);
+	void createTextureSampler(VulkanImage* textureImage);
 	constexpr std::array<VkVertexInputAttributeDescription, 3> getVertexAttributeDescriptions() const;
 	constexpr VkVertexInputBindingDescription getVertexBindingDescription() const;
 	void createDescriptorSetLayoutFromReflection(const DescriptorSetReflection& reflectionData, const VkShaderStageFlags stageFlags, VkDescriptorSetLayout* descriptorSetLayout);

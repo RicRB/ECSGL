@@ -2,6 +2,7 @@
 #include "compute_shader.h"
 #include "fence.h"
 #include "buffer.h"
+#include "texture.h"
 #include <string_view>
 class ComputeDispatcher {
 	ComputeShaderData& m_shaderData;
@@ -12,9 +13,8 @@ public:
 	void dispatch(uint32_t threadGroupX, uint32_t threadGroupY, uint32_t threadGroupZ);
 	void setBuffer(int binding, Buffer buffer, size_t size);
 	void setBuffer(std::string_view name, Buffer buffer, size_t size);
+	void setTexture(int binding, Texture* texture);
+	void setTexture(std::string_view name, Texture* texture);
 	bool isDone() const;
 	void wait();
-	//void setImage(int binding, void* imageData, size_t width, size_t height);
-	//void setImage(std::string_view name, void* imageData, size_t width, size_t height);
-
 };

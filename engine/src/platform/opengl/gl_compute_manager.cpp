@@ -11,3 +11,11 @@ void GlComputeManager::setBuffer(DescriptorSet* set, BufferData* buffer, int bin
 void GlComputeManager::setBuffer(ComputeShaderData& shaderData, DescriptorSet* set, BufferData* buffer, std::string_view name)
 {
 }
+
+void GlComputeManager::setImage(DescriptorSet* set, Image* image, DescriptorBinding& binding)
+{
+}
+
+void GlComputeManager::setImage(ComputeShaderData& shaderData, DescriptorSet* set, Image* image, std::string_view name)
+{
+}

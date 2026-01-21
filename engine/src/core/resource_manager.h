@@ -3,6 +3,7 @@
 #include "scene.h"
 #include "components/mesh.h"
 #include "renderer/compute_shader.h"
+#include "renderer/texture.h"
 #include "ecs/ecs.hpp"
 #include <unordered_map>
 #include <fstream>
@@ -29,13 +30,15 @@ public:
 	Shader LoadShader(const std::string& vertexShaderPath, const std::string& fragmentShaderPath);
 	ComputeShader LoadComputeShader(const std::string& computeShaderPath);
 	Material LoadMaterial(const Shader shader);
-	Texture LoadTexture(const std::string& path);
+	Texture LoadTexture(const std::string& path, TextureUsage usage);
+	Texture LoadEmptyTexture(int width, int height, TextureUsage usage);
 	Mesh LoadOBJ(const std::string& filepath);
 	Scene ParseScene(const std::string& shaderPath);
 	std::string& SaveScene();
 	void unloadAll();
 
 	void bindTextureToMaterial(const Material& material, const Texture& texture, uint32_t binding);
+	void setTextureUsage(const Texture texture, TextureUsage newUsage);
 private:
 
 	// SHADER STUFFS

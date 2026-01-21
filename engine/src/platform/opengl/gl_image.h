@@ -2,6 +2,6 @@
 #include "renderer/image.h"
 #include "GL/glew.h"
 
-struct GlTextureImage : public TextureImage {
+struct GlImage : public Image {
 	GLuint textureID;
 };

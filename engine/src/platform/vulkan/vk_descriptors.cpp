@@ -136,7 +136,7 @@ void DescriptorWriter::writeBuffer(int binding, VkBuffer buffer, size_t size, si
 void DescriptorWriter::writeImage(int binding, VkImageView image, VkSampler sampler, VkImageLayout layout, VkDescriptorType type)
 {
     VkDescriptorImageInfo& info = imageInfos.emplace_back(VkDescriptorImageInfo{
-        .sampler = sampler,
+		.sampler = sampler, // TODO: pass NULL if not using sampler
         .imageView = image,
         .imageLayout = layout
         });

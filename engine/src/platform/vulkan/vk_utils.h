@@ -1,6 +1,8 @@
 #pragma once
 #include <vulkan/vulkan.h>
 #include <optional>
+#include "renderer/descriptor_set.h"
+#include "renderer/texture.h"
 struct QueueFamilyIndices {
 	std::optional<uint32_t> graphicsFamily;
 	std::optional<uint32_t> presentFamily;
@@ -17,4 +19,6 @@ public:
 	static uint32_t findComputeQueueFamily(VkPhysicalDevice physicalDevice);
 	static VkCommandBuffer beginSingleTimeCommands(VkDevice device, VkCommandPool commandPool);
 	static void endSingleTimeCommands(VkDevice device, VkCommandPool commandPool, VkQueue queue, VkCommandBuffer commandBuffer, VkFence fence = VK_NULL_HANDLE);
+	static VkDescriptorType getVkDescriptorType(DescriptorType type);
+	static VkImageLayout getVkImageLayout(TextureUsage usage);
 };

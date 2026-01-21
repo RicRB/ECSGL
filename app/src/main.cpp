@@ -34,33 +34,22 @@ int main(void)
     Transform cT = currentEngine.registry.GetComponent<Transform>(currentEngine.currentCameraEntity);
     Entity pLight = engine::CreatePointLight(cT);
     currentEngine.registry.scenegraph.ParentEntity(pLight, currentEngine.currentCameraEntity);
-    Texture text = currentEngine.resourceManager.LoadTexture(RES_DIR"images/container2.png");
-    currentEngine.resourceManager.bindTextureToMaterial(currentEngine.defaultMaterial, text, 0);
 
 	ComputeShader shader = currentEngine.resourceManager.LoadComputeShader(RES_DIR"shaders/compute/test.glsl");
 	ComputeDispatcher dispatcher(shader);
-    Buffer inBuffer;
-	Buffer outBuffer;
-	BufferDescription desc;
-	desc.size = 5 * sizeof(int);
-	desc.type = BufferType::SSBO;
+	Texture text = currentEngine.resourceManager.LoadTexture(RES_DIR"images/container2.png", TextureUsage::Read);
+	Texture text2 = currentEngine.resourceManager.LoadEmptyTexture(500, 500, TextureUsage::ReadWrite);
 
+	dispatcher.setTexture("inputImage", &text);
+	dispatcher.setTexture("outputImage", &text2);
 
-    inBuffer = currentEngine.bufferManager->get()->createBuffer(desc);
-	outBuffer = currentEngine.bufferManager->get()->createBuffer(desc);
-
-	int data[5] = { 1, 2, 3, 4, 5 };
-	currentEngine.bufferManager->get()->updateBuffer(inBuffer, data, desc.size);
-	currentEngine.bufferManager->get()->updateBuffer(outBuffer, data, desc.size);
-
-	dispatcher.setBuffer("inputData", inBuffer, desc.size);
-	dispatcher.setBuffer("outputData", outBuffer, desc.size);
-
-	dispatcher.dispatch(5, 1, 1);
+    uint32_t groupCountX = (500 + 15) / 16;  // = 32 workgroups
+    uint32_t groupCountY = (500 + 15) / 16;  // = 32 workgroups
+	dispatcher.dispatch(groupCountX, groupCountY, 1);
     dispatcher.wait();
 
-    int out[5];
-	currentEngine.bufferManager->get()->getBufferData(outBuffer, out);
+    currentEngine.resourceManager.setTextureUsage(text2, TextureUsage::Read);
+    currentEngine.resourceManager.bindTextureToMaterial(currentEngine.defaultMaterial, text2, 0);
 
     game.Start();
 	return 0;

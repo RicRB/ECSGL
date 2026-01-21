@@ -23,6 +23,7 @@ public:
 	void unloadMesh(MeshData* mesh) override;
 	void unloadTexture(TextureData* textureData) override;
 	void bindTextureToMaterial(MaterialData* materialData, TextureData* textureData, int binding) override;
+	void setTextureUsage(TextureData* textureData, TextureUsage usage) override;
 	void createDescriptorSet(Program* program, DescriptorSet* descriptorSet) override;
 private:
 	GLuint createUniformBuffer(const size_t size);

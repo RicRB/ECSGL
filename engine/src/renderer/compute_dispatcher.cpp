@@ -24,6 +24,27 @@ void ComputeDispatcher::setBuffer(std::string_view name, Buffer buffer, size_t s
 	engine::GetEngine().computeManager->get()->setBuffer(m_shaderData, m_descriptorSet.get(), &bufferData, name);
 }
 
+void ComputeDispatcher::setTexture(int binding, Texture* texture)
+{
+	ResourceManager& resourceManager = engine::GetEngine().resourceManager;
+	TextureData& textureData = resourceManager.m_textures->at(texture->handle);
+	for (size_t i = 0; i < m_shaderData.descriptorReflection.bindings.size(); i++)
+	{
+		if (m_shaderData.descriptorReflection.bindings[i].binding == binding) {
+			DescriptorBinding& binding = m_shaderData.descriptorReflection.bindings[i];
+			engine::GetEngine().computeManager->get()->setImage(m_descriptorSet.get(), textureData.image.get(), binding);
+			return;
+		}
+	}
+}
+
+void ComputeDispatcher::setTexture(std::string_view name, Texture* texture)
+{
+	ResourceManager& resourceManager = engine::GetEngine().resourceManager;
+	TextureData& textureData = resourceManager.m_textures->at(texture->handle);
+	engine::GetEngine().computeManager->get()->setImage(m_shaderData, m_descriptorSet.get(), textureData.image.get(), name);
+}
+
 bool ComputeDispatcher::isDone() const
 {
 	return m_fence->isSignaled();

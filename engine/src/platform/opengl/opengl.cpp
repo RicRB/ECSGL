@@ -371,6 +371,10 @@ void OpenGl::bindTextureToMaterial(MaterialData* materialData, TextureData* text
 {
 }
 
+void OpenGl::setTextureUsage(TextureData* textureData, TextureUsage usage)
+{
+}
+
 void OpenGl::createDescriptorSet(Program* program, DescriptorSet* descriptorSet)
 {
 }

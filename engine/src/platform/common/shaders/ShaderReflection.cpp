@@ -33,7 +33,7 @@ DescriptorSetReflection ShaderReflection::reflectSPIRV(const std::vector<uint32_
 
     // Process each binding
     for (const auto* binding : bindings) {
-        DescriptorSetReflection::Binding b;
+        DescriptorBinding b;
         b.set = binding->set;
         b.binding = binding->binding;
         b.name = binding->name ? binding->name : "";
@@ -74,7 +74,7 @@ DescriptorSetReflection ShaderReflection::reflectSPIRV(const std::vector<uint32_
 
     // Sort bindings by set and binding number
     std::sort(reflection.bindings.begin(), reflection.bindings.end(),
-        [](const DescriptorSetReflection::Binding& a, const DescriptorSetReflection::Binding& b) {
+        [](const DescriptorBinding& a, const DescriptorBinding& b) {
             if (a.set != b.set) return a.set < b.set;
             return a.binding < b.binding;
         });
