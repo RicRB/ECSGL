@@ -1,7 +1,7 @@
 #include "core/application.h"
 #include "core/engine.h" // HOLY SHIT IT WORKS?????????????
 #include "systems/camera_movement.hpp"
-#include "renderer/compute_dispatcher.h"
+#include "systems/raycaster.hpp"
 class Game : public Core::Application {
 public:
 	Game() : Core::Application() {
@@ -16,6 +16,9 @@ int main(void)
 	Game game;
     Engine& currentEngine = engine::GetEngine();
     currentEngine.registry.AddSystem<CameraMovementSystem>();
+    currentEngine.registry.AddSystem<Raycaster>();
+
+
 
     Transform transform;
     transform.setPosition(glm::vec3(0, 0, -10.0f));
@@ -35,21 +38,9 @@ int main(void)
     Entity pLight = engine::CreatePointLight(cT);
     currentEngine.registry.scenegraph.ParentEntity(pLight, currentEngine.currentCameraEntity);
 
-	ComputeShader shader = currentEngine.resourceManager.LoadComputeShader(RES_DIR"shaders/compute/test.glsl");
-	ComputeDispatcher dispatcher(shader);
 	Texture text = currentEngine.resourceManager.LoadTexture(RES_DIR"images/container2.png", TextureUsage::Read);
-	Texture text2 = currentEngine.resourceManager.LoadEmptyTexture(500, 500, TextureUsage::ReadWrite);
 
-	dispatcher.setTexture("inputImage", &text);
-	dispatcher.setTexture("outputImage", &text2);
-
-    uint32_t groupCountX = (500 + 15) / 16;  // = 32 workgroups
-    uint32_t groupCountY = (500 + 15) / 16;  // = 32 workgroups
-	dispatcher.dispatch(groupCountX, groupCountY, 1);
-    dispatcher.wait();
-
-    currentEngine.resourceManager.setTextureUsage(text2, TextureUsage::Read);
-    currentEngine.resourceManager.bindTextureToMaterial(currentEngine.defaultMaterial, text2, 0);
+    currentEngine.resourceManager.bindTextureToMaterial(currentEngine.defaultMaterial, text, 0);
 
     game.Start();
 	return 0;

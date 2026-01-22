@@ -9,4 +9,6 @@ public:
 	VkDevice m_device;
 	void wait() override;
 	bool isSignaled() override;
+	void reset() override;
+	bool isValid() override;
 };

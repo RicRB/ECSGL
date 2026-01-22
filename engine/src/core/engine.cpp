@@ -56,6 +56,7 @@ void Engine::initialize(const std::shared_ptr<Window>& window)
 void Engine::Start()
 {
 	printf("Game started");
+	registry.startSystems();
 }
 
 void Engine::Update()

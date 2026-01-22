@@ -3,6 +3,7 @@
 #include "components/lights.h"
 #include "components/camera.h"
 #include "renderer/renderer.h"
+#include "renderer/compute_dispatcher.h"
 #include "renderer/compute_manager.h"
 #include <memory>
 #include "window.h"

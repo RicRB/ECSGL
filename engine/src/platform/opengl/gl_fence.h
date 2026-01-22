@@ -6,4 +6,5 @@ private:
 
 public:
 	bool isSignaled() override;
+	void reset() override;
 };

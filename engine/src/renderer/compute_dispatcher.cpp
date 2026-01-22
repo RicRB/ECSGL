@@ -1,6 +1,6 @@
 #include "compute_dispatcher.h"
 #include "core/engine.h"
-ComputeDispatcher::ComputeDispatcher(const ComputeShader& shader) : m_shaderData(engine::GetEngine().resourceManager.m_computeShaders->at(shader.handle))
+ComputeDispatcher::ComputeDispatcher(const ComputeShader shader) : m_shaderData(engine::GetEngine().resourceManager.m_computeShaders->at(shader.handle))
 {
 	m_descriptorSet = DescriptorSet::CreateUnique();
 	m_fence = Fence::createUnique();
@@ -9,6 +9,7 @@ ComputeDispatcher::ComputeDispatcher(const ComputeShader& shader) : m_shaderData
 
 void ComputeDispatcher::dispatch(uint32_t threadGroupX, uint32_t threadGroupY, uint32_t threadGroupZ)
 {
+	if (m_fence->isValid()) m_fence->reset();
 	engine::GetEngine().computeManager->get()->dispatchComputeShader(m_shaderData, m_descriptorSet.get(), m_fence.get(), threadGroupX, threadGroupY, threadGroupZ);
 }
 
@@ -24,10 +25,10 @@ void ComputeDispatcher::setBuffer(std::string_view name, Buffer buffer, size_t s
 	engine::GetEngine().computeManager->get()->setBuffer(m_shaderData, m_descriptorSet.get(), &bufferData, name);
 }
 
-void ComputeDispatcher::setTexture(int binding, Texture* texture)
+void ComputeDispatcher::setTexture(int binding, Texture texture)
 {
 	ResourceManager& resourceManager = engine::GetEngine().resourceManager;
-	TextureData& textureData = resourceManager.m_textures->at(texture->handle);
+	TextureData& textureData = resourceManager.m_textures->at(texture.handle);
 	for (size_t i = 0; i < m_shaderData.descriptorReflection.bindings.size(); i++)
 	{
 		if (m_shaderData.descriptorReflection.bindings[i].binding == binding) {
@@ -38,10 +39,10 @@ void ComputeDispatcher::setTexture(int binding, Texture* texture)
 	}
 }
 
-void ComputeDispatcher::setTexture(std::string_view name, Texture* texture)
+void ComputeDispatcher::setTexture(std::string_view name, Texture texture)
 {
 	ResourceManager& resourceManager = engine::GetEngine().resourceManager;
-	TextureData& textureData = resourceManager.m_textures->at(texture->handle);
+	TextureData& textureData = resourceManager.m_textures->at(texture.handle);
 	engine::GetEngine().computeManager->get()->setImage(m_shaderData, m_descriptorSet.get(), textureData.image.get(), name);
 }
 

@@ -575,7 +575,7 @@ void Vulkan::bindTextureToMaterial(MaterialData* materialData, TextureData* text
 	DescriptorWriter writer;
 	auto image = std::static_pointer_cast<VulkanImage>(textureData->image);
 	int textureBinding = binding + 1;
-	writer.writeImage(textureBinding, image->imageView, image->sampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+	writer.writeImage(textureBinding, image->imageView, image->sampler, VkUtils::getVkImageLayout(textureData->usage) , VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 
 	writer.updateSet(device, std::static_pointer_cast<VulkanDescriptorSet>(materialData->descriptorSet)->set);
 }

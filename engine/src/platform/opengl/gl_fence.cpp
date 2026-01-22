@@ -4,3 +4,7 @@ bool GlFence::isSignaled()
 {
 	return false;
 }
+
+void GlFence::reset()
+{
+}
