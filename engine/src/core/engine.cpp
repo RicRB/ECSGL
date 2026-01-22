@@ -43,7 +43,9 @@ void Engine::initialize(const std::shared_ptr<Window>& window)
 	this->bufferManager = &graphicsAPI->bufferManager;
 
 	std::cout << "Working directory: " << std::filesystem::current_path() << std::endl;
-	defaultShader = resourceManager.LoadShader(RES_DIR"shaders/Basic.vert", RES_DIR"shaders/Basic.frag");
+	ShaderCreateInfo create;
+	create.alwaysRender = false;
+	defaultShader = resourceManager.LoadShader(RES_DIR"shaders/Basic.vert", RES_DIR"shaders/Basic.frag", create);
 	defaultMaterial = resourceManager.LoadMaterial(defaultShader);
 	defaultMesh = resourceManager.LoadOBJ(RES_DIR"models/cube.obj");
 

@@ -12,6 +12,7 @@
 #include <vector>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <array>
 #include "renderer/graphics_api.h"
 #include "renderer/buffer.h"
@@ -29,6 +30,16 @@ struct SwapChainSupportDetails {
 	std::vector<VkSurfaceFormatKHR> formats;
 	std::vector<VkPresentModeKHR> presentModes;
 };
+
+struct PipelineCreateInfo {
+	const char* name;
+	std::string_view vertexSource;
+	std::string_view fragmentSource;
+	VkPipeline* pipeline;
+	VkPipelineLayout* layout;
+	bool culling;
+};
+
 class Vulkan : public GraphicsAPI {
 public:
 private:
@@ -129,7 +140,7 @@ private:
 	void createSwapChain();
 	void createImageViews();
 	VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT);
-	void createGraphicsPipeline(const char* name, const std::string& vertexSource, const std::string& fragmentSource, VkPipeline* pipeline, VkPipelineLayout* pipelineLayout);
+	void createGraphicsPipeline(PipelineCreateInfo& createInfo);
 	void createComputePipeline(const char* name, const std::string& computeSource, VkPipeline* computePipeline, VkPipelineLayout* computePipelineLayout, DescriptorSetReflection& descriptorSetReflection, VkDescriptorSetLayout& descriptorSetLayout);
 	VkShaderModule createShaderModule(const std::vector<uint32_t>& code);
 	void createRenderPass();

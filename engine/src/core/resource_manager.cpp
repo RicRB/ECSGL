@@ -14,7 +14,7 @@ void ResourceManager::CreateResourcePools()
 	m_textures = std::make_unique<MemoryPool<TextureData, MAX_RESOURCE_POOL_SIZE>>();
 }
 
-Shader ResourceManager::LoadShader(const std::string& vertexShaderPath, const std::string& fragmentShaderPath)
+Shader ResourceManager::LoadShader(const std::string& vertexShaderPath, const std::string& fragmentShaderPath, ShaderCreateInfo& info)
 {
     MemoryHandle shaderHandle = m_shaders->allocate();
 	ShaderData& shader = m_shaders->at(shaderHandle);
@@ -25,7 +25,7 @@ Shader ResourceManager::LoadShader(const std::string& vertexShaderPath, const st
 	// combine hashes
 	std::hash<std::string> hasher;
 	shader.sourceHash = hasher(shader.vertexSource + shader.fragmentSource);
-
+    shader.alwaysRender = info.alwaysRender;
 
     graphics::GetGraphicsAPI()->compileShader(
 		std::to_string(static_cast<uint32_t>(shaderHandle)).c_str(),

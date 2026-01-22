@@ -405,7 +405,14 @@ std::vector<const char*> Vulkan::getRequiredExtensions()
 }
 void Vulkan::compileShader(const char* name, const std::string& vertexSource, const std::string& fragmentSource, ShaderData* shaderData) {
 	auto program = std::static_pointer_cast<VkProgram>(shaderData->program).get();
-	createGraphicsPipeline(name, vertexSource, fragmentSource, &program->pipeline, &program->pipelineLayout);
+	PipelineCreateInfo pipelineCreate;
+	pipelineCreate.name = name;
+	pipelineCreate.vertexSource = vertexSource;
+	pipelineCreate.fragmentSource = fragmentSource;
+	pipelineCreate.pipeline = &program->pipeline;
+	pipelineCreate.layout = &program->pipelineLayout;
+
+	createGraphicsPipeline(pipelineCreate);
 }
 
 void Vulkan::compileComputeShader(const char* name, ComputeShaderData* computeShaderData) {
@@ -926,9 +933,9 @@ VkImageView Vulkan::createImageView(VkImage image, VkFormat format, VkImageAspec
 }
 
 
-void Vulkan::createGraphicsPipeline(const char* name, const std::string& vertexSource, const std::string& fragmentSource, VkPipeline* pipeline, VkPipelineLayout* pipelineLayout) {
-	auto vertShaderCode = ShaderCompiler::compileShaderGLSLToSPIRV(vertexSource, ShaderType::Vertex, false);
-	auto fragShaderCode = ShaderCompiler::compileShaderGLSLToSPIRV(fragmentSource, ShaderType::Fragment, false);
+void Vulkan::createGraphicsPipeline(PipelineCreateInfo& createInfo) {
+	auto vertShaderCode = ShaderCompiler::compileShaderGLSLToSPIRV(createInfo.vertexSource, ShaderType::Vertex, false);
+	auto fragShaderCode = ShaderCompiler::compileShaderGLSLToSPIRV(createInfo.fragmentSource, ShaderType::Fragment, false);
 	VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
 	VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
 
@@ -1001,7 +1008,7 @@ void Vulkan::createGraphicsPipeline(const char* name, const std::string& vertexS
 	rasterizer.rasterizerDiscardEnable = VK_FALSE;
 	rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
 	rasterizer.lineWidth = 1.0f;
-	rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+	rasterizer.cullMode = createInfo.culling == true ? VK_CULL_MODE_BACK_BIT : VK_CULL_MODE_NONE;
 	rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE; // invisible objects... maybe switch back later??
 	rasterizer.depthBiasEnable = VK_FALSE;
 	rasterizer.depthBiasConstantFactor = 0.0f; // Optional
@@ -1068,7 +1075,7 @@ void Vulkan::createGraphicsPipeline(const char* name, const std::string& vertexS
 	pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
 	pipelineLayoutInfo.pushConstantRangeCount = 1;
 
-	if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, pipelineLayout) != VK_SUCCESS) {
+	if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, createInfo.layout) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create pipeline layout!");
 	}
 
@@ -1084,13 +1091,13 @@ void Vulkan::createGraphicsPipeline(const char* name, const std::string& vertexS
 	pipelineInfo.pDepthStencilState = &depthStencil;
 	pipelineInfo.pColorBlendState = &colorBlending;
 	pipelineInfo.pDynamicState = &dynamicState;
-	pipelineInfo.layout = *pipelineLayout;
+	pipelineInfo.layout = *createInfo.layout;
 	pipelineInfo.renderPass = renderPass;
 	pipelineInfo.subpass = 0;
 	pipelineInfo.basePipelineHandle = VK_NULL_HANDLE; // Optional
 	pipelineInfo.basePipelineIndex = -1; // Optional
 
-	if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, pipeline) != VK_SUCCESS) {
+	if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, createInfo.pipeline) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create graphics pipeline!");
 	}
 	vkDestroyShaderModule(device, fragShaderModule, nullptr);

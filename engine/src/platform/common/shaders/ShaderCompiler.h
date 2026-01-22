@@ -10,5 +10,5 @@ enum class ShaderType {
 
 class ShaderCompiler {
 public:
-	static std::vector<uint32_t> compileShaderGLSLToSPIRV(const std::string& source, const ShaderType shaderType, bool optimize);
+	static std::vector<uint32_t> compileShaderGLSLToSPIRV(const std::string_view source, const ShaderType shaderType, bool optimize);
 };

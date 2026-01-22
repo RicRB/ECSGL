@@ -1,7 +1,7 @@
 #include "ShaderCompiler.h"
 #include <shaderc/shaderc.hpp>
 
-std::vector<uint32_t> ShaderCompiler::compileShaderGLSLToSPIRV(const std::string& source, const ShaderType shaderType, bool optimize)
+std::vector<uint32_t> ShaderCompiler::compileShaderGLSLToSPIRV(const std::string_view source, const ShaderType shaderType, bool optimize)
 {
 	shaderc_shader_kind kind;
 	switch(shaderType) {
@@ -26,7 +26,7 @@ std::vector<uint32_t> ShaderCompiler::compileShaderGLSLToSPIRV(const std::string
 	}
 	options.SetTargetEnvironment(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_2);
 	options.SetTargetSpirv(shaderc_spirv_version_1_0); // Or 1_5 for newer Vulkan
-	shaderc::SpvCompilationResult result = compiler.CompileGlslToSpv(source, kind, "Shader", options);
+	shaderc::SpvCompilationResult result = compiler.CompileGlslToSpv(source.data(), kind, "Shader", options);
 	std::cerr << result.GetErrorMessage();
 	if (result.GetCompilationStatus() != shaderc_compilation_status_success) {
 		std::cerr << result.GetErrorMessage();

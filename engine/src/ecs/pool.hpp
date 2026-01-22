@@ -147,6 +147,9 @@ public:
 			activeList.push_back(true);
 			entityIndices[entity.entityID] = entityList.size()-1;
 		}
+		else {
+			componentList[index] = component;
+		}
 	}
 	void RemoveComponent(Entity entity) override
 	{

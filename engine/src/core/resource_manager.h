@@ -27,7 +27,7 @@ private:
 
 public: 
 	void CreateResourcePools();
-	Shader LoadShader(const std::string& vertexShaderPath, const std::string& fragmentShaderPath);
+	Shader LoadShader(const std::string& vertexShaderPath, const std::string& fragmentShaderPath, ShaderCreateInfo& info);
 	ComputeShader LoadComputeShader(const std::string& computeShaderPath);
 	Material LoadMaterial(const Shader shader);
 	Texture LoadTexture(const std::string& path, TextureUsage usage);

@@ -5,6 +5,12 @@
 #include "memory/memory_pool.hpp"
 using GLProgramID = unsigned int;
 using GLenum = unsigned int;
+
+struct ShaderCreateInfo
+{
+	bool alwaysRender = false;
+};
+
 struct ShaderUniformMetaData
 {
 	char* data = nullptr;
@@ -22,6 +28,7 @@ struct ShaderData
 	std::string fragmentSource;
 	// metadata
 	int sourceHash;
+	bool alwaysRender = false;
 	bool operator==(const ShaderData& other) const {
 		return sourceHash == other.sourceHash;
 	}
