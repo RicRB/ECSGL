@@ -96,14 +96,9 @@ namespace engine {
 		Engine* _currentEnginePtr = nullptr;
 	}
 
-	void SetInstance(Engine* engineInstance)
+	void engine::SetInstance(Engine* engineInstance)
 	{
 		internal::_currentEnginePtr = engineInstance;
-	}
-
-	Engine& engine::GetEngine()
-	{
-		return *internal::_currentEnginePtr;
 	}
 
 	Entity engine::CreateEmptyEntity()

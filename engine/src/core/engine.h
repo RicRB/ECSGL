@@ -5,6 +5,7 @@
 #include "renderer/renderer.h"
 #include "renderer/compute_dispatcher.h"
 #include "renderer/compute_manager.h"
+#include "renderer/buffer_manager.h"
 #include <memory>
 #include "window.h"
 #include "renderer/graphics_api.h"
@@ -48,8 +49,9 @@ namespace engine
 	{
 		extern Engine* _currentEnginePtr;
 	}
-	inline void SetInstance(Engine* engineInstance);
-	inline Engine& GetEngine();
+	void SetInstance(Engine* engineInstance);
+	inline Engine& GetEngine() { return *internal::_currentEnginePtr; };
+	inline BufferManager& GetBufferManager() { return *internal::_currentEnginePtr->bufferManager->get(); };
 	Entity CreateEmptyEntity();
 	Entity CreateDefaultObject(Transform transform = Transform());
 	Entity CreateObject(Transform transform = Transform(), Mesh mesh = {}, Material material = {});

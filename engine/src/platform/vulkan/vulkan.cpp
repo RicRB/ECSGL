@@ -700,6 +700,7 @@ bool Vulkan::isPhysicalDeviceSuitable(VkPhysicalDevice device, int* score)
 	bool isSuitable = 
 		(deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU || deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU)
 		&& deviceFeatures.geometryShader
+		&& deviceFeatures.shaderFloat64
 		&& indices.isComplete() 
 		&& extensionsSupported
 		&& swapChainAdequate
@@ -752,6 +753,7 @@ void Vulkan::createLogicalDevice()
 
 	VkPhysicalDeviceFeatures deviceFeatures{};
 	deviceFeatures.samplerAnisotropy = VK_TRUE;
+	deviceFeatures.shaderFloat64 = VK_TRUE;
 	
 	VkDeviceCreateInfo createInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;

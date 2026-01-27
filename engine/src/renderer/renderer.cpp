@@ -114,8 +114,11 @@ void Renderer::DrawElements(Registry& registry, ResourceManager& resourceManager
 		graphicsAPI->beginDrawImGui();
 		ImGui::Begin("Hello, world!");
 		ImGui::DragFloat3("Camera pos ", &cameraTransform.getPositionReference().x);
+		ImGui::Text("Frame : %d", frame);
 		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
 		ImGui::Text("Average Frame time : %.3f ms", fps / times);
+		frame += 1;
+		
 		ImGui::End();
 		graphicsAPI->endDrawImGui();
 	}
