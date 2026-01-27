@@ -2,6 +2,7 @@
 #include <stdexcept>
 #include <vector>
 
+std::vector<PendingCommand> VkUtils::pendingCommands;
 uint32_t VkUtils::findMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties)
 {
 	VkPhysicalDeviceMemoryProperties memProperties;
@@ -115,6 +116,20 @@ void VkUtils::endSingleTimeCommands(VkDevice device, VkCommandPool commandPool, 
 
 	vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
 }
+void VkUtils::endSingleTimeCommandsAsync(VkDevice device, VkCommandPool commandPool, VkQueue queue, VkCommandBuffer commandBuffer, VkFence fence)
+{
+	vkEndCommandBuffer(commandBuffer);
+
+	VkSubmitInfo submitInfo{};
+	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &commandBuffer;
+
+	vkQueueSubmit(queue, 1, &submitInfo, fence);
+
+	pendingCommands.emplace_back(commandBuffer, commandPool, fence);
+	cleanupPendingCommands(device);
+}
 
 VkDescriptorType VkUtils::getVkDescriptorType(DescriptorType type)
 {
@@ -149,5 +164,22 @@ VkImageLayout VkUtils::getVkImageLayout(TextureUsage usage)
 		return VK_IMAGE_LAYOUT_GENERAL;
 	default:
 		return VK_IMAGE_LAYOUT_GENERAL;
+	}
+}
+
+void VkUtils::cleanupPendingCommands(VkDevice device)
+{
+	for (auto it = pendingCommands.begin(); it != pendingCommands.end();)
+	{
+		if (vkGetFenceStatus(device, it->fence) == VK_SUCCESS)
+		{
+			vkResetFences(device, 1, &it->fence);
+			vkFreeCommandBuffers(device, it->pool, 1, &it->buffer);
+			it = pendingCommands.erase(it);
+		}
+		else
+		{
+			++it;
+		}
 	}
 }

@@ -144,12 +144,17 @@ class Input
 {
 private:
 	static std::weak_ptr<Window> window;
+	static double scrollX;
+	static double scrollY;
 public:
+
 	static void Init(const std::shared_ptr<Window>& window);
 	static bool GetKeyPressed(KeyCode key);
 	static bool GetKeyReleased(KeyCode key);
 	static bool GetMouseButtonPressed(KeyCode button);
 	static bool GetMouseButtonReleased(KeyCode button);
+	static double GetVerticalMouseScroll();
+	static double GetHorizontalMouseScroll();
 private:
 	Input() = default;
 	~Input() = default;

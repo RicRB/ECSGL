@@ -54,7 +54,7 @@ void VulkanComputeManager::dispatchComputeShader(ComputeShaderData& computeShade
 		0, nullptr,
 		0, nullptr
 	);
-	VkUtils::endSingleTimeCommands(m_device, m_commandPool, m_computeQueue, commandBuffer, vkFence);
+	VkUtils::endSingleTimeCommandsAsync(m_device, m_commandPool, m_computeQueue, commandBuffer, vkFence);
 }
 
 void VulkanComputeManager::setBuffer(DescriptorSet* set, BufferData* buffer, int binding)
