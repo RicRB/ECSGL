@@ -241,7 +241,7 @@ void main() {
         float diff = max(dot(N, V), 0.0);
         float intensity = ambient + (1.0 - ambient) * diff;
         vec3 shaded = objectColor.rgb * intensity;
-        color = vec4(shaded, objectColor.a);
+        color = vec4(1.0, 1.0, 1.0, 1.0);
     }
     else {
         color = vec4(0.0, 0.0, 0.0, 1.0);

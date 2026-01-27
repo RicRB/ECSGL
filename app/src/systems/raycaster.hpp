@@ -13,7 +13,7 @@ public:
 	Entity entity;
 	Texture textures[2];
 	int renderedFrame = 0;
-	int resX = 500, resY = 500;
+	int resX = 1000, resY = 1000;
 	uint32_t groupCountX, groupCountY;
 	std::unique_ptr<ComputeDispatcher> dispatcher;
 
@@ -28,28 +28,29 @@ public:
 		int height;
 		float r1;
 		float r2;
+		int maxSteps;
+		float stepSizeMin;
+		float stepSizeMax;
+		float r_s;
+		float escape_r;
 	};
 
 	BlackHoleData data;
 	Buffer buffer;
 	Buffer objectBuffer;
-	double mass;
-	double radius;
 	double r_s;
-	const double c = 299792458.0;
-	const double G = 6.67430e-11;
 
 
 	struct RotationCamera {
 		float radius;
-		float minRadius = 1e10f, maxRadius = 1e12f;
+		float minRadius = 10, maxRadius = 100;
 
 		float azimuth = 0.0f;
 		float elevation = M_PI / 2.0f;
 
-		float orbitSpeed = 0.1f;
-		float panSpeed = 0.01f;
-		double zoomSpeed = 25e9f;
+		float orbitSpeed = 1.0f;
+		float panSpeed = 1.0f;
+		double zoomSpeed = 5;
 
 		// Calculate camera position in world space
 		glm::vec3 position() const {
@@ -67,12 +68,12 @@ public:
 	RotationCamera rotationCamera;
 
 
-	struct Object {
+	struct alignas(16) Object {
 		glm::vec3 position;
 		float radius;
 	};
 
-	struct ObjectData {
+	struct alignas(16) ObjectData {
 		int count;
 		Object objects[1];
 	};
@@ -107,12 +108,11 @@ public:
 			buffer = engine::GetBufferManager().createBuffer(desc);
 		}
 
+		r_s = 5.0;
+		rotationCamera.radius = r_s * 8;
 
-		mass = 8.54e36;
-		r_s = 2.0 * G * mass / (c * c);
-
-		objectData.objects[0].position = glm::vec3(-r_s * 2, 0.0, 0.0);
-		objectData.objects[0].radius = r_s*3;
+		objectData.objects[0].position = - rotationCamera.position() * 2.0f;
+		objectData.objects[0].radius = r_s * 1.0f;
 		objectData.count = 1;
 		{
 			BufferDescription desc;
@@ -122,14 +122,13 @@ public:
 		}
 		engine::GetBufferManager().updateBuffer(objectBuffer, &objectData, sizeof(ObjectData));
 
-		rotationCamera.radius = r_s * 8;
 		auto& camTransform = registry.GetComponent<Transform>(camera);
 		camTransform.setCaching(false);
 
 		updateData();
 
 
-		ComputeShader cShader = engine::GetEngine().resourceManager.LoadComputeShader(RES_DIR"shaders/compute/test.glsl");
+		ComputeShader cShader = engine::GetEngine().resourceManager.LoadComputeShader(RES_DIR"shaders/compute/raymarcher.glsl");
 		dispatcher = std::make_unique<ComputeDispatcher>(cShader);
 
 		groupCountX = (resX + 7) / 8;  // = 32 workgroups
@@ -141,7 +140,7 @@ public:
 		dispatcher->dispatch(groupCountX, groupCountY, 1);
 	}
 	void update() override {
-
+		HandleInputs();
 		if (!dispatcher->isDone()) return;
 		updateData();
 
@@ -167,7 +166,6 @@ public:
 
 	void updateData()
 	{
-		HandleInputs();
 		auto camera = engine::GetCameraEntity();
 		auto& registry = engine::GetRegistry();
 		auto& camTransform = registry.GetComponent<Transform>(camera);
@@ -188,7 +186,12 @@ public:
 		data.width = resX;
 		data.height = resY;
 		data.r1 = r_s * 1.5f;
-		data.r2 = r_s * 3.0f;
+		data.r2 = r_s * 4.0f;
+		data.maxSteps = 1000;
+		data.stepSizeMin = 0.1f;
+		data.stepSizeMax = 0.5f;
+		data.r_s = r_s;
+		data.escape_r = r_s * 100;
 	}
 
 	void HandleInputs()

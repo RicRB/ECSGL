@@ -15,7 +15,7 @@ int main(void)
 {
 	Game game;
     Engine& currentEngine = engine::GetEngine();
-    currentEngine.registry.AddSystem<CameraMovementSystem>();
+    //currentEngine.registry.AddSystem<CameraMovementSystem>();
     currentEngine.registry.AddSystem<Raycaster>();
 
 

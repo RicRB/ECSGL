@@ -173,7 +173,6 @@ void VkUtils::cleanupPendingCommands(VkDevice device)
 	{
 		if (vkGetFenceStatus(device, it->fence) == VK_SUCCESS)
 		{
-			vkResetFences(device, 1, &it->fence);
 			vkFreeCommandBuffers(device, it->pool, 1, &it->buffer);
 			it = pendingCommands.erase(it);
 		}
