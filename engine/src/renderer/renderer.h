@@ -5,9 +5,6 @@ class Renderer
 {
 public:
 private:
-	float fps = 0.0f;
-	float times = 0.0f;
-	int frame = 0;
 public:
 	Renderer();
 	~Renderer();

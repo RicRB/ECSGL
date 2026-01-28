@@ -65,6 +65,12 @@ void Engine::Update()
 {
 	Time::Update();
 	registry.updateSystems();
+	if (graphicsAPI->isImGuiInitialized)
+	{
+		graphicsAPI->beginDrawImGui();
+		registry.guiSystems();
+		graphicsAPI->endDrawImGui();
+	}
 	renderer.DrawElements(registry, resourceManager, currentCameraEntity);
 }
 

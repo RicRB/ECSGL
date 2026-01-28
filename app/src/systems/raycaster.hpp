@@ -2,7 +2,7 @@
 #include "core/engine.h"
 #include "core/time.h"
 #include "core/input.h"
-
+#include "imgui/imgui.h"
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
@@ -12,6 +12,7 @@ public:
 	Material materials[2];
 	Entity entity;
 	Texture textures[2];
+	Texture sphereMap;
 	int renderedFrame = 0;
 	int resX = 1000, resY = 1000;
 	uint32_t groupCountX, groupCountY;
@@ -33,12 +34,13 @@ public:
 		float stepSizeMax;
 		float r_s;
 		float escape_r;
+		float rotSpeed;
+		float mass;
 	};
 
 	BlackHoleData data;
 	Buffer buffer;
 	Buffer objectBuffer;
-	double r_s;
 
 
 	struct RotationCamera {
@@ -71,11 +73,14 @@ public:
 	struct alignas(16) Object {
 		glm::vec3 position;
 		float radius;
+		glm::vec4 color;
+		Object() = default;
+		Object(glm::vec3 position, float radius, glm::vec4 color) : position(position), radius(radius), color(color) {};
 	};
 
 	struct alignas(16) ObjectData {
 		int count;
-		Object objects[1];
+		Object objects[3];
 	};
 
 	ObjectData objectData;
@@ -90,15 +95,33 @@ public:
 		Shader shader = engine::GetEngine().resourceManager.LoadShader(RES_DIR"shaders/simpleTexture.vert", RES_DIR"shaders/simpleTexture.frag", create);
 		materials[0] = engine::GetEngine().resourceManager.LoadMaterial(shader);
 		materials[1] = engine::GetEngine().resourceManager.LoadMaterial(shader);
-
 		Mesh mesh = engine::GetEngine().resourceManager.LoadOBJ(RES_DIR"models/quad.obj");
 		entity = engine::CreateObject(Transform(glm::vec3(), glm::vec3(0.0,180.0,0.0)), mesh, materials[renderedFrame]);
 
 		textures[0] = engine::GetEngine().resourceManager.LoadEmptyTexture(resX, resY, TextureUsage::ReadWrite);
 		textures[1] = engine::GetEngine().resourceManager.LoadEmptyTexture(resX, resY, TextureUsage::ReadWrite);
+		sphereMap = engine::GetEngine().resourceManager.LoadTexture(RES_DIR"images/background.hdr", TextureUsage::Read);
+
 
 		engine::GetEngine().resourceManager.bindTextureToMaterial(materials[0], textures[0], 0);
 		engine::GetEngine().resourceManager.bindTextureToMaterial(materials[1], textures[1], 0);
+
+
+		auto& camTransform = registry.GetComponent<Transform>(camera);
+		camTransform.setCaching(false);
+		data.r_s = 5.0f;
+		data.width = resX;
+		data.height = resY;
+		data.r1 = data.r_s * 1.5f;
+		data.r2 = data.r_s * 3.0f;
+		data.maxSteps = 1000;
+		data.stepSizeMin = 0.1f;
+		data.stepSizeMax = 0.3f;
+
+		data.escape_r = data.r_s * 100;
+		data.rotSpeed = 0.6f;
+		data.mass = 2.4f;
+
 
 		// buffer
 		{
@@ -108,12 +131,12 @@ public:
 			buffer = engine::GetBufferManager().createBuffer(desc);
 		}
 
-		r_s = 5.0;
-		rotationCamera.radius = r_s * 8;
+		rotationCamera.radius = data.r_s * 8;
+		objectData.objects[0] = Object(-rotationCamera.position() * 2.0f, data.r_s * 1.0f, glm::vec4(0.0, 1.0, 0.0, 1.0));
+		objectData.objects[1] = Object(glm::vec3(-rotationCamera.position().x * 3.0f, 0, 0), data.r_s * 1.3f, glm::vec4(1.0, 0.0, 0.0, 1.0));
+		objectData.objects[2] = Object(glm::vec3(-rotationCamera.position().x * 2.0f, 0, -rotationCamera.position().x * 2.0f), data.r_s * 0.6f, glm::vec4(0.0, 0.0, 1.0, 1.0));
+		objectData.count = 3;
 
-		objectData.objects[0].position = - rotationCamera.position() * 2.0f;
-		objectData.objects[0].radius = r_s * 1.0f;
-		objectData.count = 1;
 		{
 			BufferDescription desc;
 			desc.type = BufferType::SSBO;
@@ -122,8 +145,7 @@ public:
 		}
 		engine::GetBufferManager().updateBuffer(objectBuffer, &objectData, sizeof(ObjectData));
 
-		auto& camTransform = registry.GetComponent<Transform>(camera);
-		camTransform.setCaching(false);
+
 
 		updateData();
 
@@ -137,6 +159,7 @@ public:
 		dispatcher->setTexture("outputImage", textures[1]);
 		dispatcher->setBuffer("inputData", buffer);
 		dispatcher->setBuffer("objectData", objectBuffer);
+		dispatcher->setTexture("sphereMapTexture", sphereMap);
 		dispatcher->dispatch(groupCountX, groupCountY, 1);
 	}
 	void update() override {
@@ -157,6 +180,18 @@ public:
 		engine::GetRegistry().AssignComponent<Material>(entity, materials[renderedFrame]);
 
 	}
+
+	void onGui() override {
+		ImGui::Begin("BLACK HOLE");
+		ImGui::DragFloat("Radius", &data.r_s);
+		ImGui::DragFloat("stepSizeMin", &data.stepSizeMin);
+		ImGui::DragFloat("stepSizeMax", &data.stepSizeMax);
+		ImGui::DragInt("maxSteps", &data.maxSteps);
+		ImGui::DragFloat("Speed", &data.rotSpeed);
+		ImGui::DragFloat("Mass", &data.mass);
+		ImGui::End();
+	}
+
 	void cleanup() override {
 		// Cleanup code if needed
 	}
@@ -183,15 +218,6 @@ public:
 		data.forward = fwd;
 		data.tanHalfFov = glm::tan(glm::radians(60.0f * 0.5f));
 		data.aspect = float(resX) / float(resY);
-		data.width = resX;
-		data.height = resY;
-		data.r1 = r_s * 1.5f;
-		data.r2 = r_s * 4.0f;
-		data.maxSteps = 1000;
-		data.stepSizeMin = 0.1f;
-		data.stepSizeMax = 0.5f;
-		data.r_s = r_s;
-		data.escape_r = r_s * 100;
 	}
 
 	void HandleInputs()

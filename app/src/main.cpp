@@ -2,6 +2,7 @@
 #include "core/engine.h" // HOLY SHIT IT WORKS?????????????
 #include "systems/camera_movement.hpp"
 #include "systems/raycaster.hpp"
+#include "systems/debugUI.hpp"
 class Game : public Core::Application {
 public:
 	Game() : Core::Application() {
@@ -16,9 +17,8 @@ int main(void)
 	Game game;
     Engine& currentEngine = engine::GetEngine();
     //currentEngine.registry.AddSystem<CameraMovementSystem>();
+    currentEngine.registry.AddSystem<DebugUI>();
     currentEngine.registry.AddSystem<Raycaster>();
-
-
 
     Transform transform;
     transform.setPosition(glm::vec3(0, 0, -10.0f));

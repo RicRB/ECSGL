@@ -21,6 +21,8 @@ layout(std430, binding = 0) readonly buffer inputDataBlock {
     float stepSizeMax;
     float r_s;
     float escape_r;
+    float rotationSpeed;
+    float mass;
 } inputData;
 
 
@@ -29,6 +31,7 @@ layout(set = 0, binding = 1, rgba8) uniform writeonly image2D outputImage;
 struct Object {
     vec3 position;
     float radius;
+    vec4 color;
 };
 
 layout(std430, binding = 2) readonly buffer objectDataBlock {
@@ -36,6 +39,7 @@ layout(std430, binding = 2) readonly buffer objectDataBlock {
     Object objects[];
 } objectData;
 
+layout(set = 0, binding = 3) uniform sampler2D sphereMapTexture;
 
 float disk_num = 2;
 
@@ -174,13 +178,39 @@ bool interceptObject(RayState rayState) {
         float radius = objectData.objects[i].radius;
         if (distance(P, center) <= radius) {
             // Store color - you'll need to add color to Object struct!
-            objectColor = vec4(1.0, 0.5, 0.2, 1.0);  // Temp orange color
+            objectColor = objectData.objects[i].color;  // Temp orange color
             hitCenter = center;
             hitRadius = radius;
             return true;
         }
     }
     return false;
+}
+
+vec2 directionToEquirectangularUV(vec3 direction)
+{
+    const float PI = 3.14159265359;
+
+    vec3 d = normalize(direction);
+    float theta = asin(clamp(d.y, -1.0, 1.0));
+    float phi = atan(d.z, d.x);
+
+    float u = phi / (2.0 * PI) + 0.5;
+    float v = theta / PI + 0.5;
+    
+    return vec2(u, v);
+}
+
+vec4 sampleBackground(vec3 direction)
+{
+    vec4 color = vec4(0.0);
+
+    vec2 uv = directionToEquirectangularUV(direction);
+        
+    color = texture(sphereMapTexture, uv);
+
+
+    return color;
 }
 
 void main() {
@@ -205,8 +235,8 @@ void main() {
     bool hitDisk      = false;
     bool hitObject    = false;
 
-    const float M = inputData.r_s / 2.0;
-    const float a = 0.0;
+    const float M = inputData.mass;
+    const float a = inputData.rotationSpeed * M;
     RayState previousState = rayState;
     rayState.position += rayState.direction * inputData.stepSizeMin;
     float totalDist = 0.0;
@@ -251,10 +281,18 @@ void main() {
         color = vec4(0.0, 0.0, 0.0, 1.0);
     } else if (hitObject) {
         // Compute shading
-        color = vec4(1.0, 1.0, 1.0, 1.0);
+        vec3 P = rayState.position;
+        vec3 N = normalize(P - hitCenter);
+        vec3 V = normalize(inputData.camPos - P);
+        float ambient = 0.1;
+        float diff = max(dot(N, V), 0.0);
+        float intensity = ambient + (1.0 - ambient) * diff;
+        vec3 shaded = objectColor.rgb * intensity;
+        color = vec4(shaded, objectColor.a);
     }
     else {
-        color = vec4(0.0, 0.0, 0.0, 1.0);
+        color = sampleBackground(rayState.direction);
+
     }
 
     imageStore(outputImage, pixelCoord, color);

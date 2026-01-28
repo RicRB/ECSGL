@@ -100,28 +100,7 @@ void Renderer::DrawElements(Registry& registry, ResourceManager& resourceManager
 		}
 		globalUniformObject.pointLightCount = static_cast<uint32_t>(pointView.size());
 	}
-	// ImGui
-	times += 1.0f;
-	if (times >= 1000)
-	{
-		times = 0;
-		fps = 0.0f;
-	}
-	if (graphicsAPI->isImGuiInitialized)
-	{
-		ImGuiIO& io = ImGui::GetIO(); (void)io;
-		fps = fps + (1000.0f / io.Framerate);
-		graphicsAPI->beginDrawImGui();
-		ImGui::Begin("Hello, world!");
-		ImGui::DragFloat3("Camera pos ", &cameraTransform.getPositionReference().x);
-		ImGui::Text("Frame : %d", frame);
-		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
-		ImGui::Text("Average Frame time : %.3f ms", fps / times);
-		frame += 1;
-		
-		ImGui::End();
-		graphicsAPI->endDrawImGui();
-	}
+
 	FrameDrawData frameDrawData{ cameraTransform.viewMatrix(),
 		cameraComponent.projection,
 		&globalUniformObject,

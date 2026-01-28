@@ -228,6 +228,14 @@ public:
 			system->update();
 		}
 	}
+
+	void guiSystems()
+	{
+		for (const auto& system : systems)
+		{
+			system->onGui();
+		}
+	}
 private:
 	template <typename ComponentType>
 	Pool<ComponentType>* GetPool()
