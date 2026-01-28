@@ -9,4 +9,5 @@ struct VulkanImage : public Image {
 	VkSampler sampler;
 	VkImageLayout layout;
 	VkFormat format;
+	VkImageType type;
 };

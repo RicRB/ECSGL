@@ -13,8 +13,9 @@ public:
 	Entity entity;
 	Texture textures[2];
 	Texture sphereMap;
+	Texture noiseTexture;
 	int renderedFrame = 0;
-	int resX = 1000, resY = 1000;
+	int resX = 1280, resY = 720;
 	uint32_t groupCountX, groupCountY;
 	std::unique_ptr<ComputeDispatcher> dispatcher;
 
@@ -27,15 +28,30 @@ public:
 		float aspect;
 		int width;
 		int height;
-		float r1;
-		float r2;
-		int maxSteps;
-		float stepSizeMin;
-		float stepSizeMax;
-		float r_s;
-		float escape_r;
-		float rotSpeed;
-		float mass;
+		int maxSteps = 1000;
+		float stepSizeMin = 0.1f;
+		float stepSizeMax = 0.3f;
+		float escape_r = 500;
+		float rotSpeed = 0.5f;
+		float mass = 2.0f;
+		
+		int diskEnable = 1;
+		float r1 = 3.5f;
+		float r2 = 27.0f;
+		float diskH = 0.2f;
+		float diskEdgeK = 0.3f;
+
+		float diskDensity = 3.0f;
+
+		float sigmaT = 2.0f;
+		float dsVolScale = 1.0f;
+		int volSubsteps = 4;
+
+
+		float time = 0.0f;
+		float sampleScale = 1.0f;
+		float spin = 20.0f;
+		float gravAcceleration = 1.0f;
 	};
 
 	BlackHoleData data;
@@ -85,6 +101,22 @@ public:
 
 	ObjectData objectData;
 
+
+	struct NoiseParams {
+		int size;
+		float scale;
+		float boost;
+		int octaves;
+		int tileSize;
+		float lacunarity;
+		float gain;
+		float time;
+	};
+
+	NoiseParams noiseParams;
+	Buffer noiseParamsBuffer;
+	std::unique_ptr<ComputeDispatcher> noiseDispatcher;
+
 	Raycaster() = default;
 	void start() override {
 		// Initialization code if needed
@@ -98,9 +130,17 @@ public:
 		Mesh mesh = engine::GetEngine().resourceManager.LoadOBJ(RES_DIR"models/quad.obj");
 		entity = engine::CreateObject(Transform(glm::vec3(), glm::vec3(0.0,180.0,0.0)), mesh, materials[renderedFrame]);
 
-		textures[0] = engine::GetEngine().resourceManager.LoadEmptyTexture(resX, resY, TextureUsage::ReadWrite);
-		textures[1] = engine::GetEngine().resourceManager.LoadEmptyTexture(resX, resY, TextureUsage::ReadWrite);
+		// TEXTURES
+		TextureCreateInfo info;
+		info.width = resX;
+		info.height = resY;
+		info.depth = 1;
+		info.usage = TextureUsage::ReadWrite;
+		textures[0] = engine::GetEngine().resourceManager.LoadEmptyTexture(info);
+		textures[1] = engine::GetEngine().resourceManager.LoadEmptyTexture(info);
+
 		sphereMap = engine::GetEngine().resourceManager.LoadTexture(RES_DIR"images/background.hdr", TextureUsage::Read);
+
 
 
 		engine::GetEngine().resourceManager.bindTextureToMaterial(materials[0], textures[0], 0);
@@ -109,19 +149,8 @@ public:
 
 		auto& camTransform = registry.GetComponent<Transform>(camera);
 		camTransform.setCaching(false);
-		data.r_s = 5.0f;
 		data.width = resX;
 		data.height = resY;
-		data.r1 = data.r_s * 1.5f;
-		data.r2 = data.r_s * 3.0f;
-		data.maxSteps = 1000;
-		data.stepSizeMin = 0.1f;
-		data.stepSizeMax = 0.3f;
-
-		data.escape_r = data.r_s * 100;
-		data.rotSpeed = 0.6f;
-		data.mass = 2.4f;
-
 
 		// buffer
 		{
@@ -130,11 +159,11 @@ public:
 			desc.size = sizeof(BlackHoleData);
 			buffer = engine::GetBufferManager().createBuffer(desc);
 		}
-
-		rotationCamera.radius = data.r_s * 8;
-		objectData.objects[0] = Object(-rotationCamera.position() * 2.0f, data.r_s * 1.0f, glm::vec4(0.0, 1.0, 0.0, 1.0));
-		objectData.objects[1] = Object(glm::vec3(-rotationCamera.position().x * 3.0f, 0, 0), data.r_s * 1.3f, glm::vec4(1.0, 0.0, 0.0, 1.0));
-		objectData.objects[2] = Object(glm::vec3(-rotationCamera.position().x * 2.0f, 0, -rotationCamera.position().x * 2.0f), data.r_s * 0.6f, glm::vec4(0.0, 0.0, 1.0, 1.0));
+		float horizonRadius = data.mass + glm::sqrt(data.mass * data.mass - data.rotSpeed * data.rotSpeed);
+		rotationCamera.radius = horizonRadius*8;
+		objectData.objects[0] = Object(-rotationCamera.position() * 2.0f, horizonRadius * 1.0f, glm::vec4(0.0, 1.0, 0.0, 1.0));
+		objectData.objects[1] = Object(glm::vec3(-rotationCamera.position().x * 3.0f, 0, 0), horizonRadius * 1.3f, glm::vec4(1.0, 0.0, 0.0, 1.0));
+		objectData.objects[2] = Object(glm::vec3(-rotationCamera.position().x * 2.0f, 0, -rotationCamera.position().x * 2.0f), horizonRadius * 0.6f, glm::vec4(0.0, 0.0, 1.0, 1.0));
 		objectData.count = 3;
 
 		{
@@ -149,6 +178,7 @@ public:
 
 		updateData();
 
+		generateNoiseMap();
 
 		ComputeShader cShader = engine::GetEngine().resourceManager.LoadComputeShader(RES_DIR"shaders/compute/raymarcher.glsl");
 		dispatcher = std::make_unique<ComputeDispatcher>(cShader);
@@ -160,6 +190,7 @@ public:
 		dispatcher->setBuffer("inputData", buffer);
 		dispatcher->setBuffer("objectData", objectBuffer);
 		dispatcher->setTexture("sphereMapTexture", sphereMap);
+		dispatcher->setTexture("noiseMap", noiseTexture);
 		dispatcher->dispatch(groupCountX, groupCountY, 1);
 	}
 	void update() override {
@@ -183,12 +214,19 @@ public:
 
 	void onGui() override {
 		ImGui::Begin("BLACK HOLE");
-		ImGui::DragFloat("Radius", &data.r_s);
 		ImGui::DragFloat("stepSizeMin", &data.stepSizeMin);
 		ImGui::DragFloat("stepSizeMax", &data.stepSizeMax);
 		ImGui::DragInt("maxSteps", &data.maxSteps);
-		ImGui::DragFloat("Speed", &data.rotSpeed);
+		ImGui::DragFloat("Rotation Speed", &data.rotSpeed);
 		ImGui::DragFloat("Mass", &data.mass);
+		ImGui::DragFloat("InnerRadius", &data.r1);
+		ImGui::DragFloat("OuterRadius", &data.r2);
+		ImGui::DragFloat("Density", &data.diskDensity);
+		ImGui::DragFloat("diskEdgeK", &data.diskEdgeK);
+		ImGui::DragFloat("SAMPLE SCALE", &data.sampleScale);
+		ImGui::DragFloat("Spin", &data.spin);
+		ImGui::DragFloat("height", &data.diskH);
+		ImGui::DragFloat("GravAcceleration", &data.gravAcceleration);
 		ImGui::End();
 	}
 
@@ -218,6 +256,7 @@ public:
 		data.forward = fwd;
 		data.tanHalfFov = glm::tan(glm::radians(60.0f * 0.5f));
 		data.aspect = float(resX) / float(resY);
+		data.time = Time::time * 1.5f;
 	}
 
 	void HandleInputs()
@@ -236,5 +275,41 @@ public:
 		}
 		double yScroll = Input::GetVerticalMouseScroll();
 		rotationCamera.radius -= yScroll * rotationCamera.zoomSpeed;
+	}
+
+	void generateNoiseMap()
+	{
+		const int imageSize = 64;
+		TextureCreateInfo info;
+		info.height = imageSize;
+		info.width = imageSize;
+		info.depth = imageSize;
+		info.usage = TextureUsage::ReadWrite;
+		noiseTexture = engine::GetResourceManager().LoadEmptyTexture(info);
+
+		noiseParams.size = imageSize;
+		noiseParams.scale = 4.0f;
+		noiseParams.boost = 1.5f;
+		noiseParams.octaves = 4;
+		noiseParams.tileSize = imageSize;
+		noiseParams.lacunarity = 2.0f;
+		noiseParams.gain = 0.5f;
+		noiseParams.time = 0.0f;
+		
+		BufferDescription desc;
+		desc.size = sizeof(NoiseParams);
+		desc.type = BufferType::SSBO;
+		noiseParamsBuffer = engine::GetBufferManager().createBuffer(desc);
+
+		engine::GetBufferManager().updateBuffer(noiseParamsBuffer, &noiseParams, sizeof(NoiseParams));
+
+		ComputeShader noiseShader = engine::GetResourceManager().LoadComputeShader(RES_DIR"shaders/compute/diskNoise.glsl");
+		noiseDispatcher = std::make_unique<ComputeDispatcher>(noiseShader);
+		noiseDispatcher->setBuffer("inputData", noiseParamsBuffer);
+		noiseDispatcher->setTexture("outputImage", noiseTexture);
+		int group = (imageSize + 7) / 8;  // = 32 workgroups
+		noiseDispatcher->dispatchAndWait(group, group, group);
+
+		engine::GetResourceManager().setTextureUsage(noiseTexture, TextureUsage::Read);
 	}
 };

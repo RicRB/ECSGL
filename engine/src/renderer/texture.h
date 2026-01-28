@@ -3,25 +3,22 @@
 #include "image.h"
 #include "memory/memory_pool.hpp"
 
-
-enum class TextureType
-{
-	UNKOWN,
-	DIFFUSE,
-	SPECULAR
-};
-
 enum class TextureUsage {
 	Read,
 	ReadWrite
 };
 
 
+struct TextureCreateInfo {
+	TextureUsage usage;
+	int width, height, depth;
+};
+
 struct TextureData
 {
 	TextureData();
 	unsigned char* pixels;
-	int width, height, bpp;
+	int width, height, depth, bpp;
 	TextureUsage usage;
 	std::shared_ptr<Image> image;
 };

@@ -52,6 +52,7 @@ namespace engine
 	void SetInstance(Engine* engineInstance);
 	inline Engine& GetEngine() { return *internal::_currentEnginePtr; };
 	inline BufferManager& GetBufferManager() { return *internal::_currentEnginePtr->bufferManager->get(); };
+	inline ResourceManager& GetResourceManager() { return internal::_currentEnginePtr->resourceManager; };
 	Entity CreateEmptyEntity();
 	Entity CreateDefaultObject(Transform transform = Transform());
 	Entity CreateObject(Transform transform = Transform(), Mesh mesh = {}, Material material = {});

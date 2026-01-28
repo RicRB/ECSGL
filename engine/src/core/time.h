@@ -1,7 +1,7 @@
 #pragma once
 class Time
 {
-private:
+public:
 	inline static double deltaTime = 0;
 	inline static double time = 0;
 	inline static double lastFrame = 0;

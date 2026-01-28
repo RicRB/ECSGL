@@ -95,6 +95,7 @@ Texture ResourceManager::LoadTexture(const std::string& path, TextureUsage usage
     stbi_set_flip_vertically_on_load(1); // play with it if upside down
     textureData.pixels = stbi_load(path.c_str(), &textureData.width, &textureData.height, &textureData.bpp, 4);
     textureData.usage = usage;
+    textureData.depth = 1;
     if (textureData.pixels)
         graphics::GetGraphicsAPI()->loadTexture(&textureData);
 
@@ -103,15 +104,21 @@ Texture ResourceManager::LoadTexture(const std::string& path, TextureUsage usage
     return Texture(textureHandle);
 }
 
-Texture ResourceManager::LoadEmptyTexture(int width, int height, TextureUsage usage)
+Texture ResourceManager::LoadEmptyTexture(TextureCreateInfo& createInfo)
 {
     auto textureHandle = m_textures->allocate();
     auto& textureData = m_textures->at(textureHandle);
-    textureData.width = width;
-    textureData.height = height;
+
+    int depth = createInfo.depth > 0 ? createInfo.depth : 1; // in case im dumb and forget lol
+
+    textureData.width = createInfo.width;
+    textureData.height = createInfo.height;
+    textureData.depth = depth;
     textureData.bpp = 4;
-    textureData.pixels = new unsigned char[width * height * 4];
-    memset(textureData.pixels, 0, width * height * 4);
+    int size = createInfo.width * createInfo.height * depth * 4;
+    textureData.pixels = new unsigned char[size];
+
+    memset(textureData.pixels, 0, size);
     graphics::GetGraphicsAPI()->loadTexture(&textureData);
     delete[] textureData.pixels;
 	return Texture(textureHandle);

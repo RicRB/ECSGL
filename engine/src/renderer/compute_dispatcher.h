@@ -11,6 +11,7 @@ class ComputeDispatcher {
 public:
 	ComputeDispatcher(const ComputeShader shader);
 	void dispatch(uint32_t threadGroupX, uint32_t threadGroupY, uint32_t threadGroupZ);
+	void dispatchAndWait(uint32_t threadGroupX, uint32_t threadGroupY, uint32_t threadGroupZ);
 	void setBuffer(int binding, Buffer buffer);
 	void setBuffer(std::string_view name, Buffer buffer);
 	void setTexture(int binding, Texture texture);

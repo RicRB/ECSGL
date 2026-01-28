@@ -31,7 +31,7 @@ public:
 	ComputeShader LoadComputeShader(const std::string& computeShaderPath);
 	Material LoadMaterial(const Shader shader);
 	Texture LoadTexture(const std::string& path, TextureUsage usage);
-	Texture LoadEmptyTexture(int width, int height, TextureUsage usage);
+	Texture LoadEmptyTexture(TextureCreateInfo& createInfo);
 	Mesh LoadOBJ(const std::string& filepath);
 	Scene ParseScene(const std::string& shaderPath);
 	std::string& SaveScene();

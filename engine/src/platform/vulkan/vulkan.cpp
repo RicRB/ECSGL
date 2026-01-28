@@ -435,9 +435,10 @@ void Vulkan::loadTexture(TextureData* textureData)
 	auto textureImage = std::static_pointer_cast<VulkanImage>(textureData->image).get();
 
 	textureImage->format = VK_FORMAT_R8G8B8A8_UNORM;
+	textureImage->type = textureData->depth > 1 ? VK_IMAGE_TYPE_3D : VK_IMAGE_TYPE_2D;
 	VkBuffer stagingBuffer;
 	VkDeviceMemory stagingBufferMemory;
-	VkDeviceSize size = textureData->width * textureData->height * 4;
+	VkDeviceSize size = textureData->width * textureData->height * textureData->depth * 4;
 	createBuffer(size, VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
 
 	void* data;
@@ -446,7 +447,7 @@ void Vulkan::loadTexture(TextureData* textureData)
 	vkUnmapMemory(device, stagingBufferMemory);
 
 
-	createImage(textureData->width, textureData->height, textureImage->format, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, textureImage->image, textureImage->memory);
+	createImage(textureData->width, textureData->height, textureData->depth, textureImage->format, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, textureImage->image, textureImage->memory);
 
 	transitionImageLayout(textureImage->image, textureImage->format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 	copyBufferToImage(stagingBuffer, textureImage->image, static_cast<uint32_t>(textureData->width), static_cast<uint32_t>(textureData->height));
@@ -909,16 +910,22 @@ void Vulkan::createSwapChain() {
 void Vulkan::createImageViews() {
 	swapChainImageViews.resize(swapChainImages.size());
 	for (size_t i = 0; i < swapChainImages.size(); i++) {
-		swapChainImageViews[i] = createImageView(swapChainImages[i], swapChainImageFormat);
+		swapChainImageViews[i] = createImageView(swapChainImages[i], VK_IMAGE_TYPE_2D, swapChainImageFormat);
 	}
 }
 
-VkImageView Vulkan::createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags)
+VkImageView Vulkan::createImageView(VkImage image, VkImageType type, VkFormat format, VkImageAspectFlags aspectFlags)
 {
+	VkImageViewType viewType;
+	switch (type)
+	{
+		case (VK_IMAGE_TYPE_2D): viewType = VK_IMAGE_VIEW_TYPE_2D; break;
+		case(VK_IMAGE_TYPE_3D): viewType = VK_IMAGE_VIEW_TYPE_3D; break;
+	}
 	VkImageViewCreateInfo viewInfo{};
 	viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 	viewInfo.image = image;
-	viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+	viewInfo.viewType = viewType;
 	viewInfo.format = format;
 	viewInfo.subresourceRange.aspectMask = aspectFlags;
 	viewInfo.subresourceRange.baseMipLevel = 0;
@@ -1549,8 +1556,8 @@ void Vulkan::createDepthResources()
 {
 	VkFormat depthFormat = findDepthFormat();
 
-	createImage(swapChainExtent.width, swapChainExtent.height, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, depthImage, depthImageMemory);
-	depthImageView = createImageView(depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
+	createImage(swapChainExtent.width, swapChainExtent.height, 1, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, depthImage, depthImageMemory);
+	depthImageView = createImageView(depthImage, VK_IMAGE_TYPE_2D, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
 	
 	transitionImageLayout(depthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 }
@@ -1586,14 +1593,15 @@ bool Vulkan::hasStencilComponent(VkFormat format)
 	return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
 }
 
-void Vulkan::createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory)
+void Vulkan::createImage(uint32_t width, uint32_t height, uint32_t depth, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory)
 {
+	VkImageType type = depth > 1 ? VK_IMAGE_TYPE_3D : VK_IMAGE_TYPE_2D;
 	VkImageCreateInfo imageInfo{};
 	imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-	imageInfo.imageType = VK_IMAGE_TYPE_2D;
+	imageInfo.imageType = type;
 	imageInfo.extent.width = width;
 	imageInfo.extent.height = height;
-	imageInfo.extent.depth = 1;
+	imageInfo.extent.depth = depth;
 	imageInfo.mipLevels = 1;
 	imageInfo.arrayLayers = 1;
 	imageInfo.format = format;
@@ -1781,7 +1789,7 @@ void Vulkan::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, u
 
 void Vulkan::createTextureImageView(VulkanImage* textureImage)
 {
-	textureImage->imageView = createImageView(textureImage->image, VK_FORMAT_R8G8B8A8_UNORM);
+	textureImage->imageView = createImageView(textureImage->image, textureImage->type, VK_FORMAT_R8G8B8A8_UNORM);
 }
 
 void Vulkan::createTextureSampler(VulkanImage* textureImage)

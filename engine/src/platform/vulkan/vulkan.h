@@ -139,7 +139,7 @@ private:
 	VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
 	void createSwapChain();
 	void createImageViews();
-	VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT);
+	VkImageView createImageView(VkImage image, VkImageType type, VkFormat format, VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT);
 	void createGraphicsPipeline(PipelineCreateInfo& createInfo);
 	void createComputePipeline(const char* name, const std::string& computeSource, VkPipeline* computePipeline, VkPipelineLayout* computePipelineLayout, DescriptorSetReflection& descriptorSetReflection, VkDescriptorSetLayout& descriptorSetLayout);
 	VkShaderModule createShaderModule(const std::vector<uint32_t>& code);
@@ -164,7 +164,7 @@ private:
 	VkFormat findDepthFormat();
 	VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
 	bool hasStencilComponent(VkFormat format);
-	void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
+	void createImage(uint32_t width, uint32_t height, uint32_t depth, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
 	VkCommandBuffer beginSingleTimeCommands();
 	void endSingleTimeCommands(VkCommandBuffer commandBuffer);
 	void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);

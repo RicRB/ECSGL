@@ -4,6 +4,10 @@ void GlComputeManager::dispatchComputeShader(ComputeShaderData& computeShaderDat
 {
 }
 
+void GlComputeManager::dispatchComputeShaderAsync(ComputeShaderData& computeShaderData, DescriptorSet* set, Fence* fence, uint32_t threadsX, uint32_t threadsY, uint32_t threadsZ)
+{
+}
+
 void GlComputeManager::setBuffer(DescriptorSet* set, BufferData* buffer, int binding)
 {
 }

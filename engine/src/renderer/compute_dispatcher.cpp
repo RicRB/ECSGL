@@ -10,6 +10,12 @@ ComputeDispatcher::ComputeDispatcher(const ComputeShader shader) : m_shaderData(
 void ComputeDispatcher::dispatch(uint32_t threadGroupX, uint32_t threadGroupY, uint32_t threadGroupZ)
 {
 	if (m_fence->isValid()) m_fence->reset();
+	engine::GetEngine().computeManager->get()->dispatchComputeShaderAsync(m_shaderData, m_descriptorSet.get(), m_fence.get(), threadGroupX, threadGroupY, threadGroupZ);
+}
+
+void ComputeDispatcher::dispatchAndWait(uint32_t threadGroupX, uint32_t threadGroupY, uint32_t threadGroupZ)
+{
+	if (m_fence->isValid()) m_fence->reset();
 	engine::GetEngine().computeManager->get()->dispatchComputeShader(m_shaderData, m_descriptorSet.get(), m_fence.get(), threadGroupX, threadGroupY, threadGroupZ);
 }
 

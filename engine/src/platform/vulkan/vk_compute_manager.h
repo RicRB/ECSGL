@@ -13,6 +13,7 @@ public:
 	VulkanComputeManager(VkDevice device, VkPhysicalDevice physicalDevice);
 	~VulkanComputeManager() = default;
 	void dispatchComputeShader(ComputeShaderData& computeShaderData, DescriptorSet* set, Fence* fence, uint32_t threadsX, uint32_t threadsY, uint32_t threadsZ) override;
+	void dispatchComputeShaderAsync(ComputeShaderData& computeShaderData, DescriptorSet* set, Fence* fence, uint32_t threadsX, uint32_t threadsY, uint32_t threadsZ) override;
 	void setBuffer(DescriptorSet* set, BufferData* buffer, int binding) override;
 	void setBuffer(ComputeShaderData& shaderData, DescriptorSet* set, BufferData* buffer, std::string_view name) override;
 	void setImage(DescriptorSet* set, Image* image, DescriptorBinding& binding) override;
