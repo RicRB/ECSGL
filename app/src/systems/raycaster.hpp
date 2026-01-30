@@ -14,13 +14,15 @@ public:
 	Texture textures[2];
 	Texture sphereMap;
 	Texture noiseTexture;
-	Texture warpTexture;
+	Texture directionTexture;
 	Texture volumeTexture;
 	int renderedFrame = 0;
-	int lowResX = 1280/3, lowResY = 720/3;
+	int lowResX = 1280/2, lowResY = 720/2;
 	int fullResX = 1280, fullResY = 720;
 	uint32_t groupCountX, groupCountY;
+	uint32_t renderGroupCountX, renderGroupCountY;
 	std::unique_ptr<ComputeDispatcher> dispatcher;
+	std::unique_ptr<ComputeDispatcher> renderDispatcher;
 
 	struct BlackHoleData {
 		glm::vec3 pos; float _pad0;
@@ -135,17 +137,30 @@ public:
 		entity = engine::CreateObject(Transform(glm::vec3(), glm::vec3(0.0,180.0,0.0)), mesh, materials[renderedFrame]);
 
 		// TEXTURES
-		TextureCreateInfo lowResInfo;
-		lowResInfo.width = lowResX;
-		lowResInfo.height = lowResY;
-		lowResInfo.depth = 1;
-		lowResInfo.usage = TextureUsage::ReadWrite;
-		textures[0] = engine::GetEngine().resourceManager.LoadEmptyTexture(lowResInfo);
-		textures[1] = engine::GetEngine().resourceManager.LoadEmptyTexture(lowResInfo);
+		{
+			TextureCreateInfo lowResInfo;
+			lowResInfo.width = lowResX;
+			lowResInfo.height = lowResY;
+			lowResInfo.depth = 1;
+			lowResInfo.usage = TextureUsage::ReadWrite;
+			directionTexture = engine::GetEngine().resourceManager.LoadEmptyTexture(lowResInfo);
+			volumeTexture = engine::GetEngine().resourceManager.LoadEmptyTexture(lowResInfo);
+		}
+
+
+		
+
+		{
+			TextureCreateInfo fullResInfo;
+			fullResInfo.width = fullResX;
+			fullResInfo.height = fullResY;
+			fullResInfo.depth = 1;
+			fullResInfo.usage = TextureUsage::ReadWrite;
+			textures[0] = engine::GetResourceManager().LoadEmptyTexture(fullResInfo);
+			textures[1] = engine::GetResourceManager().LoadEmptyTexture(fullResInfo);
+		}
 
 		sphereMap = engine::GetEngine().resourceManager.LoadTexture(RES_DIR"images/background.hdr", TextureUsage::Read);
-
-
 
 		engine::GetEngine().resourceManager.bindTextureToMaterial(materials[0], textures[0], 0);
 		engine::GetEngine().resourceManager.bindTextureToMaterial(materials[1], textures[1], 0);
@@ -190,26 +205,44 @@ public:
 		groupCountX = (lowResX + 7) / 8;  // = 32 workgroups
 		groupCountY = (lowResY + 7) / 8;  // = 32 workgroups
 
-		dispatcher->setTexture("outputImage", textures[1]);
 		dispatcher->setBuffer("inputData", buffer);
 		dispatcher->setBuffer("objectData", objectBuffer);
-		dispatcher->setTexture("sphereMapTexture", sphereMap);
 		dispatcher->setTexture("noiseMap", noiseTexture);
+		dispatcher->setTexture("directionTexture", directionTexture);
+		dispatcher->setTexture("volumeTexture", volumeTexture);
 		dispatcher->dispatch(groupCountX, groupCountY, 1);
+
+
+		ComputeShader renderShader = engine::GetResourceManager().LoadComputeShader(RES_DIR"shaders/compute/blackHoleRender.glsl");
+		renderDispatcher = std::make_unique<ComputeDispatcher>(renderShader);
+
+		renderGroupCountX = (fullResX + 7) / 8;  // = 32 workgroups
+		renderGroupCountY = (fullResY + 7) / 8;  // = 32 workgroups
+		
+
+		dispatcher->wait();
+
+		renderDispatcher->setTexture("directionTexture", directionTexture);
+		renderDispatcher->setTexture("volumeTexture", volumeTexture);
+		renderDispatcher->setTexture("sphereMapTexture", sphereMap);
+		renderDispatcher->setTexture("outputImage", textures[1]);
+		renderDispatcher->dispatch(renderGroupCountX, renderGroupCountY, 1);
 	}
 	void update() override {
 		HandleInputs();
-		if (!dispatcher->isDone()) return;
+		if (!renderDispatcher->isDone()) return;
 		updateData();
 
 
 		engine::GetBufferManager().updateBuffer(buffer, &data,  sizeof(BlackHoleData));
 
 		Transform transform = engine::GetRegistry().GetComponent<Transform>(entity);
-		dispatcher->setTexture("outputImage", textures[renderedFrame]);
-		dispatcher->setBuffer("inputData", buffer);
-		dispatcher->dispatch(groupCountX, groupCountY, 1);
+		//dispatcher->setBuffer("inputData", buffer);
 
+		dispatcher->dispatchAndWait(groupCountX, groupCountY, 1);
+
+		renderDispatcher->setTexture("outputImage", textures[renderedFrame]);
+		renderDispatcher->dispatch(renderGroupCountX, renderGroupCountY, 1);
 		renderedFrame = (renderedFrame + 1) % 2;
 		
 		engine::GetRegistry().AssignComponent<Material>(entity, materials[renderedFrame]);

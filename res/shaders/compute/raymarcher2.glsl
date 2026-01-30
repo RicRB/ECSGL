@@ -40,28 +40,25 @@ layout(std430, binding = 0) readonly buffer inputDataBlock {
     float bhRotation;
 } inputData;
 
-
-layout(set = 0, binding = 1, rgba8) uniform writeonly image2D outputImage;
-
 struct Object {
     vec3 position;
     float radius;
     vec4 color;
 };
 
-layout(std430, binding = 2) readonly buffer objectDataBlock {
+layout(std430, binding = 1) readonly buffer objectDataBlock {
     int objectCount;
     Object objects[];
 } objectData;
 
-layout(set = 0, binding = 3) uniform sampler2D sphereMapTexture;
+layout(set = 0, binding = 2) uniform sampler2D sphereMapTexture;
 
 float disk_num = 2;
 
-layout(set=0, binding = 4) uniform sampler3D noiseMap;
+layout(set=0, binding = 3) uniform sampler3D noiseMap;
 
-layout(set=0, binding = 5, rgba8) uniform writeonly image2D warpTexture;
-layout(set=0, binding = 6, rgba8) uniform writeonly image2D volumeTexture;
+layout(set=0, binding = 4, rgba8) uniform writeonly image2D directionTexture;
+layout(set=0, binding = 5, rgba8) uniform writeonly image2D volumeTexture;
 
 const float PI = 3.1415926538;
 const float eps = 0.01;  // Hamiltonian gradient step
@@ -507,11 +504,11 @@ void main() {
 
     ivec2 pixelCoord = ivec2(gl_GlobalInvocationID.xy);
 
-    ivec2 size = imageSize(outputImage);
+    ivec2 size = imageSize(directionTexture);
 
     if (pixelCoord.x >= size.x || pixelCoord.y >= size.y) return;
 
-
+    vec2 uv = (vec2(pixelCoord) + 0.5) / vec2(size);
     // intialize global variables
     m = inputData.mass;
     a = inputData.rotationSpeed * m;
@@ -625,6 +622,11 @@ void main() {
 
     vec4 qt = P2Vec(P,Q);
     rd = normalize(qt.yzw);
+    vec2 warpedUV = directionToEquirectangularUV(rd);
+    vec2 warp = warpedUV - uv;
+    imageStore(directionTexture, pixelCoord, vec4(warpedUV, 0.0, 1.0)); // a should be something important
+    imageStore(volumeTexture, pixelCoord, vec4(L.rgb, T));
+    /*
     float p1 = P.x;
     float redshift = p0/p1;
 
@@ -673,5 +675,5 @@ void main() {
 
     fcol = fcol * pow(colorTemperatureToRGB(6700.0 * redshift), vec3(10.0)) * redshift;
     imageStore(outputImage, pixelCoord, vec4(fcol, 1.0));
-
+    */
 }
