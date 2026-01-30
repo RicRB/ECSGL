@@ -624,6 +624,9 @@ void main() {
     rd = normalize(qt.yzw);
     vec2 warpedUV = directionToEquirectangularUV(rd);
     vec2 warp = warpedUV - uv;
+    if (length(warpedUV) > 1) {
+        warpedUV = vec2(0.0,0.0);
+    } 
     imageStore(directionTexture, pixelCoord, vec4(warpedUV, 0.0, 1.0)); // a should be something important
     imageStore(volumeTexture, pixelCoord, vec4(L.rgb, T));
     /*

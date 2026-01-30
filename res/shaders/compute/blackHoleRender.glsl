@@ -108,7 +108,7 @@ void main() {
     float T = volumeData.a;
 
 
-    vec4 warpData = textureBicubic(directionTexture, uv);
+    vec4 warpData = texture(directionTexture, uv);
     vec2 finalWarp = warpData.xy;
     
     vec3 background = texture(sphereMapTexture, finalWarp).xyz;
