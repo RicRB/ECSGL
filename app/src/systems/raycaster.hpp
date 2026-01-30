@@ -14,8 +14,11 @@ public:
 	Texture textures[2];
 	Texture sphereMap;
 	Texture noiseTexture;
+	Texture warpTexture;
+	Texture volumeTexture;
 	int renderedFrame = 0;
-	int resX = 1280, resY = 720;
+	int lowResX = 1280/3, lowResY = 720/3;
+	int fullResX = 1280, fullResY = 720;
 	uint32_t groupCountX, groupCountY;
 	std::unique_ptr<ComputeDispatcher> dispatcher;
 
@@ -28,16 +31,16 @@ public:
 		float aspect;
 		int width;
 		int height;
-		int maxSteps = 1000;
+		int maxSteps = 500;
 		float stepSizeMin = 0.1f;
-		float stepSizeMax = 0.3f;
+		float stepSizeMax = 5.0f;
 		float escape_r = 500;
 		float rotSpeed = 0.5f;
-		float mass = 2.0f;
+		float mass = 1.0f;
 		
 		int diskEnable = 1;
 		float r1 = 3.5f;
-		float r2 = 27.0f;
+		float r2 = 10.0f;
 		float diskH = 0.2f;
 		float diskEdgeK = 0.3f;
 
@@ -45,13 +48,14 @@ public:
 
 		float sigmaT = 2.0f;
 		float dsVolScale = 1.0f;
-		int volSubsteps = 4;
+		int volSubsteps = 40;
 
 
 		float time = 0.0f;
 		float sampleScale = 1.0f;
 		float spin = 20.0f;
 		float gravAcceleration = 1.0f;
+		float bhRotation = 0.0f;
 	};
 
 	BlackHoleData data;
@@ -131,13 +135,13 @@ public:
 		entity = engine::CreateObject(Transform(glm::vec3(), glm::vec3(0.0,180.0,0.0)), mesh, materials[renderedFrame]);
 
 		// TEXTURES
-		TextureCreateInfo info;
-		info.width = resX;
-		info.height = resY;
-		info.depth = 1;
-		info.usage = TextureUsage::ReadWrite;
-		textures[0] = engine::GetEngine().resourceManager.LoadEmptyTexture(info);
-		textures[1] = engine::GetEngine().resourceManager.LoadEmptyTexture(info);
+		TextureCreateInfo lowResInfo;
+		lowResInfo.width = lowResX;
+		lowResInfo.height = lowResY;
+		lowResInfo.depth = 1;
+		lowResInfo.usage = TextureUsage::ReadWrite;
+		textures[0] = engine::GetEngine().resourceManager.LoadEmptyTexture(lowResInfo);
+		textures[1] = engine::GetEngine().resourceManager.LoadEmptyTexture(lowResInfo);
 
 		sphereMap = engine::GetEngine().resourceManager.LoadTexture(RES_DIR"images/background.hdr", TextureUsage::Read);
 
@@ -149,8 +153,8 @@ public:
 
 		auto& camTransform = registry.GetComponent<Transform>(camera);
 		camTransform.setCaching(false);
-		data.width = resX;
-		data.height = resY;
+		data.width = lowResX;
+		data.height = lowResY;
 
 		// buffer
 		{
@@ -180,11 +184,11 @@ public:
 
 		generateNoiseMap();
 
-		ComputeShader cShader = engine::GetEngine().resourceManager.LoadComputeShader(RES_DIR"shaders/compute/raymarcher.glsl");
+		ComputeShader cShader = engine::GetEngine().resourceManager.LoadComputeShader(RES_DIR"shaders/compute/raymarcher2.glsl");
 		dispatcher = std::make_unique<ComputeDispatcher>(cShader);
 
-		groupCountX = (resX + 7) / 8;  // = 32 workgroups
-		groupCountY = (resY + 7) / 8;  // = 32 workgroups
+		groupCountX = (lowResX + 7) / 8;  // = 32 workgroups
+		groupCountY = (lowResY + 7) / 8;  // = 32 workgroups
 
 		dispatcher->setTexture("outputImage", textures[1]);
 		dispatcher->setBuffer("inputData", buffer);
@@ -217,16 +221,17 @@ public:
 		ImGui::DragFloat("stepSizeMin", &data.stepSizeMin);
 		ImGui::DragFloat("stepSizeMax", &data.stepSizeMax);
 		ImGui::DragInt("maxSteps", &data.maxSteps);
-		ImGui::DragFloat("Rotation Speed", &data.rotSpeed);
+		ImGui::DragFloat("Rotation Speed", &data.rotSpeed, 0.1, 0, 5);
 		ImGui::DragFloat("Mass", &data.mass);
 		ImGui::DragFloat("InnerRadius", &data.r1);
 		ImGui::DragFloat("OuterRadius", &data.r2);
 		ImGui::DragFloat("Density", &data.diskDensity);
 		ImGui::DragFloat("diskEdgeK", &data.diskEdgeK);
-		ImGui::DragFloat("SAMPLE SCALE", &data.sampleScale);
 		ImGui::DragFloat("Spin", &data.spin);
 		ImGui::DragFloat("height", &data.diskH);
-		ImGui::DragFloat("GravAcceleration", &data.gravAcceleration);
+		ImGui::DragFloat("DAMN", &data.bhRotation);
+		ImGui::DragInt("substeps", &data.volSubsteps);
+
 		ImGui::End();
 	}
 
@@ -255,7 +260,7 @@ public:
 		data.up = up;
 		data.forward = fwd;
 		data.tanHalfFov = glm::tan(glm::radians(60.0f * 0.5f));
-		data.aspect = float(resX) / float(resY);
+		data.aspect = float(lowResX) / float(lowResY);
 		data.time = Time::time * 1.5f;
 	}
 

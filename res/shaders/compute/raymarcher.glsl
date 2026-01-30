@@ -353,8 +353,8 @@ void main() {
     if (pixelCoord.x >= size.x || pixelCoord.y >= size.y) return;
 
     // Init Ray
-    float u = (2.0 * (pixelCoord.x + 0.5) / inputData.width - 1.0) * inputData.aspect * inputData.tanHalfFov;
-    float v = (1.0 - 2.0 * (pixelCoord.y + 0.5) / inputData.height) * inputData.tanHalfFov;
+    float u = (2.0 * (pixelCoord.x + 0.5) / inputData.width - 1.0);
+    float v = (1.0 - 2.0 * (pixelCoord.y + 0.5) / inputData.height);
     vec3 dir = normalize(u * inputData.camRight - v * inputData.camUp + inputData.camForward);
     RayState rayState;
     rayState.position = inputData.camPos;
