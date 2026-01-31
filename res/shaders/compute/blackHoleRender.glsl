@@ -110,8 +110,12 @@ void main() {
 
     vec4 warpData = texture(directionTexture, uv);
     vec2 finalWarp = warpData.xy;
+    vec3 background = vec3(0.0);
+    if (finalWarp != vec2(-1.0, 0.0)) 
+    {
+        background = texture(sphereMapTexture, finalWarp).xyz - vec3(0.1,0.1,0.1);
+    }
     
-    vec3 background = texture(sphereMapTexture, finalWarp).xyz;
 
     // Composite: accumulated light over background
     vec3 fcol = accumulatedLight + T * background;

@@ -96,6 +96,8 @@ Texture ResourceManager::LoadTexture(const std::string& path, TextureUsage usage
     textureData.pixels = stbi_load(path.c_str(), &textureData.width, &textureData.height, &textureData.bpp, 4);
     textureData.usage = usage;
     textureData.depth = 1;
+    textureData.bpp = 4;
+    textureData.format = TextureFormat::R8G8B8A8_UNORM;
     if (textureData.pixels)
         graphics::GetGraphicsAPI()->loadTexture(&textureData);
 
@@ -114,8 +116,10 @@ Texture ResourceManager::LoadEmptyTexture(TextureCreateInfo& createInfo)
     textureData.width = createInfo.width;
     textureData.height = createInfo.height;
     textureData.depth = depth;
-    textureData.bpp = 4;
-    int size = createInfo.width * createInfo.height * depth * 4;
+    textureData.bpp = Texture::getFormatPixelByteSize(createInfo.format);
+    textureData.format = createInfo.format;
+    textureData.usage = createInfo.usage;
+    int size = createInfo.width * createInfo.height * depth * Texture::getFormatPixelByteSize(createInfo.format);
     textureData.pixels = new unsigned char[size];
 
     memset(textureData.pixels, 0, size);

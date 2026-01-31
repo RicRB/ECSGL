@@ -57,8 +57,8 @@ float disk_num = 2;
 
 layout(set=0, binding = 3) uniform sampler3D noiseMap;
 
-layout(set=0, binding = 4, rgba8) uniform writeonly image2D directionTexture;
-layout(set=0, binding = 5, rgba8) uniform writeonly image2D volumeTexture;
+layout(set=0, binding = 4, rg16f) uniform writeonly image2D directionTexture;
+layout(set=0, binding = 5, rgba16) uniform writeonly image2D volumeTexture;
 
 const float PI = 3.1415926538;
 const float eps = 0.01;  // Hamiltonian gradient step
@@ -623,11 +623,9 @@ void main() {
     vec4 qt = P2Vec(P,Q);
     rd = normalize(qt.yzw);
     vec2 warpedUV = directionToEquirectangularUV(rd);
-    vec2 warp = warpedUV - uv;
-    if (length(warpedUV) > 1) {
-        warpedUV = vec2(0.0,0.0);
-    } 
-    imageStore(directionTexture, pixelCoord, vec4(warpedUV, 0.0, 1.0)); // a should be something important
+    vec2 finalWarpSend = shouldTerminate && tempBlackHoleHit && !hitObject ? vec2(-1.0, 0.0) : warpedUV;
+
+    imageStore(directionTexture, pixelCoord, vec4(finalWarpSend, 0.0, 0.0)); // a should be something important
     imageStore(volumeTexture, pixelCoord, vec4(L.rgb, T));
     /*
     float p1 = P.x;

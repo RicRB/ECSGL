@@ -434,11 +434,11 @@ void Vulkan::loadTexture(TextureData* textureData)
 {
 	auto textureImage = std::static_pointer_cast<VulkanImage>(textureData->image).get();
 
-	textureImage->format = VK_FORMAT_R8G8B8A8_UNORM;
+	textureImage->format = VkUtils::getVkFormat(textureData->format);
 	textureImage->type = textureData->depth > 1 ? VK_IMAGE_TYPE_3D : VK_IMAGE_TYPE_2D;
 	VkBuffer stagingBuffer;
 	VkDeviceMemory stagingBufferMemory;
-	VkDeviceSize size = textureData->width * textureData->height * textureData->depth * 4;
+	VkDeviceSize size = textureData->width * textureData->height * textureData->depth * Texture::getFormatPixelByteSize(textureData->format);
 	createBuffer(size, VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
 
 	void* data;
@@ -1787,7 +1787,7 @@ void Vulkan::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, u
 
 void Vulkan::createTextureImageView(VulkanImage* textureImage)
 {
-	textureImage->imageView = createImageView(textureImage->image, textureImage->type, VK_FORMAT_R8G8B8A8_UNORM);
+	textureImage->imageView = createImageView(textureImage->image, textureImage->type, textureImage->format);
 }
 
 void Vulkan::createTextureSampler(VulkanImage* textureImage)

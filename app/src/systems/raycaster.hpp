@@ -143,8 +143,11 @@ public:
 			lowResInfo.height = lowResY;
 			lowResInfo.depth = 1;
 			lowResInfo.usage = TextureUsage::ReadWrite;
+			lowResInfo.format = TextureFormat::R16G16_SFLOAT;
 			directionTexture = engine::GetEngine().resourceManager.LoadEmptyTexture(lowResInfo);
-			volumeTexture = engine::GetEngine().resourceManager.LoadEmptyTexture(lowResInfo);
+			TextureCreateInfo lowResInfo2 = lowResInfo;
+			lowResInfo2.format = TextureFormat::R16G16B16A16_UNORM;
+			volumeTexture = engine::GetEngine().resourceManager.LoadEmptyTexture(lowResInfo2);
 		}
 
 
@@ -156,6 +159,7 @@ public:
 			fullResInfo.height = fullResY;
 			fullResInfo.depth = 1;
 			fullResInfo.usage = TextureUsage::ReadWrite;
+			fullResInfo.format = TextureFormat::R8G8B8A8_UNORM;
 			textures[0] = engine::GetResourceManager().LoadEmptyTexture(fullResInfo);
 			textures[1] = engine::GetResourceManager().LoadEmptyTexture(fullResInfo);
 		}

@@ -33,5 +33,6 @@ public:
 	static void endSingleTimeCommandsAsync(VkDevice device, VkCommandPool commandPool, VkQueue queue, VkCommandBuffer commandBuffer, VkFence fence);
 	static VkDescriptorType getVkDescriptorType(DescriptorType type);
 	static VkImageLayout getVkImageLayout(TextureUsage usage);
+	static VkFormat getVkFormat(TextureFormat format);
 	static void cleanupPendingCommands(VkDevice device);
 };

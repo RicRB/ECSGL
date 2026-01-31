@@ -154,6 +154,8 @@ VkDescriptorType VkUtils::getVkDescriptorType(DescriptorType type)
 	return descriptorType;
 }
 
+
+
 VkImageLayout VkUtils::getVkImageLayout(TextureUsage usage)
 {
 	switch (usage)
@@ -164,6 +166,19 @@ VkImageLayout VkUtils::getVkImageLayout(TextureUsage usage)
 		return VK_IMAGE_LAYOUT_GENERAL;
 	default:
 		return VK_IMAGE_LAYOUT_GENERAL;
+	}
+}
+
+VkFormat VkUtils::getVkFormat(TextureFormat format)
+{
+	switch (format)
+	{
+	case TextureFormat::R16G16_SFLOAT: return VK_FORMAT_R16G16_SFLOAT;
+	case TextureFormat::R16G16_SNORM: return VK_FORMAT_R16G16_SNORM;
+	case TextureFormat::R16G16_UNORM: return VK_FORMAT_R16G16_UNORM;
+	case TextureFormat::R8G8B8A8_UNORM: return VK_FORMAT_R8G8B8A8_UNORM;
+	case TextureFormat::R16G16B16A16_UNORM: return VK_FORMAT_R16G16B16A16_UNORM;
+	case TextureFormat::R32G32B32A32_SFLOAT: return VK_FORMAT_R32G32B32A32_SFLOAT;;
 	}
 }
 
