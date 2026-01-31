@@ -108,12 +108,12 @@ void main() {
     float T = volumeData.a;
 
 
-    vec4 warpData = texture(directionTexture, uv);
+    vec4 warpData = textureBicubic(directionTexture, uv);
     vec2 finalWarp = warpData.xy;
     vec3 background = vec3(0.0);
     if (finalWarp != vec2(-1.0, 0.0)) 
     {
-        background = texture(sphereMapTexture, finalWarp).xyz - vec3(0.1,0.1,0.1);
+        background = texture(sphereMapTexture, finalWarp).xyz;
     }
     
 

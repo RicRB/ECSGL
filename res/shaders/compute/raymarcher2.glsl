@@ -12,8 +12,9 @@ layout(std430, binding = 0) readonly buffer inputDataBlock {
     vec3 camForward; float _pad3;
     float tanHalfFov;
     float aspect;
-    int width;
-    int height;
+    int fullResWidth;
+    int fullResHeight;
+    int blockSize;
     int maxSteps;
     float stepSizeMin;
     float stepSizeMax;
@@ -36,8 +37,6 @@ layout(std430, binding = 0) readonly buffer inputDataBlock {
     float time;
     float sampleScale;
     float spin;
-    float gravAcceleration;
-    float bhRotation;
 } inputData;
 
 struct Object {
@@ -253,8 +252,8 @@ bool getRay(vec2 uv, out vec3 ro, out vec3 rd)
     ro = inputData.camPos;
 
     // Convert NDC uv → camera direction
-    float u = uv.x * inputData.aspect * inputData.tanHalfFov;
-    float v = uv.y * inputData.tanHalfFov;
+    float u = (2.0 * uv.x - 1.0) * inputData.aspect * inputData.tanHalfFov;
+    float v = (1.0 - 2.0 * uv.y) * inputData.tanHalfFov;
 
     rd = normalize(
           u * inputData.camRight
@@ -500,29 +499,25 @@ bool interceptObject(vec3 P, vec3 dir) {
     }
     return false;
 }
-void main() {
 
-    ivec2 pixelCoord = ivec2(gl_GlobalInvocationID.xy);
+float raySphereIntersect(vec3 ro, vec3 rd, vec3 sphereCenter, float sphereRadius)
+{
+    vec3 oc = ro - sphereCenter;
+    
+    float b = dot(oc, rd);
+    float c = dot(oc, oc) - sphereRadius * sphereRadius;
+    float discriminant = b * b - c;
+    
+    if (discriminant < 0.0) return -1.0;
+    
+    float t = -b - sqrt(discriminant);
+    if (t < 0.0) t = -b + sqrt(discriminant);
+    
+    return t < 0.0 ? -1.0 : t;
+}
 
-    ivec2 size = imageSize(directionTexture);
-
-    if (pixelCoord.x >= size.x || pixelCoord.y >= size.y) return;
-
-    vec2 uv = (vec2(pixelCoord) + 0.5) / vec2(size);
-    // intialize global variables
-    m = inputData.mass;
-    a = inputData.rotationSpeed * m;
-    horizonRadius = m + sqrt(m * m - a * a);
-
-    float actualAspect = float(size.x) / float(size.y);
-    // Init Ray
-    float u = (2.0 * (pixelCoord.x + 0.5) / float(size.x) - 1.0) * actualAspect * inputData.tanHalfFov;
-    float v = (1.0 - 2.0 * (pixelCoord.y + 0.5) / float(size.y)) * inputData.tanHalfFov;
-
-    vec3 cp, rd; // ray pos and ray dir
-    if (!getRay(vec2(u,v), cp, rd)) return;
-
-    vec3 fcol = vec3(0.0);
+void traceRay(vec3 cp, vec3 rd, out vec2 warp, out vec3 L, out float T)
+{
     float t0 = sphIntersect(cp, rd, vec4(0,0,0,cdist));
     if(t0 > 0.0 && t0 < 1e10) cp += rd*t0;
 
@@ -531,13 +526,9 @@ void main() {
 
     float p0 = P.x;
 
-    float totalDist = 0.0;
-
     
-    vec3 L = vec3(0.0);  // Accumulated radiance
-    float T = 1.0;       // Transmittance
-    bool hitBlackHole = false;
-    bool hitObject = false;
+    L = vec3(0.0);  // Accumulated radiance
+    T = 1.0;       // Transmittance
     bool shouldTerminate = false;
     bool tempBlackHoleHit = false;
     vec4 prevQ;
@@ -623,58 +614,136 @@ void main() {
     vec4 qt = P2Vec(P,Q);
     rd = normalize(qt.yzw);
     vec2 warpedUV = directionToEquirectangularUV(rd);
-    vec2 finalWarpSend = shouldTerminate && tempBlackHoleHit && !hitObject ? vec2(-1.0, 0.0) : warpedUV;
+    vec2 finalWarpSend = shouldTerminate && tempBlackHoleHit ? vec2(-1.0, 0.0) : warpedUV;
+    
 
-    imageStore(directionTexture, pixelCoord, vec4(finalWarpSend, 0.0, 0.0)); // a should be something important
-    imageStore(volumeTexture, pixelCoord, vec4(L.rgb, T));
-    /*
-    float p1 = P.x;
-    float redshift = p0/p1;
+    warp = finalWarpSend;
+    
+}
 
-    if (shouldTerminate && tempBlackHoleHit && !hitObject)
-    {
-        hitBlackHole = true;
+void main() {
+    ivec2 pixelCoord = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 size = imageSize(directionTexture);
+    
+    if (pixelCoord.x >= size.x || pixelCoord.y >= size.y) return;
+
+    // Initialize global variables
+    m = inputData.mass;
+    a = inputData.rotationSpeed * m;
+    horizonRadius = m + sqrt(m * m - a * a);
+    float highResRadius = horizonRadius * 3.2;
+
+    // Determine which block this pixel belongs to
+    ivec2 blockCoord = pixelCoord / inputData.blockSize;
+    ivec2 blockPixel = pixelCoord % inputData.blockSize; // Position within block
+    ivec2 blockStart = blockCoord * inputData.blockSize;
+    
+    // Check if this block needs high resolution (sample from block center)
+    vec2 centerUV = (vec2(blockStart) + float(inputData.blockSize) * 0.5) / vec2(size);
+    vec3 cp, rd;
+    if (!getRay(centerUV, cp, rd)) return;
+    
+    float intersect = raySphereIntersect(cp, rd, vec3(0.0), highResRadius);
+    float lowIntersect = raySphereIntersect(cp, rd, vec3(0.0), highResRadius * 0.7);
+    bool needsHighRes = (intersect > 0.0 && !(lowIntersect > 0.0)) ;
+    
+    // LOW-RES MODE: Only thread (0,0) in each block does work
+    if (!needsHighRes) {
+        if (blockPixel.x != 0 || blockPixel.y != 0) {
+            // Not the first thread in this block - early exit
+            return;
+        }
+        
+        // First thread traces once and fills entire block
+        vec3 L;
+        float T;
+        vec2 warp;
+        
+        traceRay(cp, rd, warp, L, T);
+        
+        // Fill entire block
+        for (int j = 0; j < inputData.blockSize; j++) {
+            for (int i = 0; i < inputData.blockSize; i++) {
+                ivec2 fillPixel = blockStart + ivec2(i, j);
+                if (fillPixel.x < size.x && fillPixel.y < size.y) {
+                    imageStore(directionTexture, fillPixel, vec4(warp, 0.0, 0.0));
+                    imageStore(volumeTexture, fillPixel, vec4(L.rgb, T));
+                }
+            }
+        }
     }
-    if (hitObject)
-    {
-            // Find actual intersection point along the ray
-        vec3 toCenter = hitCenter - prevQ.yzw;
-        vec3 rayDir = normalize(Q.yzw - prevQ.yzw);
+    // HIGH-RES MODE: Every thread traces its own pixel
+    else {
+        vec2 uv = (vec2(pixelCoord) + 0.5) / vec2(size);
+        vec3 L;
+        float T;
+        vec2 warp;
         
-        // Project center onto ray to find closest point
-        float t = dot(toCenter, rayDir);
-        vec3 closestPoint = prevQ.yzw + rayDir * t;
+        if (!getRay(uv, cp, rd)) return;
+        traceRay(cp, rd, warp, L, T);
         
-        // Calculate actual intersection distance
-        float distToCenter = length(hitCenter - closestPoint);
-        float offset = sqrt(max(0.0, hitRadius * hitRadius - distToCenter * distToCenter));
-        
-        // Actual hit position
-        vec3 hitPos = closestPoint - rayDir * offset;
-        
-        // Now compute shading with correct position and normal
-        vec3 N = normalize(hitPos - hitCenter);
-        vec3 V = normalize(inputData.camPos - hitPos);
-        
-        float ambient = 0.1;
-        float diff = max(dot(N, V), 0.0);
-        float intensity = ambient + (1.0 - ambient) * diff;
-        vec3 shaded = objectColor.rgb * intensity;
-        
-        fcol = L + T * shaded;
-    } else if (hitBlackHole) {
-        if (inputData.diskEnable == 0)
+        imageStore(directionTexture, pixelCoord, vec4(warp, 0.0, 0.0));
+        if (needsHighRes)
         {
-
+            imageStore(volumeTexture, pixelCoord, vec4(1.0, 0.0, 0.0, 1.0));
         }else{
-            fcol = L;
+            imageStore(volumeTexture, pixelCoord, vec4(L.rgb, T));
+        }
+    }
+}
+
+
+/*
+
+void main() {
+
+    ivec2 pixelCoord = ivec2(gl_GlobalInvocationID.xy) * inputData.blockSize;
+
+    ivec2 size = imageSize(directionTexture);
+
+    if (pixelCoord.x >= size.x || pixelCoord.y >= size.y) return;
+
+    vec2 uv = (vec2(pixelCoord) + 0.5) / vec2(size);
+    // intialize global variables
+    m = inputData.mass;
+    a = inputData.rotationSpeed * m;
+    horizonRadius = m + sqrt(m * m - a * a);
+    float highResRadius = horizonRadius * 3.2;
+    float actualAspect = float(size.x) / float(size.y);
+
+    vec3 cp, rd; // ray pos and ray dir
+    if (!getRay(uv, cp, rd)) return;
+
+
+    float intersect = raySphereIntersect(cp, rd, vec3(0.0), highResRadius);
+
+    bool needsHighRes = (intersect > 0.0);
+
+    for(int idx = 0; idx < inputData.blockSize * inputData.blockSize; idx++)
+    {
+        int i = idx / inputData.blockSize;
+        int j = idx % inputData.blockSize;
+        vec2 pixelOffset = vec2(i, j);
+        if (pixelCoord.x + pixelOffset.x >= size.x || pixelCoord.y + pixelOffset.y >= size.y) continue;
+        uv = ((vec2(pixelCoord) + pixelOffset) + 0.5) / vec2(size);
+
+        vec3 L;
+        float T;
+        vec2 warp;
+        // Only trace on first iteration for low-res, always for high-res
+        if (needsHighRes || idx == 0) {
+            if (!getRay(uv, cp, rd)) continue;
+            traceRay(cp, rd, warp, L, T);
         }
 
-    } else {
-        fcol = L + T * sampleBackground(rd).xyz;
+        imageStore(directionTexture, pixelCoord + ivec2(i,j), vec4(warp, 0.0, 0.0)); // a should be something important
+        if (false)
+        {
+            imageStore(volumeTexture, pixelCoord + ivec2(i,j), vec4(1.0, 0.0, 0.0, 1.0));
+        }else{
+            imageStore(volumeTexture, pixelCoord + ivec2(i,j), vec4(L.rgb, T));
+        }
     }
-
-    fcol = fcol * pow(colorTemperatureToRGB(6700.0 * redshift), vec3(10.0)) * redshift;
-    imageStore(outputImage, pixelCoord, vec4(fcol, 1.0));
-    */
 }
+
+*/

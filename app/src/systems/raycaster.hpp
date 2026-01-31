@@ -17,7 +17,7 @@ public:
 	Texture directionTexture;
 	Texture volumeTexture;
 	int renderedFrame = 0;
-	int lowResX = 1280/2, lowResY = 720/2;
+	int blockSize = 3;
 	int fullResX = 1280, fullResY = 720;
 	uint32_t groupCountX, groupCountY;
 	uint32_t renderGroupCountX, renderGroupCountY;
@@ -31,8 +31,9 @@ public:
 		glm::vec3 forward; float _pad3;
 		float tanHalfFov;
 		float aspect;
-		int width;
-		int height;
+		int fullResWidth;
+		int fullResHeight;
+		int blockSize;
 		int maxSteps = 500;
 		float stepSizeMin = 0.1f;
 		float stepSizeMax = 5.0f;
@@ -56,8 +57,6 @@ public:
 		float time = 0.0f;
 		float sampleScale = 1.0f;
 		float spin = 20.0f;
-		float gravAcceleration = 1.0f;
-		float bhRotation = 0.0f;
 	};
 
 	BlackHoleData data;
@@ -136,11 +135,12 @@ public:
 		Mesh mesh = engine::GetEngine().resourceManager.LoadOBJ(RES_DIR"models/quad.obj");
 		entity = engine::CreateObject(Transform(glm::vec3(), glm::vec3(0.0,180.0,0.0)), mesh, materials[renderedFrame]);
 
+
 		// TEXTURES
 		{
 			TextureCreateInfo lowResInfo;
-			lowResInfo.width = lowResX;
-			lowResInfo.height = lowResY;
+			lowResInfo.width = fullResX;
+			lowResInfo.height = fullResY;
 			lowResInfo.depth = 1;
 			lowResInfo.usage = TextureUsage::ReadWrite;
 			lowResInfo.format = TextureFormat::R16G16_SFLOAT;
@@ -172,9 +172,9 @@ public:
 
 		auto& camTransform = registry.GetComponent<Transform>(camera);
 		camTransform.setCaching(false);
-		data.width = lowResX;
-		data.height = lowResY;
-
+		data.fullResWidth = fullResY;
+		data.fullResHeight = fullResX;
+		data.blockSize = blockSize;
 		// buffer
 		{
 			BufferDescription desc;
@@ -206,8 +206,8 @@ public:
 		ComputeShader cShader = engine::GetEngine().resourceManager.LoadComputeShader(RES_DIR"shaders/compute/raymarcher2.glsl");
 		dispatcher = std::make_unique<ComputeDispatcher>(cShader);
 
-		groupCountX = (lowResX + 7) / 8;  // = 32 workgroups
-		groupCountY = (lowResY + 7) / 8;  // = 32 workgroups
+		groupCountX = (fullResX + 7) / 8;  // = 32 workgroups
+		groupCountY = (fullResY + 7) / 8;  // = 32 workgroups
 
 		dispatcher->setBuffer("inputData", buffer);
 		dispatcher->setBuffer("objectData", objectBuffer);
@@ -266,7 +266,6 @@ public:
 		ImGui::DragFloat("diskEdgeK", &data.diskEdgeK);
 		ImGui::DragFloat("Spin", &data.spin);
 		ImGui::DragFloat("height", &data.diskH);
-		ImGui::DragFloat("DAMN", &data.bhRotation);
 		ImGui::DragInt("substeps", &data.volSubsteps);
 
 		ImGui::End();
@@ -297,7 +296,7 @@ public:
 		data.up = up;
 		data.forward = fwd;
 		data.tanHalfFov = glm::tan(glm::radians(60.0f * 0.5f));
-		data.aspect = float(lowResX) / float(lowResY);
+		data.aspect = float(fullResX) / float(fullResY);
 		data.time = Time::time * 1.5f;
 	}
 
