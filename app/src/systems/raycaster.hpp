@@ -16,14 +16,17 @@ public:
 	Texture noiseTexture;
 	Texture directionTexture;
 	Texture volumeTexture;
-	int renderedFrame = 0;
+	int textureUsedByShader = 0;
 	int blockSize = 3;
-	int fullResX = 1280, fullResY = 720;
+	int fullResX = 1270, fullResY = 720;
+	int threadGroupX = 16, threadGroupY = 16;
+	int renderThreadGroupX = 16, renderThreadGroupY = 16;
 	uint32_t groupCountX, groupCountY;
 	uint32_t renderGroupCountX, renderGroupCountY;
 	std::unique_ptr<ComputeDispatcher> dispatcher;
 	std::unique_ptr<ComputeDispatcher> renderDispatcher;
 
+	int currentPass = 0;
 	struct BlackHoleData {
 		glm::vec3 pos; float _pad0;
 		glm::vec3 right; float _pad1;
@@ -34,10 +37,9 @@ public:
 		int fullResWidth;
 		int fullResHeight;
 		int blockSize;
-		int maxSteps = 500;
+		int maxSteps = 150;
 		float stepSizeMin = 0.1f;
 		float stepSizeMax = 5.0f;
-		float escape_r = 500;
 		float rotSpeed = 0.5f;
 		float mass = 1.0f;
 		
@@ -51,7 +53,7 @@ public:
 
 		float sigmaT = 2.0f;
 		float dsVolScale = 1.0f;
-		int volSubsteps = 40;
+		int volSubsteps = 20;
 
 
 		float time = 0.0f;
@@ -133,7 +135,7 @@ public:
 		materials[0] = engine::GetEngine().resourceManager.LoadMaterial(shader);
 		materials[1] = engine::GetEngine().resourceManager.LoadMaterial(shader);
 		Mesh mesh = engine::GetEngine().resourceManager.LoadOBJ(RES_DIR"models/quad.obj");
-		entity = engine::CreateObject(Transform(glm::vec3(), glm::vec3(0.0,180.0,0.0)), mesh, materials[renderedFrame]);
+		entity = engine::CreateObject(Transform(glm::vec3(), glm::vec3(0.0,180.0,0.0)), mesh, materials[1]);
 
 
 		// TEXTURES
@@ -164,7 +166,7 @@ public:
 			textures[1] = engine::GetResourceManager().LoadEmptyTexture(fullResInfo);
 		}
 
-		sphereMap = engine::GetEngine().resourceManager.LoadTexture(RES_DIR"images/background.hdr", TextureUsage::Read);
+		sphereMap = engine::GetEngine().resourceManager.LoadTexture(RES_DIR"images/nebula.png", TextureUsage::Read);
 
 		engine::GetEngine().resourceManager.bindTextureToMaterial(materials[0], textures[0], 0);
 		engine::GetEngine().resourceManager.bindTextureToMaterial(materials[1], textures[1], 0);
@@ -206,8 +208,8 @@ public:
 		ComputeShader cShader = engine::GetEngine().resourceManager.LoadComputeShader(RES_DIR"shaders/compute/raymarcher2.glsl");
 		dispatcher = std::make_unique<ComputeDispatcher>(cShader);
 
-		groupCountX = (fullResX + 7) / 8;  // = 32 workgroups
-		groupCountY = (fullResY + 7) / 8;  // = 32 workgroups
+		groupCountX = (fullResX + threadGroupX -1) / threadGroupX;
+		groupCountY = (fullResY + threadGroupY) / threadGroupY;
 
 		dispatcher->setBuffer("inputData", buffer);
 		dispatcher->setBuffer("objectData", objectBuffer);
@@ -216,41 +218,47 @@ public:
 		dispatcher->setTexture("volumeTexture", volumeTexture);
 		dispatcher->dispatch(groupCountX, groupCountY, 1);
 
+		currentPass = 0;
+		textureUsedByShader = 1;
+
 
 		ComputeShader renderShader = engine::GetResourceManager().LoadComputeShader(RES_DIR"shaders/compute/blackHoleRender.glsl");
 		renderDispatcher = std::make_unique<ComputeDispatcher>(renderShader);
 
-		renderGroupCountX = (fullResX + 7) / 8;  // = 32 workgroups
-		renderGroupCountY = (fullResY + 7) / 8;  // = 32 workgroups
+		renderGroupCountX = (fullResX + renderThreadGroupX-1) / renderThreadGroupX;
+		renderGroupCountY = (fullResY + renderThreadGroupY) / renderThreadGroupY;
 		
-
-		dispatcher->wait();
 
 		renderDispatcher->setTexture("directionTexture", directionTexture);
 		renderDispatcher->setTexture("volumeTexture", volumeTexture);
 		renderDispatcher->setTexture("sphereMapTexture", sphereMap);
-		renderDispatcher->setTexture("outputImage", textures[1]);
-		renderDispatcher->dispatch(renderGroupCountX, renderGroupCountY, 1);
+		renderDispatcher->setTexture("outputImage", textures[textureUsedByShader]);
+		//renderDispatcher->dispatch(renderGroupCountX, renderGroupCountY, 1);
 	}
 	void update() override {
 		HandleInputs();
-		if (!renderDispatcher->isDone()) return;
-		updateData();
+		switch (currentPass)
+		{
+		case(0): // WAIT FOR RAYMARCHING PASS TO BE DONE
+			if (!dispatcher->isDone()) return;
+			currentPass = (currentPass + 1) % 2;
+			textureUsedByShader = (textureUsedByShader + 1) % 2;
 
+			updateData();
 
-		engine::GetBufferManager().updateBuffer(buffer, &data,  sizeof(BlackHoleData));
+			renderDispatcher->setTexture("outputImage", textures[textureUsedByShader]);
+			renderDispatcher->dispatch(renderGroupCountX, renderGroupCountY, 1);
+			break;
+		case(1): // WAIT FOR RENDER PASS TO BE DONE
+			if (!renderDispatcher->isDone()) return;
+			currentPass = (currentPass + 1) % 2;
 
-		Transform transform = engine::GetRegistry().GetComponent<Transform>(entity);
-		//dispatcher->setBuffer("inputData", buffer);
+			updateData();
 
-		dispatcher->dispatchAndWait(groupCountX, groupCountY, 1);
-
-		renderDispatcher->setTexture("outputImage", textures[renderedFrame]);
-		renderDispatcher->dispatch(renderGroupCountX, renderGroupCountY, 1);
-		renderedFrame = (renderedFrame + 1) % 2;
-		
-		engine::GetRegistry().AssignComponent<Material>(entity, materials[renderedFrame]);
-
+			engine::GetRegistry().AssignComponent<Material>(entity, materials[textureUsedByShader]);
+			dispatcher->dispatch(groupCountX, groupCountY, 1);
+			break;
+		}
 	}
 
 	void onGui() override {
@@ -298,6 +306,8 @@ public:
 		data.tanHalfFov = glm::tan(glm::radians(60.0f * 0.5f));
 		data.aspect = float(fullResX) / float(fullResY);
 		data.time = Time::time * 1.5f;
+
+		engine::GetBufferManager().updateBuffer(buffer, &data, sizeof(BlackHoleData));
 	}
 
 	void HandleInputs()
