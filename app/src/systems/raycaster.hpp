@@ -18,8 +18,8 @@ public:
 	Texture volumeTexture;
 	Texture blueNoiseTexture;
 	int textureUsedByShader = 0;
-	int blockSize = 3;
 	int fullResX = 1270, fullResY = 720;
+	float lowResRatio = 0.35f;
 	int threadGroupX = 16, threadGroupY = 16;
 	int renderThreadGroupX = 16, renderThreadGroupY = 16;
 	uint32_t groupCountX, groupCountY;
@@ -35,16 +35,13 @@ public:
 		glm::vec3 forward; float _pad3;
 		float tanHalfFov;
 		float aspect;
-		int fullResWidth;
-		int fullResHeight;
-		int blockSize;
 		int maxSteps = 150;
 		float stepSizeMin = 0.1f;
 		float stepSizeMax = 5.0f;
 		float rotSpeed = 0.5f;
 		float mass = 1.0f;
-		float diskInnerRadius = 2.0f;
-		float diskOuterRadius = 10.0f;
+		float diskInnerRadius = 5.0f;
+		float diskOuterRadius = 12.0f;
 		float diskHeight = 0.4f;
 		float diskDensity = 5.0f;
 		float expoFactor = 1.0f;
@@ -122,7 +119,7 @@ public:
 	struct NoiseParams {
 		int size = 64;
 		float scale = 1.0f;
-		float boost = 10.0f;
+		float boost = 2.0f;
 		int octaves = 6;
 		int tileSize = 64;
 		float lacunarity = 2.0f;
@@ -151,8 +148,8 @@ public:
 		// TEXTURES
 		{
 			TextureCreateInfo lowResInfo;
-			lowResInfo.width = fullResX;
-			lowResInfo.height = fullResY;
+			lowResInfo.width = glm::ceil(fullResX * lowResRatio);
+			lowResInfo.height = glm::ceil(fullResY * lowResRatio);
 			lowResInfo.depth = 1;
 			lowResInfo.usage = TextureUsage::ReadWrite;
 			lowResInfo.format = TextureFormat::R16G16_SFLOAT;
@@ -177,7 +174,7 @@ public:
 		}
 
 		sphereMap = engine::GetEngine().resourceManager.LoadTexture(RES_DIR"images/nebula.png", TextureUsage::Read);
-		blueNoiseTexture = engine::GetResourceManager().LoadTexture(RES_DIR"iamges/blueNoise.png", TextureUsage::Read);
+		blueNoiseTexture = engine::GetResourceManager().LoadTexture(RES_DIR"images/blueNoise.png", TextureUsage::Read);
 
 		engine::GetEngine().resourceManager.bindTextureToMaterial(materials[0], textures[0], 0);
 		engine::GetEngine().resourceManager.bindTextureToMaterial(materials[1], textures[1], 0);
@@ -185,9 +182,6 @@ public:
 
 		auto& camTransform = registry.GetComponent<Transform>(camera);
 		camTransform.setCaching(false);
-		data.fullResWidth = fullResY;
-		data.fullResHeight = fullResX;
-		data.blockSize = blockSize;
 		// buffer
 		{
 			BufferDescription desc;
@@ -219,8 +213,8 @@ public:
 		ComputeShader cShader = engine::GetEngine().resourceManager.LoadComputeShader(RES_DIR"shaders/compute/raymarcher2.glsl");
 		dispatcher = std::make_unique<ComputeDispatcher>(cShader);
 
-		groupCountX = (fullResX + threadGroupX -1) / threadGroupX;
-		groupCountY = (fullResY + threadGroupY) / threadGroupY;
+		groupCountX = (glm::ceil(fullResX * lowResRatio) + threadGroupX -1) / threadGroupX;
+		groupCountY = (glm::ceil(fullResY * lowResRatio) + threadGroupY -1) / threadGroupY;
 
 		dispatcher->setBuffer("inputData", buffer);
 		dispatcher->setBuffer("objectData", objectBuffer);
@@ -238,9 +232,12 @@ public:
 		renderDispatcher = std::make_unique<ComputeDispatcher>(renderShader);
 
 		renderGroupCountX = (fullResX + renderThreadGroupX-1) / renderThreadGroupX;
-		renderGroupCountY = (fullResY + renderThreadGroupY) / renderThreadGroupY;
+		renderGroupCountY = (fullResY + renderThreadGroupY-1) / renderThreadGroupY;
 		
-
+		renderDispatcher->setBuffer("inputData", buffer);
+		renderDispatcher->setBuffer("objectData", objectBuffer);
+		renderDispatcher->setTexture("noiseMap", noiseTexture);
+		renderDispatcher->setTexture("blueNoiseTexture", blueNoiseTexture);
 		renderDispatcher->setTexture("directionTexture", directionTexture);
 		renderDispatcher->setTexture("volumeTexture", volumeTexture);
 		renderDispatcher->setTexture("sphereMapTexture", sphereMap);

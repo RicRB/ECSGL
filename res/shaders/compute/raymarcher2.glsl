@@ -12,9 +12,6 @@ layout(std430, binding = 0) readonly buffer inputDataBlock {
     vec3 camForward; float _pad3;
     float tanHalfFov;
     float aspect;
-    int fullResWidth;
-    int fullResHeight;
-    int blockSize;
     int maxSteps;
     float stepSizeMin;
     float stepSizeMax;
@@ -63,8 +60,6 @@ layout(std430, binding = 1) readonly buffer objectDataBlock {
 
 layout(set = 0, binding = 2) uniform sampler2D sphereMapTexture;
 
-float disk_num = 2;
-
 layout(set=0, binding = 3) uniform sampler3D noiseMap;
 
 layout(set=0, binding = 4, rg16f) uniform writeonly image2D directionTexture;
@@ -76,10 +71,7 @@ const float eps = 0.01;  // Hamiltonian gradient step
 const vec2 dq = vec2(0, eps);
 const float cdist = 120;
 const float diskBaseRotationSpeed = 1;
-const vec3 coolColor = vec3(0.1, 0.3, 0.9); 
-const vec3 warmColor = vec3(0.1, 0.3, 0.9);
 const vec3 hotColor = vec3(0.4, 0.6, 1.0);
-const vec3 veryHotColor = vec3(0.7, 0.8, 1.0); 
 
 float a;
 float m;
@@ -674,65 +666,25 @@ void main() {
     m = inputData.mass;
     a = inputData.rotationSpeed * m;
     horizonRadius = m + sqrt(m * m - a * a);
-    const float highResRadius = horizonRadius* 3.5;
-
-    // Determine which block this pixel belongs to
-    const ivec2 blockCoord = pixelCoord / inputData.blockSize;
-    const ivec2 blockPixel = pixelCoord % inputData.blockSize; // Position within block
-    const ivec2 blockStart = blockCoord * inputData.blockSize;
     
     // Check if this block needs high resolution (sample from block center)
-    vec2 centerUV = (vec2(blockStart) + float(inputData.blockSize) * 0.5) / vec2(size);
+    vec2 uv = (vec2(pixelCoord) + 0.5) / vec2(size);
     vec3 cp, rd;
-    if (!getRay(centerUV, cp, rd)) return;
-    
-    float intersect = raySphereIntersect(cp, rd, vec3(0.0), highResRadius);
-    //float lowIntersect = raySphereIntersect(cp, rd, vec3(0.0), highResRadius * 0.5);
-    bool needsHighRes = (intersect > 0.0) ;
+    if (!getRay(uv, cp, rd)) return;
     
     {
         vec2 noiseUV = fract(pixelCoord.xy / 64.0 + inputData.time * 0.1);
         stepNoise = texture(blueNoiseTexture, noiseUV).r;
     }
+    vec3 L;
+    float T;
+    vec2 warp;
+        
+    if (!getRay(uv, cp, rd)) return;
+    traceRay(cp, rd, warp, L, T);
+        
+    imageStore(directionTexture, pixelCoord, vec4(warp, 0.0, 0.0));
+    //if (needsHighRes) {imageStore(volumeTexture, pixelCoord, vec4(1.0, 0.0, 0.0, 1.0)); return;}
 
-    // LOW-RES MODE: Only thread (0,0) in each block does work
-    if (!needsHighRes) {
-        if (blockPixel.x != 0 || blockPixel.y != 0) {
-            // Not the first thread in this block - early exit
-            return;
-        }
-        
-        // First thread traces once and fills entire block
-        vec3 L;
-        float T;
-        vec2 warp;
-        
-        traceRay(cp, rd, warp, L, T);
-        
-        // Fill entire block
-        for (int j = 0; j < inputData.blockSize; j++) {
-            for (int i = 0; i < inputData.blockSize; i++) {
-                ivec2 fillPixel = blockStart + ivec2(i, j);
-                if (fillPixel.x < size.x && fillPixel.y < size.y) {
-                    imageStore(directionTexture, fillPixel, vec4(warp, 0.0, 0.0));
-                    imageStore(volumeTexture, fillPixel, vec4(L.rgb, T));
-                }
-            }
-        }
-    }
-    // HIGH-RES MODE: Every thread traces its own pixel
-    else {
-        vec2 uv = (vec2(pixelCoord) + 0.5) / vec2(size);
-        vec3 L;
-        float T;
-        vec2 warp;
-        
-        if (!getRay(uv, cp, rd)) return;
-        traceRay(cp, rd, warp, L, T);
-        
-        imageStore(directionTexture, pixelCoord, vec4(warp, 0.0, 0.0));
-        //if (needsHighRes) {imageStore(volumeTexture, pixelCoord, vec4(1.0, 0.0, 0.0, 1.0)); return;}
-
-        imageStore(volumeTexture, pixelCoord, vec4(L.rgb, T));
-    }
+    imageStore(volumeTexture, pixelCoord, vec4(L.rgb, T));
 }

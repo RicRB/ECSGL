@@ -400,7 +400,6 @@ std::vector<const char*> Vulkan::getRequiredExtensions()
 	if (enableValidationLayers) {
 		extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 	}
-
 	return extensions;
 }
 void Vulkan::compileShader(const char* name, const std::string& vertexSource, const std::string& fragmentSource, ShaderData* shaderData) {
