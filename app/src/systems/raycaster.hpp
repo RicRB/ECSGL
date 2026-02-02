@@ -16,6 +16,7 @@ public:
 	Texture noiseTexture;
 	Texture directionTexture;
 	Texture volumeTexture;
+	Texture blueNoiseTexture;
 	int textureUsedByShader = 0;
 	int blockSize = 3;
 	int fullResX = 1270, fullResY = 720;
@@ -42,23 +43,32 @@ public:
 		float stepSizeMax = 5.0f;
 		float rotSpeed = 0.5f;
 		float mass = 1.0f;
-		
-		int diskEnable = 1;
-		float r1 = 3.5f;
-		float r2 = 10.0f;
-		float diskH = 0.2f;
-		float diskEdgeK = 0.3f;
+		float diskInnerRadius = 2.0f;
+		float diskOuterRadius = 10.0f;
+		float diskHeight = 0.4f;
+		float diskDensity = 5.0f;
+		float expoFactor = 1.0f;
+		float aniForward = 0.6;
+		float aniBackward = -0.2;
+		float lobeWeight = 0.3;
+		float brightness = 0.4;
+		float lightIntensity = 1000;
+		float rotationSpeed = -25;
+		float verticalFadeStart = 0.3;
+		float verticalFadeEnd = 0.56;
+		float outerFadeStart = 2;
+		float outerFadeEnd = 5.91;
+		float innerFadeRadius = 0.79;
+		float innerFadeWidth = 1;
+		float lightFallOff = 0.9f;
+		float dopplerStrength = 0.9;
 
-		float diskDensity = 3.0f;
+		int shadowIterations = 3;
+		float shadowStepSize = 2.5;
 
-		float sigmaT = 2.0f;
-		float dsVolScale = 1.0f;
+		float dsVolScale = 1.0;
 		int volSubsteps = 20;
-
-
 		float time = 0.0f;
-		float sampleScale = 1.0f;
-		float spin = 20.0f;
 	};
 
 	BlackHoleData data;
@@ -110,13 +120,13 @@ public:
 
 
 	struct NoiseParams {
-		int size;
-		float scale;
-		float boost;
-		int octaves;
-		int tileSize;
-		float lacunarity;
-		float gain;
+		int size = 64;
+		float scale = 1.0f;
+		float boost = 10.0f;
+		int octaves = 6;
+		int tileSize = 64;
+		float lacunarity = 2.0f;
+		float gain = 0.5f;
 		float time;
 	};
 
@@ -167,6 +177,7 @@ public:
 		}
 
 		sphereMap = engine::GetEngine().resourceManager.LoadTexture(RES_DIR"images/nebula.png", TextureUsage::Read);
+		blueNoiseTexture = engine::GetResourceManager().LoadTexture(RES_DIR"iamges/blueNoise.png", TextureUsage::Read);
 
 		engine::GetEngine().resourceManager.bindTextureToMaterial(materials[0], textures[0], 0);
 		engine::GetEngine().resourceManager.bindTextureToMaterial(materials[1], textures[1], 0);
@@ -216,6 +227,7 @@ public:
 		dispatcher->setTexture("noiseMap", noiseTexture);
 		dispatcher->setTexture("directionTexture", directionTexture);
 		dispatcher->setTexture("volumeTexture", volumeTexture);
+		dispatcher->setTexture("blueNoiseTexture", blueNoiseTexture);
 		dispatcher->dispatch(groupCountX, groupCountY, 1);
 
 		currentPass = 0;
@@ -268,14 +280,24 @@ public:
 		ImGui::DragInt("maxSteps", &data.maxSteps);
 		ImGui::DragFloat("Rotation Speed", &data.rotSpeed, 0.1, 0, 5);
 		ImGui::DragFloat("Mass", &data.mass);
-		ImGui::DragFloat("InnerRadius", &data.r1);
-		ImGui::DragFloat("OuterRadius", &data.r2);
-		ImGui::DragFloat("Density", &data.diskDensity);
-		ImGui::DragFloat("diskEdgeK", &data.diskEdgeK);
-		ImGui::DragFloat("Spin", &data.spin);
-		ImGui::DragFloat("height", &data.diskH);
-		ImGui::DragInt("substeps", &data.volSubsteps);
+		ImGui::End();
 
+		ImGui::Begin("DISK");
+		ImGui::DragFloat("Density", &data.diskDensity, 0.1f);
+		ImGui::DragFloat("InnerRingRadius", &data.diskInnerRadius);
+		ImGui::DragFloat("OuterRingRadius", &data.diskOuterRadius);
+		ImGui::DragFloat("HeightRing", &data.diskHeight);
+		ImGui::DragFloat("Brightness", &data.brightness);
+		ImGui::DragFloat("LightIntensity", &data.lightIntensity);
+		ImGui::DragFloat("RotationSpeed", &data.rotationSpeed);
+		ImGui::DragFloat2("Vertical Fade", &data.verticalFadeStart, 0.1f);
+		ImGui::DragFloat2("OuterFade", &data.outerFadeStart, 0.1f);
+		ImGui::DragFloat("InnerFade Radius", &data.innerFadeRadius, 0.1f);
+		ImGui::DragFloat("Light fall off", &data.lightFallOff, 0.1f);
+		ImGui::DragInt("Substeps", &data.volSubsteps);
+		ImGui::DragFloat("SUBSTEP SCALE??", &data.dsVolScale, 0.1f);
+		ImGui::DragFloat("Shadow", &data.shadowStepSize);
+		ImGui::DragInt("ShadowIt", &data.shadowIterations);
 		ImGui::End();
 	}
 
@@ -337,15 +359,6 @@ public:
 		info.depth = imageSize;
 		info.usage = TextureUsage::ReadWrite;
 		noiseTexture = engine::GetResourceManager().LoadEmptyTexture(info);
-
-		noiseParams.size = imageSize;
-		noiseParams.scale = 4.0f;
-		noiseParams.boost = 1.5f;
-		noiseParams.octaves = 4;
-		noiseParams.tileSize = imageSize;
-		noiseParams.lacunarity = 2.0f;
-		noiseParams.gain = 0.5f;
-		noiseParams.time = 0.0f;
 		
 		BufferDescription desc;
 		desc.size = sizeof(NoiseParams);

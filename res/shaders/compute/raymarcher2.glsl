@@ -21,21 +21,33 @@ layout(std430, binding = 0) readonly buffer inputDataBlock {
     float rotationSpeed;
     float mass;
 
-    int diskEnable;
-    float diskInnerRadius;
-    float diskOuterRadius;
-    float diskH;
-    float diskEdgeK;
+    float disk_InnerRadius; // x = inner radius, y outer radius, z = height
+    float disk_OuterRadius;
+    float disk_Height;
+    float disk_Density;
+    float disk_ExpoFactor;
+    float disk_AnisotropyForward;
+    float disk_AnisotropyBackward;
+    float disk_LobeWeight;
+    float disk_Brightness;
+    float disk_LightIntensity;
+    float disk_RotationSpeed;
+    float disk_VerticalFadeStart;
+    float disk_VerticalFadeEnd;
+    float disk_OuterFadeStart;
+    float disk_OuterFadeEnd;
+    float disk_InnerFadeRadius;
+    float disk_InnerFadeWidth;
+    float disk_LightFalloff;
+    float disk_DopplerStrength;
 
-	float diskDensity;
+    int disk_MaxShadowIterations;
+    float disk_ShadowStepSize;
 
-    float sigmaT;
     float dsVolScale;
     int volSubsteps;
 
     float time;
-    float sampleScale;
-    float spin;
 } inputData;
 
 struct Object {
@@ -57,11 +69,13 @@ layout(set=0, binding = 3) uniform sampler3D noiseMap;
 
 layout(set=0, binding = 4, rg16f) uniform writeonly image2D directionTexture;
 layout(set=0, binding = 5, rgba16) uniform writeonly image2D volumeTexture;
+layout(set=0, binding = 6) uniform sampler2D blueNoiseTexture;
 
 const float PI = 3.1415926538;
 const float eps = 0.01;  // Hamiltonian gradient step
 const vec2 dq = vec2(0, eps);
 const float cdist = 120;
+const float diskBaseRotationSpeed = 1;
 const vec3 coolColor = vec3(0.1, 0.3, 0.9); 
 const vec3 warmColor = vec3(0.1, 0.3, 0.9);
 const vec3 hotColor = vec3(0.4, 0.6, 1.0);
@@ -70,6 +84,7 @@ const vec3 veryHotColor = vec3(0.7, 0.8, 1.0);
 float a;
 float m;
 float dt = 0.1;
+float stepNoise;
 float horizonRadius = 0;
 // Globals to store hit info
 vec4 objectColor = vec4(0.0);
@@ -267,6 +282,7 @@ bool variDT(vec4 P, vec4 q, out bool blackholeHit)
     float r = sqrt(r2);
     float diskInfluence = horizonRadius;
     dt = mix(inputData.stepSizeMin, inputData.stepSizeMax, pow(max(r - diskInfluence, 0.0)/cdist, 1.0));
+    
     if(r < horizonRadius * 0.8 && a <= 1.0)
     {
         blackholeHit = true;
@@ -387,105 +403,123 @@ vec4 sampleBackground(vec3 direction)
 
     return color;
 }
-void sampleDisk(vec3 p, vec3 rayDir, float M, float a, float time, out float density, out vec3 emission)
+float sampleDensity(vec3 p)
 {
+    float density = 0.0;
     // cylindrical coords
     const vec2 xz = vec2(p.x, p.z);
     const float r = length(xz);
-    const float h = p.y;
+    const float theta = atan(xz.y, xz.x);
 
     // ----- density calc -----
-    const float innerRadius = inputData.diskInnerRadius * M;
-    const float outerRadius = inputData.diskOuterRadius * M;
+    const float innerRadius = inputData.disk_InnerRadius * inputData.mass;
+    const float outerRadius = inputData.disk_OuterRadius * inputData.mass;
 
+    float orbitalSpeed = inputData.disk_RotationSpeed / pow(r, 1.5) + diskBaseRotationSpeed;
+    float angleOffset = theta + orbitalSpeed * inputData.time;
+
+    vec2 polar = vec2(
+        r / inputData.disk_InnerRadius,
+        (p.y + inputData.disk_Height * 0.5) / inputData.disk_Height
+    );
     
+    float u = cos(angleOffset) * polar.x * 0.5 + 0.5;
+    float w = sin(angleOffset) * polar.x * 0.5 + 0.5;
+    vec3 diskUVW = vec3(u, polar.y, w);
 
-    const float diskHeight = inputData.diskH * (1.0 + 0.3 * sqrt(r / (10.0 * M))); 
+    float noise = texture(noiseMap, diskUVW).r;
+
+    float radiusNorm = r / inputData.disk_InnerRadius;
+    float thicknessAtR = inputData.disk_Height * (1.0 + sqrt(radiusNorm) * 0.5);
     
+    float yNorm = abs(p.y) / thicknessAtR;
+    float verticalFade = 1.0 - smoothstep(inputData.disk_VerticalFadeStart, inputData.disk_VerticalFadeEnd, yNorm);
 
-    const float orbitalVelocity = sqrt(M / max(r, 0.001));
+    float innerFade = smoothstep(inputData.disk_InnerFadeRadius, inputData.disk_InnerFadeRadius + inputData.disk_InnerFadeWidth, radiusNorm);
 
-    const float windingNumber = inputData.spin;
+    float outerFade = 1.0 - smoothstep(inputData.disk_OuterFadeStart, inputData.disk_OuterFadeEnd, radiusNorm);
+    float radialFade = innerFade * outerFade;
 
-    const float spiralAngle = (atan(xz.y, xz.x) - orbitalVelocity / r * time * 2.0) + (windingNumber * log(r / innerRadius));
+    density = noise * inputData.disk_Density * verticalFade * radialFade;
 
-    vec3 spiralCoords;
-    spiralCoords.x = cos(spiralAngle) * (r - innerRadius) / (outerRadius - innerRadius);
-    spiralCoords.y = h / diskHeight;
-    spiralCoords.z = sin(spiralAngle) * (r - innerRadius) / (outerRadius - innerRadius);
-
-    {
-        float turbulence = textureLod(noiseMap, spiralCoords * 1.0 * inputData.sampleScale, 0).r;
-        turbulence += 0.5 * textureLod(noiseMap, spiralCoords * 3.0 * inputData.sampleScale, 0).r;
-        turbulence += 0.3 * textureLod(noiseMap, spiralCoords * 7.0 * inputData.sampleScale, 0).r;
-
-
-        const float spiralPattern = sin(spiralAngle * windingNumber) * 0.5 + 0.5;
-        const float structure = mix(turbulence, spiralPattern * turbulence, 0.5);
-        const float radialDensityBoost = 2.0 + 2.0 * exp(-(r - innerRadius) / (3.0 * M));
-        const float radialMask = smoothstep(innerRadius, innerRadius + M, r) * (1.0 - smoothstep(outerRadius - inputData.diskEdgeK, outerRadius, r));
-        const float verticalProfile = exp(-(h * h) / (2.0 * diskHeight * diskHeight));
-        density = inputData.diskDensity * verticalProfile * structure * radialDensityBoost * radialMask;
-        const float clumpiness = textureLod(noiseMap, spiralCoords * 0.5 + time * 0.1, 0).r;
-        density *= 1.0 + max(clumpiness - 0.7, 0.0) * 3.0;
+    return density;
+}
+// ==================== Transmittance ====================
+float computeTransmittance(vec3 position, vec3 Ld) {
+    float tau = 0.0;
+    int steps = inputData.disk_MaxShadowIterations;
+    
+    for (int i = 0; i < steps; i++) {
+        vec3 sp = position - Ld * (float(i) * inputData.disk_ShadowStepSize);
+        float d = sampleDensity(sp);
+        tau += pow(d, inputData.disk_ExpoFactor) * inputData.disk_MaxShadowIterations;
     }
     
+    float T = exp(-tau);
+    return T;
+}
 
-
-
-    // ----- color/emission calculation -----
-
-    const float temperatureParam = pow(1.0 - clamp((r - innerRadius) / (outerRadius - innerRadius), 0.0, 1.0), 2.0);
-
-
-    vec3 diskColor;
-
-    if (temperatureParam < 0.25) {
-        diskColor = mix(coolColor, warmColor, temperatureParam * 4.0);
-    } else if (temperatureParam < 0.5) {
-        diskColor = mix(warmColor, hotColor, (temperatureParam - 0.25) * 4.0);
-    } else if (temperatureParam < 0.75) {
-        diskColor = mix(hotColor, veryHotColor, (temperatureParam - 0.5) * 4.0);
-    } else {
-        diskColor = mix(veryHotColor, vec3(0.7, 0.8, 1.0), (temperatureParam - 0.75) * 4.0);
-    }
-
+// Double-lobed Henyey-Greenstein phase function
+float doubleLobedHG(float cosTheta, float gForward, float gBackward, float lobeWeight) {
+    float g1 = gForward;
+    float g2 = gBackward;
     
-    {   // ----- gravitational effects -----
-            // ----- doppler effects -----
-        vec3 tangent = normalize(vec3(-xz.y, 0, xz.x));
-        vec3 velocity = tangent * orbitalVelocity;
-        
-        float beta = length(velocity);
-        float gamma = 1.0 / sqrt(max(1.0 - beta * beta, 0.001));
-
-        float cosAngle = dot(normalize(velocity), -rayDir);
-        float dopplerFactor = gamma * (1.0 - beta * cosAngle);
-        // relativistic beaming
-        float dopplerBoost = pow(1.0 / max(dopplerFactor, 0.1), 2.0f);  
-
-        if (cosAngle > 0) {
-            // moving toward observer - blueshift
-            diskColor = mix(diskColor, diskColor * vec3(0.7, 0.85, 1.2), cosAngle * 0.3);
-            emission = diskColor * (1.0 + cosAngle * 0.5); // Brighter
-        } else {
-            // moving away - redshift
-            diskColor = mix(diskColor, diskColor * vec3(1.2, 0.85, 0.7), -cosAngle * 0.3);
-            emission = diskColor * (1.0 + cosAngle * 0.3); // Dimmer
-        }
-
-        const float gravitationalRedshift = sqrt(1.0 - 2.0 * M / max(r, 2.0 * M));
-        const float compressionBoost = 1.0 + 1.0 * exp(-r / (5.0 * M));
+    float denom1 = 1.0 + g1 * g1 - 2.0 * g1 * cosTheta;
+    float phase1 = (1.0 - g1 * g1) / (4.0 * PI * pow(denom1, 1.5));
     
-        emission *= 2.0 * density * dopplerBoost * compressionBoost * gravitationalRedshift;
-    }
+    float denom2 = 1.0 + g2 * g2 - 2.0 * g2 * cosTheta;
+    float phase2 = (1.0 - g2 * g2) / (4.0 * PI * pow(denom2, 1.5));
     
+    return mix(phase2, phase1, lobeWeight);
+}
+
+void sampleDisk(vec3 p, vec3 rayDir, float stepSize, float time, inout vec3 emission, inout float T)
+{
     
+    float density = sampleDensity(p);
+    if (density < 0.1) return;
+
+    vec3 lightDir = normalize(p);
+    float Tsh = computeTransmittance(p, lightDir);
+
+    float phase = doubleLobedHG(dot(lightDir, -rayDir), inputData.disk_AnisotropyForward, inputData.disk_AnisotropyBackward, inputData.disk_LobeWeight);
+
+    float softenedDensity = pow(density, inputData.disk_Brightness);
+    float scat = softenedDensity * stepSize;
+
+    float r = length(p);
+
+    float dist2 = dot(-p, -p);
+    float atten = inputData.disk_LightIntensity / (max(dist2, 0.001) * 0.06);
+
+    float tRad = clamp((r - inputData.disk_InnerRadius) / (inputData.disk_OuterRadius - inputData.disk_InnerRadius), 0.0, 1.0);
+    vec3 sampleColor = hotColor * (1.0 - tRad) + (vec3(3.0, 6.0, 12.0) * 2.0); // BLUE???
+
+    float saturation = pow(1.0 - tRad, inputData.disk_LightFalloff);
+    sampleColor *= saturation;
+
+    vec3 toCam = normalize(inputData.camPos - p);
+    vec3 tangentDir = normalize(vec3(-p.z, 0.0, p.x));
+
+    float v = inputData.disk_RotationSpeed / pow(r, 1.5);
+    vec3 vel = tangentDir * v;
+
+    float relVel = -dot(normalize(vel), toCam);
+    float dopplerBoost = 1.0 + inputData.disk_DopplerStrength * relVel;
+
+    sampleColor *= dopplerBoost;
+
+    emission += T * Tsh * atten * sampleColor * phase * scat * density;
+
+    T *= exp(-pow(density, inputData.disk_ExpoFactor) * stepSize);
+   
+  /*  
     // Hot spots and flares
-    float flareNoise = texture(noiseMap, spiralCoords * 0.3 + time * 0.5).r;
+    float flareNoise = texture(noiseMap, p * 0.3 + time * 0.5).r;
     if (flareNoise > 0.85 && temperatureParam > 0.6) {
         density *= 1.0 + (flareNoise - 0.85) * 5.0;
     }
+    */
 }
 
 bool segmentIntersectsSphere(vec3 segStart, vec3 segEnd, vec3 sphereCenter, float sphereRadius) {
@@ -550,48 +584,21 @@ float raySphereIntersect(vec3 ro, vec3 rd, vec3 sphereCenter, float sphereRadius
 void computeVolumetric(vec4 Q, vec3 seg, vec3 segDir, float ds, inout vec3 L, inout float T)
 {
         // Check if we're in the disk region
-    const float innerR = inputData.diskInnerRadius * 0.8;
-    const float outerR = inputData.diskOuterRadius * 1.2;
-    const float maxH = inputData.diskH * 5.0;
+    const float innerR = inputData.disk_InnerRadius * 0.8;
+    const float outerR = inputData.disk_OuterRadius * 1.2;
+    const float maxH = inputData.disk_Height * 5.0;
 
     // March through the segment
     for (int s = 0; s < inputData.volSubsteps; ++s) {
-        float tMid = (float(s) + 0.5) / float(inputData.volSubsteps);
+        float tMid = (float(s) + stepNoise) / float(inputData.volSubsteps);
         vec3 pMid = Q.yzw + seg * tMid;
         
         vec2 xz = vec2(pMid.x, pMid.z);
         float rperp = length(xz);
         float h = abs(pMid.y);
 
-
-
         if (rperp >= innerR && rperp <= outerR && h <= maxH) {
-            // Sample the disk density and emission
-            float density;
-            vec3 emissive;
-            sampleDisk(pMid, segDir, m, a, inputData.time, density, emissive);
-
-            if (density > 0.001) {
-                // Calculate light extinction
-                float extinction = inputData.sigmaT * density * ds;
-                float atten = exp(-extinction);
-
-                // Emission-absorption integration
-                vec3 src = emissive * density;
-
-                if (extinction > 1e-5) {
-                    // Analytical integration
-                    float w = (1.0 - atten) / extinction;
-                    L += T * src * inputData.sigmaT * w * ds;
-                } else {
-                    // Direct contribution (low extinction)
-                    L += T * src * inputData.sigmaT * ds;
-                }
-
-                // Update transmittance
-                T *= atten;
-                if (T < 0.01) break;
-            }
+            sampleDisk(pMid, segDir, ds, inputData.time, L, T);
         }
     }
 }
@@ -623,7 +630,7 @@ void traceRay(vec3 cp, vec3 rd, out vec2 warp, out vec3 L, out float T)
         vec3 seg = Q.yzw - prevQ.yzw;
         float segLen = length(seg);
 
-        if (inputData.diskEnable != 0 && T > 0.01) {
+        if (inputData.disk_Density > 0 && T > 0.01) {
 
             if (segLen > 0.0) {
                 vec3 segDir = seg / segLen;
@@ -667,7 +674,7 @@ void main() {
     m = inputData.mass;
     a = inputData.rotationSpeed * m;
     horizonRadius = m + sqrt(m * m - a * a);
-    const float highResRadius = horizonRadius * 3.5;
+    const float highResRadius = horizonRadius* 3.5;
 
     // Determine which block this pixel belongs to
     const ivec2 blockCoord = pixelCoord / inputData.blockSize;
@@ -680,9 +687,14 @@ void main() {
     if (!getRay(centerUV, cp, rd)) return;
     
     float intersect = raySphereIntersect(cp, rd, vec3(0.0), highResRadius);
-    float lowIntersect = raySphereIntersect(cp, rd, vec3(0.0), highResRadius * 0.5);
-    bool needsHighRes = (intersect > 0.0 && !(lowIntersect > 0.0)) ;
+    //float lowIntersect = raySphereIntersect(cp, rd, vec3(0.0), highResRadius * 0.5);
+    bool needsHighRes = (intersect > 0.0) ;
     
+    {
+        vec2 noiseUV = fract(pixelCoord.xy / 64.0 + inputData.time * 0.1);
+        stepNoise = texture(blueNoiseTexture, noiseUV).r;
+    }
+
     // LOW-RES MODE: Only thread (0,0) in each block does work
     if (!needsHighRes) {
         if (blockPixel.x != 0 || blockPixel.y != 0) {
@@ -724,59 +736,3 @@ void main() {
         imageStore(volumeTexture, pixelCoord, vec4(L.rgb, T));
     }
 }
-
-
-/*
-
-void main() {
-
-    ivec2 pixelCoord = ivec2(gl_GlobalInvocationID.xy) * inputData.blockSize;
-
-    ivec2 size = imageSize(directionTexture);
-
-    if (pixelCoord.x >= size.x || pixelCoord.y >= size.y) return;
-
-    vec2 uv = (vec2(pixelCoord) + 0.5) / vec2(size);
-    // intialize global variables
-    m = inputData.mass;
-    a = inputData.rotationSpeed * m;
-    horizonRadius = m + sqrt(m * m - a * a);
-    float highResRadius = horizonRadius * 3.2;
-    float actualAspect = float(size.x) / float(size.y);
-
-    vec3 cp, rd; // ray pos and ray dir
-    if (!getRay(uv, cp, rd)) return;
-
-
-    float intersect = raySphereIntersect(cp, rd, vec3(0.0), highResRadius);
-
-    bool needsHighRes = (intersect > 0.0);
-
-    for(int idx = 0; idx < inputData.blockSize * inputData.blockSize; idx++)
-    {
-        int i = idx / inputData.blockSize;
-        int j = idx % inputData.blockSize;
-        vec2 pixelOffset = vec2(i, j);
-        if (pixelCoord.x + pixelOffset.x >= size.x || pixelCoord.y + pixelOffset.y >= size.y) continue;
-        uv = ((vec2(pixelCoord) + pixelOffset) + 0.5) / vec2(size);
-
-        vec3 L;
-        float T;
-        vec2 warp;
-        // Only trace on first iteration for low-res, always for high-res
-        if (needsHighRes || idx == 0) {
-            if (!getRay(uv, cp, rd)) continue;
-            traceRay(cp, rd, warp, L, T);
-        }
-
-        imageStore(directionTexture, pixelCoord + ivec2(i,j), vec4(warp, 0.0, 0.0)); // a should be something important
-        if (false)
-        {
-            imageStore(volumeTexture, pixelCoord + ivec2(i,j), vec4(1.0, 0.0, 0.0, 1.0));
-        }else{
-            imageStore(volumeTexture, pixelCoord + ivec2(i,j), vec4(L.rgb, T));
-        }
-    }
-}
-
-*/
