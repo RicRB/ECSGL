@@ -46,6 +46,8 @@ layout(std430, binding = 0) readonly buffer inputDataBlock {
 
     float time;
     float offsetDensity;
+    float noiseScale;
+    float noiseOffset;
 } inputData;
 
 struct Object {
@@ -413,14 +415,15 @@ float sampleDensity(vec3 p)
 
     vec2 polar = vec2(
         r / innerRadius,
-        (p.y + inputData.disk_Height * 0.5) / inputData.disk_Height
+        (p.y + inputData.disk_Height * 0.25) / inputData.disk_Height
     );
-    
-    float u = cos(angleOffset) * polar.x * 0.5 + 0.5;
-    float w = sin(angleOffset) * polar.x * 0.5 + 0.5;
+    polar.x *= orbitalSpeed;
+    float uvScale = inputData.noiseScale;
+    float u = cos(angleOffset) * polar.x * uvScale;
+    float w = sin(angleOffset) * polar.x * uvScale;
     vec3 diskUVW = vec3(u, polar.y, w);
-
-    float noise = texture(noiseMap, diskUVW).r + inputData.offsetDensity;
+    vec3 centeredUVW = (diskUVW + vec3(inputData.noiseOffset, 0.0, inputData.noiseOffset));
+    float noise = texture(noiseMap, centeredUVW).r + inputData.offsetDensity;
 
     float radiusNorm = r / innerRadius;
     float thicknessAtR = inputData.disk_Height * (1.0 + sqrt(radiusNorm) * 0.5);
@@ -445,7 +448,7 @@ float computeTransmittance(vec3 position, vec3 Ld) {
     for (int i = 0; i < steps; i++) {
         vec3 sp = position - Ld * (float(i) * inputData.disk_ShadowStepSize);
         float d = sampleDensity(sp);
-        tau += pow(d, inputData.disk_ExpoFactor) * inputData.disk_MaxShadowIterations;
+        tau += pow(d, inputData.disk_ExpoFactor) * inputData.disk_ShadowStepSize;
     }
     
     float T = exp(-tau);
@@ -502,7 +505,7 @@ void sampleDisk(vec3 p, vec3 rayDir, float stepSize, float time, inout vec3 emis
 
     sampleColor *= dopplerBoost;
 
-    emission += T * Tsh * atten * sampleColor * phase * scat * density;
+    emission += T * Tsh * atten * sampleColor * phase * scat;
 
     T *= exp(-pow(density, inputData.disk_ExpoFactor) * stepSize);
    

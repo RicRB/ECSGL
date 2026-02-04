@@ -20,7 +20,7 @@ public:
 	Texture blueNoiseTexture;
 	Texture volumeTextureIntermediate;
 	int textureUsedByShader = 0;
-	int fullResX = 1270, fullResY = 720;
+	int fullResX = 1920, fullResY = 1080;
 	float lowResRatio = 0.35f;
 	int threadGroupX = 16, threadGroupY = 16;
 	int renderThreadGroupX = 16, renderThreadGroupY = 16;
@@ -48,31 +48,36 @@ public:
 		float mass = 1.0f;
 		float diskInnerRadius = 5.0f;
 		float diskOuterRadius = 12.0f;
-		float diskHeight = 0.4f;
-		float diskDensity = 5.0f;
+		float diskHeight = 5.0f;
+
+		float diskDensity = 5.3f;
 		float expoFactor = 1.0f;
 		float aniForward = 0.6;
 		float aniBackward = -0.2;
 		float lobeWeight = 0.3;
 		float brightness = 0.4;
-		float lightIntensity = 1000;
-		float rotationSpeed = -25;
-		float verticalFadeStart = 0.3;
-		float verticalFadeEnd = 0.56;
-		float outerFadeStart = 2;
-		float outerFadeEnd = 5.91;
-		float innerFadeRadius = 0.79;
+		float lightIntensity = 1825.0f;
+		float rotationSpeed = 6.5f;
+		float verticalFadeStart = 0.0f;
+		float verticalFadeEnd = 0.1f;
+		float outerFadeStart = 1.2;
+		float outerFadeEnd = 3.2;
+		float innerFadeRadius =0.79;
 		float innerFadeWidth = 1;
-		float lightFallOff = 0.9f;
-		float dopplerStrength = 0.9;
+		float lightFallOff = 0.8f;
+		float dopplerStrength = 0.9f;
 
 		int shadowIterations = 3;
-		float shadowStepSize = 2.5;
+		float shadowStepSize = 17.0;
 
 		float dsVolScale = 1.0;
-		int volSubsteps = 20;
+		int volSubsteps = 25;
 		float time = 0.0f;
 		float offsetDensity = 0.0f;
+		float noiseScale = 0.130f;
+		float noiseOffset = 0.25f;
+		float intersectLow = 1.0f;
+		float interesctHigh = 1.0f;
 	};
 
 	BlackHoleData data;
@@ -124,13 +129,13 @@ public:
 
 
 	struct NoiseParams {
-		int size = 64;
-		float scale = 1.0f;
+		int size = 128;
+		float scale = 2.7f;
 		float boost = 1.0f;
 		int octaves = 6;
-		int tileSize = 64;
+		int tileSize = 128;
 		float lacunarity = 2.0f;
-		float gain = 0.5f;
+		float gain = -0.9f;
 		float time;
 	};
 
@@ -231,7 +236,7 @@ public:
 		updateData();
 		{
 			blurParams.texelSize = glm::vec2(1.0f / (float)fullResX, 1.0f / (float)fullResY);
-			const int imageSize = 64;
+			const int imageSize = 128;
 			TextureCreateInfo info;
 			info.height = imageSize;
 			info.width = imageSize;
@@ -319,7 +324,7 @@ public:
 
 			updateData();
 			upscaleVolume(glm::vec2((float)fullResX,(float)fullResY));
-			blur();
+			//blur();
 			renderDispatcher->setTexture("outputImage", textures[textureUsedByShader]);
 			renderDispatcher->dispatch(renderGroupCountX, renderGroupCountY, 1);
 			break;
@@ -344,6 +349,8 @@ public:
 			ImGui::DragInt("maxSteps", &data.maxSteps);
 			ImGui::DragFloat("Rotation Speed", &data.rotSpeed, 0.1, 0, 5);
 			ImGui::DragFloat("Mass", &data.mass);
+			ImGui::DragFloat("Interesct Low", &data.intersectLow, 0.1f);
+			ImGui::DragFloat("Interesct High", &data.interesctHigh, 0.1f);
 		}
 
 		if (ImGui::CollapsingHeader("Accretion Disk", ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -371,6 +378,8 @@ public:
 			ImGui::DragFloat("Boost", &noiseParams.boost, 0.1f);
 			ImGui::DragInt("Octaves", &noiseParams.octaves);
 			ImGui::DragFloat("Gain", &noiseParams.gain, 0.1f);
+			ImGui::DragFloat("NoiseScale", &data.noiseScale, 0.01f);
+			ImGui::DragFloat("NoiseOffset", &data.noiseOffset, 0.1f);
 		}
 
 		ImGui::End();

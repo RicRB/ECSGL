@@ -1,6 +1,6 @@
 #version 450
 
-layout (local_size_x = 8, local_size_y = 8) in;
+layout (local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 
 //layout(std430, binding = 0) readonly buffer inputBuffer {
 //    int numbers[];

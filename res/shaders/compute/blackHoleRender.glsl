@@ -54,6 +54,10 @@ layout(std430, binding = 4) readonly buffer inputDataBlock {
 
     float time;
     float offsetDensity;
+    float noiseScale;
+    float noiseOffset;
+    float intersectLow;
+    float intersectHigh;
 } inputData;
 
 struct Object {
@@ -342,20 +346,6 @@ mat2x4 dhstep(in mat2x4 s, float dt)
 }
 
 
-float adaptiveStepSize(float r) {
-    // Smaller steps near the Schwarzschild radius
-    float minStep = inputData.stepSizeMin;   // Very small near BH
-    float maxStep = inputData.stepSizeMax;   // MAX STEP SIZE
-    
-    // Distance from event horizon in units of rs
-    float distFromHorizon = (r - horizonRadius) / horizonRadius;
-    
-    // Smoothly interpolate step size
-    float t = clamp(distFromHorizon / 5.0, 0.0, 1.0);  // 10x rs = full step
-    return mix(minStep, maxStep, t);
-}
-
-
 //runge kutta 4th order integration scheme
 void hstepRK4(inout vec4 p, inout vec4 q)
 {    
@@ -388,7 +378,6 @@ vec2 directionToEquirectangularUV(vec3 direction)
     
     return vec2(u, v);
 }
-
 float sampleDensity(vec3 p)
 {
     float density = 0.0;
@@ -405,17 +394,18 @@ float sampleDensity(vec3 p)
     float angleOffset = theta + orbitalSpeed * inputData.time;
 
     vec2 polar = vec2(
-        r / inputData.disk_InnerRadius,
-        (p.y + inputData.disk_Height * 0.5) / inputData.disk_Height
+        r / innerRadius,
+        (p.y + inputData.disk_Height * 0.25) / inputData.disk_Height
     );
-    
-    float u = cos(angleOffset) * polar.x * 0.5 + 0.5;
-    float w = sin(angleOffset) * polar.x * 0.5 + 0.5;
+    polar.x *= orbitalSpeed;
+    float uvScale = inputData.noiseScale;
+    float u = cos(angleOffset) * polar.x * uvScale;
+    float w = sin(angleOffset) * polar.x * uvScale;
     vec3 diskUVW = vec3(u, polar.y, w);
+    vec3 centeredUVW = (diskUVW + vec3(inputData.noiseOffset, 0.0, inputData.noiseOffset));
+    float noise = texture(noiseMap, centeredUVW).r + inputData.offsetDensity;
 
-    float noise = texture(noiseMap, diskUVW).r + inputData.offsetDensity;
-
-    float radiusNorm = r / inputData.disk_InnerRadius;
+    float radiusNorm = r / innerRadius;
     float thicknessAtR = inputData.disk_Height * (1.0 + sqrt(radiusNorm) * 0.5);
     
     float yNorm = abs(p.y) / thicknessAtR;
@@ -438,7 +428,7 @@ float computeTransmittance(vec3 position, vec3 Ld) {
     for (int i = 0; i < steps; i++) {
         vec3 sp = position - Ld * (float(i) * inputData.disk_ShadowStepSize);
         float d = sampleDensity(sp);
-        tau += pow(d, inputData.disk_ExpoFactor) * inputData.disk_MaxShadowIterations;
+        tau += pow(d, inputData.disk_ExpoFactor) * inputData.disk_ShadowStepSize;
     }
     
     float T = exp(-tau);
@@ -495,7 +485,7 @@ void sampleDisk(vec3 p, vec3 rayDir, float stepSize, float time, inout vec3 emis
 
     sampleColor *= dopplerBoost;
 
-    emission += T * Tsh * atten * sampleColor * phase * scat * density;
+    emission += T * Tsh * atten * sampleColor * phase * scat;
 
     T *= exp(-pow(density, inputData.disk_ExpoFactor) * stepSize);
    
@@ -715,6 +705,21 @@ vec4 sampleDirectionBilinear(sampler2D tex, vec2 uv) {
     return texture(tex, uv);
 }
 
+bool isAtBlackHoleEdge(vec4 q, out float r) {
+    vec3 p = q.yzw;
+    float rho = dot(p, p) - a * a;
+    float r2 = 0.5 * (rho + sqrt(rho * rho + 4.0 * a * a * p.y * p.y));
+    r = sqrt(r2);
+    
+    // Define "edge" as within 5-10% of the event horizonz
+    float edgeThickness = horizonRadius * 0.1; // 10% tolerance
+    float edgeMin = horizonRadius - edgeThickness * 0.5;
+    float edgeMax = horizonRadius + edgeThickness * 0.5;
+    
+    return r >= edgeMin && r <= edgeMax;
+}
+
+
 void main() {
 
     ivec2 pixelCoord = ivec2(gl_GlobalInvocationID.xy);
@@ -731,9 +736,9 @@ void main() {
     m = inputData.mass;
     a = inputData.rotationSpeed * m;
     horizonRadius = m + sqrt(m * m - a * a);
-    float intersect = raySphereIntersect(cp, rd, vec3(0.0), horizonRadius * 3.5);
-    float lowIntersect = raySphereIntersect(cp, rd, vec3(0.0), horizonRadius * 2.5);
-    bool needsHighRes = (intersect > 0.0);
+    float intersect = raySphereIntersect(cp, rd, vec3(0.0), horizonRadius * 2.8 * inputData.intersectHigh);
+    float lowIntersect = raySphereIntersect(cp, rd, vec3(0.0), horizonRadius * 2.5* inputData.intersectLow);
+    bool needsHighRes = (intersect > 0.0 && !(lowIntersect > 0.0));
 
     vec2 warp;
     vec3 L;
