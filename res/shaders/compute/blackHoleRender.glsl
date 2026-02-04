@@ -578,7 +578,7 @@ void computeVolumetric(vec4 Q, vec3 seg, vec3 segDir, float ds, inout vec3 L, in
         }
     }
 }
-void traceRay(vec3 cp, vec3 rd, out vec2 warp, out vec3 L, out float T)
+void traceRay(vec3 cp, vec3 rd, out vec2 warp)
 {
     {
         float t0 = sphIntersect(cp, rd, vec4(0,0,0,cdist));
@@ -592,8 +592,6 @@ void traceRay(vec3 cp, vec3 rd, out vec2 warp, out vec3 L, out float T)
     //float p0 = P.x;
 
     
-    L = vec3(0.0);  // Accumulated radiance
-    T = 1.0;       // Transmittance
     bool shouldTerminate = false;
     bool tempBlackHoleHit = false;
     vec4 prevQ;
@@ -602,25 +600,6 @@ void traceRay(vec3 cp, vec3 rd, out vec2 warp, out vec3 L, out float T)
 
         prevQ = Q;
         hstepRK4(P, Q);
-
-        vec3 seg = Q.yzw - prevQ.yzw;
-        float segLen = length(seg);
-
-        if (inputData.disk_Density > 0 && T > 0.01) {
-
-            if (segLen > 0.0) {
-                vec3 segDir = seg / segLen;
-                int sub = max(1, inputData.volSubsteps);
-                float ds = (segLen * inputData.dsVolScale) / float(sub);
-                computeVolumetric(Q, seg, segDir, ds, L, T);
-            }
-        }
-
-        if (interceptObject(Q.yzw, seg)) {
-            T = 0;
-            L += objectColor.rgb;
-            break;
-        }
 
         if (variDT(P,Q, tempBlackHoleHit)) 
         {   
@@ -741,9 +720,6 @@ void main() {
     bool needsHighRes = (intersect > 0.0 && !(lowIntersect > 0.0));
 
     vec2 warp;
-    vec3 L;
-    float T;
-
     if (needsHighRes)
     {
         {
@@ -751,23 +727,21 @@ void main() {
         stepNoise = texture(blueNoiseTexture, noiseUV).r;
         }
 
-        traceRay(cp, rd, warp, L, T);
+        traceRay(cp, rd, warp);
     }else
     {
-        vec4 volumeData = texture(volumeTexture, uv);
         vec4 warpData = texture(directionTexture, uv);
-        L = volumeData.rgb;
-        T = volumeData.a;
         warp = warpData.xy;
     }
-
     vec3 background = vec3(0.0);
     if (warp != vec2(-1.0, 0.0)) 
     {
         background = texture(sphereMapTexture, warp).xyz;
     }
     
-
+    vec4 volumeData = texture(volumeTexture, uv);
+    vec3 L = volumeData.rgb;
+    float T = volumeData.a;
     // Composite: accumulated light over background
     vec3 fcol = L + T * background;
     imageStore(outputImage, pixelCoord, vec4(fcol, 1.0));
