@@ -16,7 +16,9 @@ public:
 	Texture noiseTexture;
 	Texture directionTexture;
 	Texture volumeTexture;
+	Texture volumeUpScaledTexture;
 	Texture blueNoiseTexture;
+	Texture volumeTextureIntermediate;
 	int textureUsedByShader = 0;
 	int fullResX = 1270, fullResY = 720;
 	float lowResRatio = 0.35f;
@@ -24,9 +26,13 @@ public:
 	int renderThreadGroupX = 16, renderThreadGroupY = 16;
 	uint32_t groupCountX, groupCountY;
 	uint32_t renderGroupCountX, renderGroupCountY;
+	uint32_t noiseGroupCount;
 	std::unique_ptr<ComputeDispatcher> dispatcher;
 	std::unique_ptr<ComputeDispatcher> renderDispatcher;
-
+	std::unique_ptr<ComputeDispatcher> noiseDispatcher;
+	std::unique_ptr<ComputeDispatcher> upscaleDispatcher;
+	std::unique_ptr<ComputeDispatcher> verticalBlur;
+	std::unique_ptr<ComputeDispatcher> horizBlur;
 	int currentPass = 0;
 	struct BlackHoleData {
 		glm::vec3 pos; float _pad0;
@@ -66,6 +72,7 @@ public:
 		float dsVolScale = 1.0;
 		int volSubsteps = 20;
 		float time = 0.0f;
+		float offsetDensity = 0.0f;
 	};
 
 	BlackHoleData data;
@@ -119,7 +126,7 @@ public:
 	struct NoiseParams {
 		int size = 64;
 		float scale = 1.0f;
-		float boost = 2.0f;
+		float boost = 1.0f;
 		int octaves = 6;
 		int tileSize = 64;
 		float lacunarity = 2.0f;
@@ -129,7 +136,15 @@ public:
 
 	NoiseParams noiseParams;
 	Buffer noiseParamsBuffer;
-	std::unique_ptr<ComputeDispatcher> noiseDispatcher;
+
+	struct BlurParams {
+		int mode = 1; // 0 = downsample, 1 = upsample
+		float pad_;
+		glm::vec2 texelSize;
+	};
+
+	BlurParams blurParams;
+	Buffer blurParamsBuffer;
 
 	Raycaster() = default;
 	void start() override {
@@ -142,7 +157,7 @@ public:
 		materials[0] = engine::GetEngine().resourceManager.LoadMaterial(shader);
 		materials[1] = engine::GetEngine().resourceManager.LoadMaterial(shader);
 		Mesh mesh = engine::GetEngine().resourceManager.LoadOBJ(RES_DIR"models/quad.obj");
-		entity = engine::CreateObject(Transform(glm::vec3(), glm::vec3(0.0,180.0,0.0)), mesh, materials[1]);
+		entity = engine::CreateObject(Transform(glm::vec3(), glm::vec3(0.0, 180.0, 0.0)), mesh, materials[1]);
 
 
 		// TEXTURES
@@ -157,10 +172,16 @@ public:
 			TextureCreateInfo lowResInfo2 = lowResInfo;
 			lowResInfo2.format = TextureFormat::R16G16B16A16_UNORM;
 			volumeTexture = engine::GetEngine().resourceManager.LoadEmptyTexture(lowResInfo2);
+			
+			TextureCreateInfo upscaleInfo = lowResInfo2;
+			upscaleInfo.width = fullResX;
+			upscaleInfo.height = fullResY;
+			volumeUpScaledTexture = engine::GetResourceManager().LoadEmptyTexture(upscaleInfo);
+			volumeTextureIntermediate = engine::GetResourceManager().LoadEmptyTexture(upscaleInfo);
 		}
 
 
-		
+
 
 		{
 			TextureCreateInfo fullResInfo;
@@ -171,6 +192,7 @@ public:
 			fullResInfo.format = TextureFormat::R8G8B8A8_UNORM;
 			textures[0] = engine::GetResourceManager().LoadEmptyTexture(fullResInfo);
 			textures[1] = engine::GetResourceManager().LoadEmptyTexture(fullResInfo);
+
 		}
 
 		sphereMap = engine::GetEngine().resourceManager.LoadTexture(RES_DIR"images/nebula.png", TextureUsage::Read);
@@ -190,7 +212,7 @@ public:
 			buffer = engine::GetBufferManager().createBuffer(desc);
 		}
 		float horizonRadius = data.mass + glm::sqrt(data.mass * data.mass - data.rotSpeed * data.rotSpeed);
-		rotationCamera.radius = horizonRadius*8;
+		rotationCamera.radius = horizonRadius * 8;
 		objectData.objects[0] = Object(-rotationCamera.position() * 2.0f, horizonRadius * 1.0f, glm::vec4(0.0, 1.0, 0.0, 1.0));
 		objectData.objects[1] = Object(glm::vec3(-rotationCamera.position().x * 3.0f, 0, 0), horizonRadius * 1.3f, glm::vec4(1.0, 0.0, 0.0, 1.0));
 		objectData.objects[2] = Object(glm::vec3(-rotationCamera.position().x * 2.0f, 0, -rotationCamera.position().x * 2.0f), horizonRadius * 0.6f, glm::vec4(0.0, 0.0, 1.0, 1.0));
@@ -207,7 +229,28 @@ public:
 
 
 		updateData();
+		{
+			blurParams.texelSize = glm::vec2(1.0f / (float)fullResX, 1.0f / (float)fullResY);
+			const int imageSize = 64;
+			TextureCreateInfo info;
+			info.height = imageSize;
+			info.width = imageSize;
+			info.depth = imageSize;
+			info.usage = TextureUsage::ReadWrite;
+			noiseTexture = engine::GetResourceManager().LoadEmptyTexture(info);
 
+			BufferDescription desc;
+			desc.size = sizeof(NoiseParams);
+			desc.type = BufferType::SSBO;
+			noiseParamsBuffer = engine::GetBufferManager().createBuffer(desc);
+
+			ComputeShader noiseShader = engine::GetResourceManager().LoadComputeShader(RES_DIR"shaders/compute/diskNoise.glsl");
+			noiseDispatcher = std::make_unique<ComputeDispatcher>(noiseShader);
+			noiseDispatcher->setBuffer("inputData", noiseParamsBuffer);
+			noiseDispatcher->setTexture("outputImage", noiseTexture);
+			noiseGroupCount = (imageSize + 7) / 8;  // = 32 workgroups
+
+		}
 		generateNoiseMap();
 
 		ComputeShader cShader = engine::GetEngine().resourceManager.LoadComputeShader(RES_DIR"shaders/compute/raymarcher2.glsl");
@@ -228,6 +271,27 @@ public:
 		textureUsedByShader = 1;
 
 
+		{
+			BufferDescription desc;
+			desc.size = sizeof(BlurParams);
+			desc.type = BufferType::SSBO;
+
+			blurParamsBuffer = engine::GetBufferManager().createBuffer(desc);
+		}
+		ComputeShader upscaleShader = engine::GetResourceManager().LoadComputeShader(RES_DIR"shaders/compute/blur.glsl");
+		upscaleDispatcher = std::make_unique<ComputeDispatcher>(upscaleShader);
+		
+		upscaleDispatcher->setBuffer("blurData", blurParamsBuffer);
+		upscaleDispatcher->setTexture("sourceTexture", volumeTexture);
+		upscaleDispatcher->setTexture("outputTexture", volumeUpScaledTexture);
+
+		ComputeShader vertBlurShader = engine::GetResourceManager().LoadComputeShader(RES_DIR"shaders/compute/gaussV.glsl");
+		verticalBlur = std::make_unique<ComputeDispatcher>(vertBlurShader);
+		
+		ComputeShader horBlurShader = engine::GetResourceManager().LoadComputeShader(RES_DIR"shaders/compute/gaussH.glsl");
+		horizBlur = std::make_unique<ComputeDispatcher>(horBlurShader);
+
+
 		ComputeShader renderShader = engine::GetResourceManager().LoadComputeShader(RES_DIR"shaders/compute/blackHoleRender.glsl");
 		renderDispatcher = std::make_unique<ComputeDispatcher>(renderShader);
 
@@ -239,7 +303,7 @@ public:
 		renderDispatcher->setTexture("noiseMap", noiseTexture);
 		renderDispatcher->setTexture("blueNoiseTexture", blueNoiseTexture);
 		renderDispatcher->setTexture("directionTexture", directionTexture);
-		renderDispatcher->setTexture("volumeTexture", volumeTexture);
+		renderDispatcher->setTexture("volumeTexture", volumeUpScaledTexture);
 		renderDispatcher->setTexture("sphereMapTexture", sphereMap);
 		renderDispatcher->setTexture("outputImage", textures[textureUsedByShader]);
 		//renderDispatcher->dispatch(renderGroupCountX, renderGroupCountY, 1);
@@ -254,7 +318,8 @@ public:
 			textureUsedByShader = (textureUsedByShader + 1) % 2;
 
 			updateData();
-
+			upscaleVolume(glm::vec2((float)fullResX,(float)fullResY));
+			blur();
 			renderDispatcher->setTexture("outputImage", textures[textureUsedByShader]);
 			renderDispatcher->dispatch(renderGroupCountX, renderGroupCountY, 1);
 			break;
@@ -263,7 +328,7 @@ public:
 			currentPass = (currentPass + 1) % 2;
 
 			updateData();
-
+			generateNoiseMap();
 			engine::GetRegistry().AssignComponent<Material>(entity, materials[textureUsedByShader]);
 			dispatcher->dispatch(groupCountX, groupCountY, 1);
 			break;
@@ -271,30 +336,43 @@ public:
 	}
 
 	void onGui() override {
-		ImGui::Begin("BLACK HOLE");
-		ImGui::DragFloat("stepSizeMin", &data.stepSizeMin);
-		ImGui::DragFloat("stepSizeMax", &data.stepSizeMax);
-		ImGui::DragInt("maxSteps", &data.maxSteps);
-		ImGui::DragFloat("Rotation Speed", &data.rotSpeed, 0.1, 0, 5);
-		ImGui::DragFloat("Mass", &data.mass);
-		ImGui::End();
+		ImGui::Begin("BLACK HOLE SIMULATION");
 
-		ImGui::Begin("DISK");
-		ImGui::DragFloat("Density", &data.diskDensity, 0.1f);
-		ImGui::DragFloat("InnerRingRadius", &data.diskInnerRadius);
-		ImGui::DragFloat("OuterRingRadius", &data.diskOuterRadius);
-		ImGui::DragFloat("HeightRing", &data.diskHeight);
-		ImGui::DragFloat("Brightness", &data.brightness);
-		ImGui::DragFloat("LightIntensity", &data.lightIntensity);
-		ImGui::DragFloat("RotationSpeed", &data.rotationSpeed);
-		ImGui::DragFloat2("Vertical Fade", &data.verticalFadeStart, 0.1f);
-		ImGui::DragFloat2("OuterFade", &data.outerFadeStart, 0.1f);
-		ImGui::DragFloat("InnerFade Radius", &data.innerFadeRadius, 0.1f);
-		ImGui::DragFloat("Light fall off", &data.lightFallOff, 0.1f);
-		ImGui::DragInt("Substeps", &data.volSubsteps);
-		ImGui::DragFloat("SUBSTEP SCALE??", &data.dsVolScale, 0.1f);
-		ImGui::DragFloat("Shadow", &data.shadowStepSize);
-		ImGui::DragInt("ShadowIt", &data.shadowIterations);
+		if (ImGui::CollapsingHeader("Black Hole", ImGuiTreeNodeFlags_DefaultOpen)) {
+			ImGui::DragFloat("stepSizeMin", &data.stepSizeMin);
+			ImGui::DragFloat("stepSizeMax", &data.stepSizeMax);
+			ImGui::DragInt("maxSteps", &data.maxSteps);
+			ImGui::DragFloat("Rotation Speed", &data.rotSpeed, 0.1, 0, 5);
+			ImGui::DragFloat("Mass", &data.mass);
+		}
+
+		if (ImGui::CollapsingHeader("Accretion Disk", ImGuiTreeNodeFlags_DefaultOpen)) {
+			ImGui::DragFloat("Density", &data.diskDensity, 0.1f);
+			ImGui::DragFloat("InnerRingRadius", &data.diskInnerRadius);
+			ImGui::DragFloat("OuterRingRadius", &data.diskOuterRadius);
+			ImGui::DragFloat("HeightRing", &data.diskHeight);
+			ImGui::DragFloat("Brightness", &data.brightness);
+			ImGui::DragFloat("LightIntensity", &data.lightIntensity);
+			ImGui::DragFloat("RotationSpeed", &data.rotationSpeed);
+			ImGui::DragFloat2("Vertical Fade", &data.verticalFadeStart, 0.1f);
+			ImGui::DragFloat2("OuterFade", &data.outerFadeStart, 0.1f);
+			ImGui::DragFloat("InnerFade Radius", &data.innerFadeRadius, 0.1f);
+			ImGui::DragFloat("Light fall off", &data.lightFallOff, 0.1f);
+			ImGui::DragInt("Substeps", &data.volSubsteps);
+			ImGui::DragFloat("SUBSTEP SCALE??", &data.dsVolScale, 0.1f);
+			ImGui::DragFloat("Shadow", &data.shadowStepSize);
+			ImGui::DragInt("ShadowIt", &data.shadowIterations);
+			ImGui::DragFloat("OffsetDensity", &data.offsetDensity, 0.1f, 0.0f, 1.0f);
+		}
+
+		if (ImGui::CollapsingHeader("Noise", ImGuiTreeNodeFlags_DefaultOpen)) {
+			ImGui::DragFloat("Scale", &noiseParams.scale);
+			ImGui::DragInt("tileSize", &noiseParams.tileSize);
+			ImGui::DragFloat("Boost", &noiseParams.boost, 0.1f);
+			ImGui::DragInt("Octaves", &noiseParams.octaves);
+			ImGui::DragFloat("Gain", &noiseParams.gain, 0.1f);
+		}
+
 		ImGui::End();
 	}
 
@@ -349,28 +427,32 @@ public:
 
 	void generateNoiseMap()
 	{
-		const int imageSize = 64;
-		TextureCreateInfo info;
-		info.height = imageSize;
-		info.width = imageSize;
-		info.depth = imageSize;
-		info.usage = TextureUsage::ReadWrite;
-		noiseTexture = engine::GetResourceManager().LoadEmptyTexture(info);
-		
-		BufferDescription desc;
-		desc.size = sizeof(NoiseParams);
-		desc.type = BufferType::SSBO;
-		noiseParamsBuffer = engine::GetBufferManager().createBuffer(desc);
-
 		engine::GetBufferManager().updateBuffer(noiseParamsBuffer, &noiseParams, sizeof(NoiseParams));
 
-		ComputeShader noiseShader = engine::GetResourceManager().LoadComputeShader(RES_DIR"shaders/compute/diskNoise.glsl");
-		noiseDispatcher = std::make_unique<ComputeDispatcher>(noiseShader);
-		noiseDispatcher->setBuffer("inputData", noiseParamsBuffer);
-		noiseDispatcher->setTexture("outputImage", noiseTexture);
-		int group = (imageSize + 7) / 8;  // = 32 workgroups
-		noiseDispatcher->dispatchAndWait(group, group, group);
+		noiseDispatcher->dispatchAndWait(noiseGroupCount, noiseGroupCount, noiseGroupCount);
 
-		engine::GetResourceManager().setTextureUsage(noiseTexture, TextureUsage::Read);
+		//engine::GetResourceManager().setTextureUsage(noiseTexture, TextureUsage::Read);
+	}
+	void upscaleVolume(glm::vec2 outputRes)
+	{
+		blurParams.mode = 1;
+		blurParams.texelSize = 1.0f / outputRes;
+
+		engine::GetBufferManager().updateBuffer(blurParamsBuffer, &blurParams, sizeof(BlurParams));
+		upscaleDispatcher->dispatchAndWait(renderGroupCountX, renderGroupCountY, 1);
+	}
+
+	void blur()
+	{
+		verticalBlur->setTexture("input_image", volumeUpScaledTexture);
+		verticalBlur->setTexture("output_image", volumeTextureIntermediate);
+		int groupCount = (fullResY + 63 / 64);
+		verticalBlur->dispatchAndWait(1, groupCount, 1);
+
+		groupCount = (fullResX + 63 / 64);
+		horizBlur->setTexture("input_image", volumeTextureIntermediate);
+		horizBlur->setTexture("output_image", volumeUpScaledTexture);
+		horizBlur->dispatchAndWait(groupCount, 1, 1);
+
 	}
 };

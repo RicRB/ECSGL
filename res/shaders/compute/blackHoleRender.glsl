@@ -53,6 +53,7 @@ layout(std430, binding = 4) readonly buffer inputDataBlock {
     int volSubsteps;
 
     float time;
+    float offsetDensity;
 } inputData;
 
 struct Object {
@@ -412,7 +413,7 @@ float sampleDensity(vec3 p)
     float w = sin(angleOffset) * polar.x * 0.5 + 0.5;
     vec3 diskUVW = vec3(u, polar.y, w);
 
-    float noise = texture(noiseMap, diskUVW).r;
+    float noise = texture(noiseMap, diskUVW).r + inputData.offsetDensity;
 
     float radiusNorm = r / inputData.disk_InnerRadius;
     float thicknessAtR = inputData.disk_Height * (1.0 + sqrt(radiusNorm) * 0.5);
