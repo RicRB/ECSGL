@@ -37,6 +37,55 @@ vec4 upsample(sampler2D tex, vec2 uv, vec2 halfpixel) {
     return sum / 12.0;
 }
 
+// from http://www.java-gaming.org/index.php?topic=35123.0
+vec4 cubic(float v){
+    vec4 n = vec4(1.0, 2.0, 3.0, 4.0) - v;
+    vec4 s = n * n * n;
+    float x = s.x;
+    float y = s.y - 4.0 * s.x;
+    float z = s.z - 4.0 * s.y + 6.0 * s.x;
+    float w = 6.0 - x - y - z;
+    return vec4(x, y, z, w) * (1.0/6.0);
+}
+
+
+vec4 textureBicubic(sampler2D tex, vec2 texCoords){
+
+   vec2 texSize = vec2(textureSize(tex, 0));
+   vec2 invTexSize = 1.0 / texSize;
+   
+   texCoords = texCoords * texSize - 0.5;
+
+   
+    vec2 fxy = fract(texCoords);
+    texCoords -= fxy;
+
+    vec4 xcubic = cubic(fxy.x);
+    vec4 ycubic = cubic(fxy.y);
+
+    vec4 c = texCoords.xxyy + vec2 (-0.5, +1.5).xyxy;
+    
+    vec4 s = vec4(xcubic.xz + xcubic.yw, ycubic.xz + ycubic.yw);
+    vec4 offset = c + vec4 (xcubic.yw, ycubic.yw) / s;
+    
+    offset *= invTexSize.xxyy;
+    
+    // Clamp to valid texture coordinates
+   offset = clamp(offset, vec4(0.0), vec4(1.0).xxyy);
+
+    vec4 sample0 = texture(tex, offset.xz);
+    vec4 sample1 = texture(tex, offset.yz);
+    vec4 sample2 = texture(tex, offset.xw);
+    vec4 sample3 = texture(tex, offset.yw);
+
+    float sx = s.x / (s.x + s.y);
+    float sy = s.z / (s.z + s.w);
+
+    return mix(
+       mix(sample3, sample2, sx), mix(sample1, sample0, sx)
+    , sy);
+}
+
 layout (local_size_x = 16, local_size_y = 16) in;
 
 void main() {
@@ -48,17 +97,16 @@ void main() {
         return;
     }
     
-    // Calculate UV coordinates (normalized 0-1)
     vec2 uv = (vec2(pixelCoords) + 0.5) / vec2(outputSize);
-    
+
     vec4 result;
+
     if (blurData.mode == 0) {
-        // Downsample
         result = downsample(sourceTexture, uv, blurData.texelSize);
-    } else {
-        // Upsample
-        result = upsample(sourceTexture, uv, blurData.texelSize);
     }
-    
+    else {
+        result = textureBicubic(sourceTexture, uv);
+    }
+
     imageStore(outputTexture, pixelCoords, result);
 }

@@ -10,6 +10,7 @@ layout(std430, binding = 0) readonly buffer inputDataBlock {
     vec3 camRight;   float _pad1;
     vec3 camUp;      float _pad2;
     vec3 camForward; float _pad3;
+    vec4 color;
     float tanHalfFov;
     float aspect;
     int maxSteps;
@@ -489,7 +490,7 @@ void sampleDisk(vec3 p, vec3 rayDir, float stepSize, float time, inout vec3 emis
     float atten = inputData.disk_LightIntensity / (max(dist2, 0.001) * 0.06);
 
     float tRad = clamp((r - inputData.disk_InnerRadius) / (inputData.disk_OuterRadius - inputData.disk_InnerRadius), 0.0, 1.0);
-    vec3 sampleColor = hotColor * (1.0 - tRad) + (vec3(3.0, 6.0, 12.0) * 2.0); // BLUE???
+    vec3 sampleColor = inputData.color.rgb * (1.0 - tRad); // BLUE???
 
     float saturation = pow(1.0 - tRad, inputData.disk_LightFalloff);
     sampleColor *= saturation;
@@ -635,13 +636,13 @@ void traceRay(vec3 cp, vec3 rd, out vec2 warp, out vec3 L, out float T)
                 computeVolumetric(Q, seg, segDir, ds, L, T);
             }
         }
-
+/*
         if (interceptObject(Q.yzw, seg)) {
             T = 0;
             L += objectColor.rgb;
             break;
         }
-
+*/
         if (variDT(P,Q, tempBlackHoleHit)) 
         {   
             shouldTerminate = true;

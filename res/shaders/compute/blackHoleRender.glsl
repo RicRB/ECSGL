@@ -18,6 +18,7 @@ layout(std430, binding = 4) readonly buffer inputDataBlock {
     vec3 camRight;   float _pad1;
     vec3 camUp;      float _pad2;
     vec3 camForward; float _pad3;
+    vec4 color;
     float tanHalfFov;
     float aspect;
     int maxSteps;
@@ -469,7 +470,7 @@ void sampleDisk(vec3 p, vec3 rayDir, float stepSize, float time, inout vec3 emis
     float atten = inputData.disk_LightIntensity / (max(dist2, 0.001) * 0.06);
 
     float tRad = clamp((r - inputData.disk_InnerRadius) / (inputData.disk_OuterRadius - inputData.disk_InnerRadius), 0.0, 1.0);
-    vec3 sampleColor = hotColor * (1.0 - tRad) + (vec3(3.0, 6.0, 12.0) * 2.0); // BLUE???
+    vec3 sampleColor = inputData.color.rgb * (1.0 - tRad);
 
     float saturation = pow(1.0 - tRad, inputData.disk_LightFalloff);
     sampleColor *= saturation;
@@ -730,7 +731,7 @@ void main() {
         traceRay(cp, rd, warp);
     }else
     {
-        vec4 warpData = texture(directionTexture, uv);
+        vec4 warpData = textureBicubic(directionTexture, uv);
         warp = warpData.xy;
     }
     vec3 background = vec3(0.0);
@@ -739,7 +740,7 @@ void main() {
         background = texture(sphereMapTexture, warp).xyz;
     }
     
-    vec4 volumeData = texture(volumeTexture, uv);
+    vec4 volumeData = textureBicubic(volumeTexture, uv);
     vec3 L = volumeData.rgb;
     float T = volumeData.a;
     // Composite: accumulated light over background

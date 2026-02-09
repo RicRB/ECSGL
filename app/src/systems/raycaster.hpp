@@ -20,8 +20,8 @@ public:
 	Texture blueNoiseTexture;
 	Texture volumeTextureIntermediate;
 	int textureUsedByShader = 0;
-	int fullResX = 1920, fullResY = 1080;
-	float lowResRatio = 0.35f;
+	int fullResX = 2560, fullResY = 1440;
+	float lowResRatio = 0.50f;
 	int threadGroupX = 16, threadGroupY = 16;
 	int renderThreadGroupX = 16, renderThreadGroupY = 16;
 	uint32_t groupCountX, groupCountY;
@@ -39,6 +39,7 @@ public:
 		glm::vec3 right; float _pad1;
 		glm::vec3 up; float _pad2;
 		glm::vec3 forward; float _pad3;
+		glm::vec4 color;
 		float tanHalfFov;
 		float aspect;
 		int maxSteps = 150;
@@ -370,6 +371,7 @@ public:
 			ImGui::DragFloat("Shadow", &data.shadowStepSize);
 			ImGui::DragInt("ShadowIt", &data.shadowIterations);
 			ImGui::DragFloat("OffsetDensity", &data.offsetDensity, 0.1f, 0.0f, 1.0f);
+			ImGui::ColorPicker4("Color", &data.color.r);
 		}
 
 		if (ImGui::CollapsingHeader("Noise", ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -455,13 +457,13 @@ public:
 	{
 		verticalBlur->setTexture("input_image", volumeUpScaledTexture);
 		verticalBlur->setTexture("output_image", volumeTextureIntermediate);
-		int groupCount = (fullResY + 63 / 64);
-		verticalBlur->dispatchAndWait(1, groupCount, 1);
+		int groupCount = (fullResY + 63) / 64;
+		verticalBlur->dispatchAndWait(fullResX, groupCount, 1);
 
-		groupCount = (fullResX + 63 / 64);
+		groupCount = (fullResX + 63) / 64;
 		horizBlur->setTexture("input_image", volumeTextureIntermediate);
 		horizBlur->setTexture("output_image", volumeUpScaledTexture);
-		horizBlur->dispatchAndWait(groupCount, 1, 1);
+		horizBlur->dispatchAndWait(groupCount, fullResY, 1);
 
 	}
 };
