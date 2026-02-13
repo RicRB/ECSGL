@@ -21,7 +21,7 @@ public:
 	Texture volumeTextureIntermediate;
 	int textureUsedByShader = 0;
 	int fullResX = 2560, fullResY = 1440;
-	float lowResRatio = 0.50f;
+	float lowResRatio = 1.0f;
 	int threadGroupX = 16, threadGroupY = 16;
 	int renderThreadGroupX = 16, renderThreadGroupY = 16;
 	uint32_t groupCountX, groupCountY;
