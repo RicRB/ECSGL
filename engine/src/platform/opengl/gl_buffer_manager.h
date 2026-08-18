@@ -1,9 +1,13 @@
 #pragma once
 #include "renderer/buffer_manager.h"
+#include "gl_buffer.h"
+#include "memory/memory_pool.hpp"
+#include <memory>
 
 class GlBufferManager : public BufferManager {
+	std::unique_ptr<MemoryPool<GlBuffer, 256>> bufferPool;
 public:
-	GlBufferManager() = default;
+	GlBufferManager();
 	~GlBufferManager() = default;
 public:
 	Buffer createBuffer(const BufferDescription& desc) override;

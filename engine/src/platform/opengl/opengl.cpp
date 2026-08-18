@@ -6,12 +6,151 @@
 #include <sstream>
 #include <unordered_set>
 #include "gl_buffer.h"
+#include "gl_image.h"
+#include "gl_descriptor_set.h"
 #include <memory>
+#include <regex>
 #include "renderer/uniform_objects.h"
 #include "gl_program.h"
 #include "GLFW/glfw3.h"
 #include "gl_compute_manager.h"
 #include "gl_buffer_manager.h"
+#include "core/engine.h"
+
+// Maps a TextureFormat to the GL sized internal format, base pixel format and
+// pixel type used by glTexImage2D/3D and glBindImageTexture.
+static void getGLFormats(TextureFormat format, GLenum& internalFormat, GLenum& pixelFormat, GLenum& type)
+{
+	switch (format)
+	{
+	case TextureFormat::R8G8B8A8_UNORM:
+		internalFormat = GL_RGBA8; pixelFormat = GL_RGBA; type = GL_UNSIGNED_BYTE;
+		break;
+	case TextureFormat::R16G16_SFLOAT:
+		internalFormat = GL_RG16F; pixelFormat = GL_RG; type = GL_HALF_FLOAT;
+		break;
+	case TextureFormat::R16G16_SNORM:
+		internalFormat = GL_RG16_SNORM; pixelFormat = GL_RG; type = GL_SHORT;
+		break;
+	case TextureFormat::R16G16_UNORM:
+		internalFormat = GL_RG16; pixelFormat = GL_RG; type = GL_UNSIGNED_SHORT;
+		break;
+	case TextureFormat::R16G16B16A16_UNORM:
+		internalFormat = GL_RGBA16; pixelFormat = GL_RGBA; type = GL_UNSIGNED_SHORT;
+		break;
+	case TextureFormat::R32G32B32A32_SFLOAT:
+		internalFormat = GL_RGBA32F; pixelFormat = GL_RGBA; type = GL_FLOAT;
+		break;
+	default:
+		internalFormat = GL_RGBA8; pixelFormat = GL_RGBA; type = GL_UNSIGNED_BYTE;
+		break;
+	}
+}
+
+static std::string stripGLSLComments(const std::string& source)
+{
+	std::string result;
+	result.reserve(source.size());
+	size_t i = 0;
+	while (i < source.size())
+	{
+		if (source[i] == '/' && i + 1 < source.size() && source[i + 1] == '/')
+		{
+			i += 2;
+			while (i < source.size() && source[i] != '\n') ++i;
+		}
+		else if (source[i] == '/' && i + 1 < source.size() && source[i + 1] == '*')
+		{
+			i += 2;
+			while (i + 1 < source.size() && !(source[i] == '*' && source[i + 1] == '/')) ++i;
+			i += 2;
+		}
+		else
+		{
+			result += source[i];
+			++i;
+		}
+	}
+	return result;
+}
+
+// NOTE: OpenGL has no SPIR-V reflection. This parses the (preprocessed) compute
+// source to produce the same binding/name/type table that ShaderReflection
+// produces from SPIR-V on the Vulkan side, so setBuffer(name)/setTexture(name)
+// resolve identically.
+static DescriptorSetReflection reflectComputeGLSL(const std::string& source)
+{
+	DescriptorSetReflection reflection;
+	const std::string clean = stripGLSLComments(source);
+
+	auto addBinding = [&reflection](uint32_t binding, const std::string& name, DescriptorType type)
+	{
+		for (const auto& existing : reflection.bindings)
+		{
+			if (existing.binding == binding) return;
+		}
+		DescriptorBinding b;
+		b.set = 0;
+		b.binding = binding;
+		b.name = name;
+		b.type = type;
+		reflection.bindings.push_back(b);
+		reflection.nameToIndex[name] = reflection.bindings.size() - 1;
+	};
+
+	// layout(... binding = N ...) [qualifiers] buffer BlockName { ... } instanceName;
+	{
+		std::regex bufferRegex(R"(layout\s*\([^)]*?\bbinding\s*=\s*(\d+)[^)]*\)[^;{}]*?\bbuffer\s+\w+\s*\{[\s\S]*?\}\s*(\w+)\s*;)");
+		auto it = clean.cbegin();
+		std::smatch m;
+		while (std::regex_search(it, clean.cend(), m, bufferRegex))
+		{
+			addBinding(static_cast<uint32_t>(std::stoul(m[1].str())), m[2].str(), DescriptorType::StorageBuffer);
+			it = m.suffix().first;
+		}
+	}
+	// layout(... binding = N ...) uniform sampler2D/3D name;
+	{
+		std::regex samplerRegex(R"(layout\s*\([^)]*?\bbinding\s*=\s*(\d+)[^)]*\)\s*uniform\s+sampler(?:2D|3D|Cube)\s+(\w+)\s*;)");
+		auto it = clean.cbegin();
+		std::smatch m;
+		while (std::regex_search(it, clean.cend(), m, samplerRegex))
+		{
+			addBinding(static_cast<uint32_t>(std::stoul(m[1].str())), m[2].str(), DescriptorType::CombinedImageSampler);
+			it = m.suffix().first;
+		}
+	}
+	// layout(... binding = N ...) uniform [qualifiers] image2D/3D name;
+	{
+		std::regex imageRegex(R"(layout\s*\([^)]*?\bbinding\s*=\s*(\d+)[^)]*\)\s*uniform\s+[\w\s]*?\bimage(?:2D|3D)\s+(\w+)\s*;)");
+		auto it = clean.cbegin();
+		std::smatch m;
+		while (std::regex_search(it, clean.cend(), m, imageRegex))
+		{
+			addBinding(static_cast<uint32_t>(std::stoul(m[1].str())), m[2].str(), DescriptorType::StorageImage);
+			it = m.suffix().first;
+		}
+	}
+
+	std::sort(reflection.bindings.begin(), reflection.bindings.end(),
+		[](const DescriptorBinding& a, const DescriptorBinding& b) { return a.binding < b.binding; });
+
+	reflection.nameToIndex.clear();
+	for (size_t i = 0; i < reflection.bindings.size(); ++i)
+	{
+		reflection.nameToIndex[reflection.bindings[i].name] = i;
+	}
+	return reflection;
+}
+
+// Resolves a material texture handle to its GL image (nullptr if none bound).
+static GlImage* getMaterialTextureImage(const Texture& texture)
+{
+	if (!texture.handle.isValid()) return nullptr;
+	const auto& textureData = engine::GetEngine().resourceManager.m_textures->at(texture.handle);
+	return static_cast<GlImage*>(textureData.image.get());
+}
+
 void OpenGl::initialize(GLFWwindow* window)
 {
 	this->window = window;
@@ -110,6 +249,15 @@ void OpenGl::drawFrame(FrameDrawData& frameDrawData)
 		GLCall(glBindBufferBase(GL_UNIFORM_BUFFER, 0, globalUniformBuffer));
 		GLCall(glBindBufferBase(GL_UNIFORM_BUFFER, 1, std::static_pointer_cast<GlUniformBuffer>(material->uniformBuffer)->uniformID));
         GLCall(glBindBufferBase(GL_UNIFORM_BUFFER, 2, pushConstantBuffer));
+        // Re-bind the material's albedo map to its texture unit. Compute
+        // dispatches (e.g. the black hole passes) bind the same unit for their
+        // own samplers and would otherwise leave the quad sampling stale data.
+        if (GlImage* albedoImage = getMaterialTextureImage(material->albedoMap))
+        {
+            glActiveTexture(GL_TEXTURE0 + ALBEDO_MAP_BINDING + 1);
+            GLCall(glBindTexture(albedoImage->target, albedoImage->textureID));
+        }
+
         GLCall(glDrawElements(GL_TRIANGLES, mesh->vertexCount, GL_UNSIGNED_INT, nullptr));
 	}
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -245,11 +393,33 @@ void OpenGl::compileShader(const char* name, const std::string& vertexSource, co
 
 void OpenGl::compileComputeShader(const char* name, ComputeShaderData* computeShaderData)
 {
-    /*
+    // OpenGL GLSL does not support the Vulkan-only "set = N" qualifier, so strip it.
+    std::string source = std::regex_replace(computeShaderData->source, std::regex(R"(set\s*=\s*\d+\s*,?)"), "");
+
+    // Same version/define handling as compileShader: keep the first line as the
+    // #version line and inject the OPENGL define after it.
+    std::istringstream sourceStream(source);
+    std::string line;
+    std::string version;
+    std::string body;
+    bool firstLine = true;
+    while (std::getline(sourceStream, line))
+    {
+        if (firstLine)
+        {
+            version = line + "\n";
+            firstLine = false;
+        }
+        else
+        {
+            body += line + "\n";
+        }
+    }
+    std::string finalSource = version + "#define OPENGL\n" + body;
+
     unsigned int computeID = glCreateShader(GL_COMPUTE_SHADER);
     {
-        // compute
-        const char* computeSrc = computeShaderData->source.c_str();
+        const char* computeSrc = finalSource.c_str();
         glShaderSource(computeID, 1, &computeSrc, nullptr);
         glCompileShader(computeID);
         int result;
@@ -285,7 +455,8 @@ void OpenGl::compileComputeShader(const char* name, ComputeShaderData* computeSh
     // Clean up shaders
     glDeleteShader(computeID);
     std::static_pointer_cast<GlProgram>(computeShaderData->program)->programID = programID;
-    */
+
+    computeShaderData->descriptorReflection = reflectComputeGLSL(finalSource);
 }
 void OpenGl::loadMaterial(const char* name, const ShaderData& shaderData, MaterialData* materialData)
 {
@@ -332,7 +503,38 @@ void OpenGl::loadMesh(MeshData* mesh)
 
 void OpenGl::loadTexture(TextureData* textureData)
 {
+	GlImage* image = static_cast<GlImage*>(textureData->image.get());
 
+	const bool is3D = textureData->depth > 1;
+	GLenum target = is3D ? GL_TEXTURE_3D : GL_TEXTURE_2D;
+	image->target = target;
+
+	GLenum internalFormat, pixelFormat, type;
+	getGLFormats(textureData->format, internalFormat, pixelFormat, type);
+	image->internalFormat = internalFormat;
+
+	GLCall(glGenTextures(1, &image->textureID));
+	GLCall(glBindTexture(target, image->textureID));
+
+	GLCall(glTexParameteri(target, GL_TEXTURE_WRAP_S, GL_REPEAT));
+	GLCall(glTexParameteri(target, GL_TEXTURE_WRAP_T, GL_REPEAT));
+	if (is3D)
+	{
+		GLCall(glTexParameteri(target, GL_TEXTURE_WRAP_R, GL_REPEAT));
+	}
+	GLCall(glTexParameteri(target, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
+	GLCall(glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+
+	if (is3D)
+	{
+		GLCall(glTexImage3D(target, 0, internalFormat, textureData->width, textureData->height, textureData->depth, 0, pixelFormat, type, textureData->pixels));
+	}
+	else
+	{
+		GLCall(glTexImage2D(target, 0, internalFormat, textureData->width, textureData->height, 0, pixelFormat, type, textureData->pixels));
+	}
+
+	GLCall(glBindTexture(target, 0));
 }
 
 void OpenGl::unloadShader(ShaderData* shaderData)
@@ -365,18 +567,45 @@ void OpenGl::unloadMesh(MeshData* mesh)
 
 void OpenGl::unloadTexture(TextureData* textureData)
 {
+	GlImage* image = static_cast<GlImage*>(textureData->image.get());
+	if (image->textureID != 0)
+	{
+		GLCall(glDeleteTextures(1, &image->textureID));
+		image->textureID = 0;
+	}
 }
 
 void OpenGl::bindTextureToMaterial(MaterialData* materialData, TextureData* textureData, int binding)
 {
+	// NOTE: Vulkan writes a combined image sampler at binding + 1 in the
+	// material's descriptor set. OpenGL has no descriptor sets, so the closest
+	// equivalent is binding the texture to the matching texture unit (sampler
+	// uniforms read from the unit equal to their layout(binding = N) value).
+	GlImage* image = static_cast<GlImage*>(textureData->image.get());
+	const int textureBinding = binding + 1;
+	glActiveTexture(GL_TEXTURE0 + textureBinding);
+	GLCall(glBindTexture(image->target, image->textureID));
 }
 
 void OpenGl::setTextureUsage(TextureData* textureData, TextureUsage usage)
 {
+	// NOTE: OpenGL has no explicit image layout transitions. Synchronize any
+	// pending compute writes so the image can be sampled/read afterwards.
+	textureData->usage = usage;
+	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT);
 }
 
 void OpenGl::createDescriptorSet(Program* program, DescriptorSet* descriptorSet)
 {
+	// NOTE: OpenGL has no descriptor-set objects. A GlDescriptorSet is just a
+	// CPU-side binding container that is populated by GlComputeManager::setBuffer
+	// /setImage, so there is nothing to allocate here.
+	if (descriptorSet != nullptr)
+	{
+		GlDescriptorSet* glSet = static_cast<GlDescriptorSet*>(descriptorSet);
+		glSet->buffers.clear();
+		glSet->images.clear();
+	}
 }
 
 GLuint OpenGl::createUniformBuffer(const size_t size)

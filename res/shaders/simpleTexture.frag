@@ -73,6 +73,8 @@ layout(std140, binding = 2) uniform constants {
 	mat3x4 model;
 	vec4 cameraPosition;
 };
+
+layout(binding = 1) uniform sampler2D colorTexture;
 #endif
 struct Material
 {
