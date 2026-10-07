@@ -88,6 +88,105 @@ vec3 hitCenter = vec3(0.0);
 float hitRadius = 0.0;
 
 
+struct KerrSchildData
+{
+    vec4 kCov;
+    vec4 kCon;
+    float f;
+    float r;
+};
+
+vec4 minkowskiMul(vec4 v)
+{
+    return vec4(-v.x, v.y, v.z, v.w);
+}
+
+KerrSchildData getKerrSchildData(vec4 q)
+{
+    KerrSchildData data;
+
+    vec3 p = q.yzw;
+
+    float a2 = a * a;
+    float rho = dot(p, p) - a2;
+
+    float r2 = 0.5 * (
+        rho +
+        sqrt(max(
+            rho * rho +
+            4.0 * a2 * p.y * p.y,
+            0.0
+        ))
+    );
+
+    r2 = max(r2, 1e-10);
+
+    float r = sqrt(r2);
+
+    float denom = r2 + a2;
+
+    vec4 kCov = vec4(
+        1.0,
+        (r * p.x + a * p.z) / denom,
+        p.y / r,
+        (r * p.z - a * p.x) / denom
+    );
+
+    // Raise the index with eta = diag(-1,+1,+1,+1)
+    vec4 kCon = vec4(
+        -kCov.x,
+         kCov.y,
+         kCov.z,
+         kCov.w
+    );
+
+    // Current shader = Kerr because charge = 0.
+    float charge = 0.0;
+    float charge2 = charge * charge;
+
+    float sigma =
+        r2 * r2 +
+        a2 * p.y * p.y;
+
+    // This preserves your CURRENT radial fade.
+    //
+    // Written this way rather than reversed smoothstep.
+    float metricWindow =
+        1.0 - smoothstep(0.0, cdist * 0.5, r);
+
+    float f =
+        metricWindow *
+        r2 *
+        (2.0 * m * r - charge2) /
+        sigma;
+
+    data.kCov = kCov;
+    data.kCon = kCon;
+    data.f = f;
+    data.r = r;
+
+    return data;
+}
+vec4 metricMul(KerrSchildData data, vec4 v)
+{
+    vec4 etaV = minkowskiMul(v);
+
+    float kv = dot(data.kCov, v);
+
+    return etaV +
+           data.f * data.kCov * kv;
+}
+
+vec4 inverseMetricMul(KerrSchildData data, vec4 p)
+{
+    vec4 etaP = minkowskiMul(p);
+
+    float kp = dot(data.kCon, p);
+
+    return etaP -
+           data.f * data.kCon * kp;
+}
+
 // Helper function to convert Cartesian to spherical coordinates
 vec2 cartesianToSpherical(vec3 pos) {
     float r = length(pos);
@@ -108,14 +207,7 @@ vec3 getRealPosition(vec4 position)
 }
 
 
-mat4 diag(vec4 a)
-{
-    return 
-    mat4(a.x,0,0,0,
-         0,a.y,0,0,
-         0,0,a.z,0,
-         0,0,0,a.w);
-}
+
 float sphIntersect(in vec3 ro, in vec3 rd, in vec4 sph)
 {
     vec3 oc = ro - sph.xyz;
@@ -126,92 +218,8 @@ float sphIntersect(in vec3 ro, in vec3 rd, in vec4 sph)
         return 1e10;
     return -b - sqrt(h);
 }
-/*
-//optimized inverse of symmetric matrix
-mat4 inverse_sym(mat4 m) {
-	float n11 = m[0][0], n12 = m[1][0], n13 = m[2][0], n14 = m[3][0];
-	float n22 = m[1][1], n23 = m[2][1], n24 = m[3][1];
-	float n33 = m[2][2], n34 = m[3][2];
-	float n44 = m[3][3];
-
-	float t11 = 2.0 * n23 * n34 * n24 - n24 * n33 * n24 - n22 * n34 * n34 - n23 * n23 * n44 + n22 * n33 * n44;
-	float t12 = n14 * n33 * n24 - n13 * n34 * n24 - n14 * n23 * n34 + n12 * n34 * n34 + n13 * n23 * n44 - n12 * n33 * n44;
-	float t13 = n13 * n24 * n24 - n14 * n23 * n24 + n14 * n22 * n34 - n12 * n24 * n34 - n13 * n22 * n44 + n12 * n23 * n44;
-	float t14 = n14 * n23 * n23 - n13 * n24 * n23 - n14 * n22 * n33 + n12 * n24 * n33 + n13 * n22 * n34 - n12 * n23 * n34;
-
-	float det = n11 * t11 
-    + n12 * t12 
-    + n13 * t13 
-    + n14 * t14;
-	float idet = 1.0f / det;
-
-	mat4 ret;
-
-	ret[0][0] = t11 * idet;
-	ret[0][1] = (n24 * n33 * n14 - n23 * n34 * n14 - n24 * n13 * n34 + n12 * n34 * n34 + n23 * n13 * n44 - n12 * n33 * n44) * idet;
-	ret[0][2] = (n22 * n34 * n14 - n24 * n23 * n14 + n24 * n13 * n24 - n12 * n34 * n24 - n22 * n13 * n44 + n12 * n23 * n44) * idet;
-	ret[0][3] = (n23 * n23 * n14 - n22 * n33 * n14 - n23 * n13 * n24 + n12 * n33 * n24 + n22 * n13 * n34 - n12 * n23 * n34) * idet;
-
-	ret[1][0] = ret[0][1];
-	ret[1][1] = (2.0 * n13 * n34 * n14 - n14 * n33 * n14 - n11 * n34 * n34 - n13 * n13 * n44 + n11 * n33 * n44) * idet;
-	ret[1][2] = (n14 * n23 * n14 - n12 * n34 * n14 - n14 * n13 * n24 + n11 * n34 * n24 + n12 * n13 * n44 - n11 * n23 * n44) * idet;
-	ret[1][3] = (n12 * n33 * n14 - n13 * n23 * n14 + n13 * n13 * n24 - n11 * n33 * n24 - n12 * n13 * n34 + n11 * n23 * n34) * idet;
-
-	ret[2][0] = ret[0][2];
-	ret[2][1] = ret[1][2];
-    ret[2][2] = (2.0 * n12 * n24 * n14 - n14 * n22 * n14 - n11 * n24 * n24 - n12 * n12 * n44 + n11 * n22 * n44) * idet;
-	ret[2][3] = (n13 * n22 * n14 - n12 * n23 * n14 - n13 * n12 * n24 + n11 * n23 * n24 + n12 * n12 * n34 - n11 * n22 * n34) * idet;
-
-	ret[3][0] = ret[0][3];
-	ret[3][1] = ret[1][3];
-	ret[3][2] = ret[2][3];
-	ret[3][3] = (2.0 * n12 * n23 * n13 - n13 * n22 * n13 - n11 * n23 * n23 - n12 * n12 * n33 + n11 * n22 * n33) * idet;
-
-	return ret;
-}
-*/
 
 
-//optimized inverse of symmetric matrix
-mat4 inverse_sym(mat4 m) {
-	float n11 = m[0][0], n12 = m[1][0], n13 = m[2][0], n14 = m[3][0];
-	float n22 = m[1][1], n23 = m[2][1], n24 = m[3][1];
-	float n33 = m[2][2], n34 = m[3][2];
-	float n44 = m[3][3];
-
-	float t11 = 2.0 * n23 * n34 * n24 - n24 * n33 * n24 - n22 * n34 * n34 - n23 * n23 * n44 + n22 * n33 * n44;
-
-	float idet = 1.0f / (
-        n11 * t11
-        + n12 * (n14 * n33 * n24 - n13 * n34 * n24 - n14 * n23 * n34 + n12 * n34 * n34 + n13 * n23 * n44 - n12 * n33 * n44)
-        + n13 * (n13 * n24 * n24 - n14 * n23 * n24 + n14 * n22 * n34 - n12 * n24 * n34 - n13 * n22 * n44 + n12 * n23 * n44) 
-        + n14 * (n14 * n23 * n23 - n13 * n24 * n23 - n14 * n22 * n33 + n12 * n24 * n33 + n13 * n22 * n34 - n12 * n23 * n34)
-    );
-
-	mat4 ret;
-
-	ret[0][0] = t11 * idet;
-	ret[0][1] = (n24 * n33 * n14 - n23 * n34 * n14 - n24 * n13 * n34 + n12 * n34 * n34 + n23 * n13 * n44 - n12 * n33 * n44) * idet;
-	ret[0][2] = (n22 * n34 * n14 - n24 * n23 * n14 + n24 * n13 * n24 - n12 * n34 * n24 - n22 * n13 * n44 + n12 * n23 * n44) * idet;
-	ret[0][3] = (n23 * n23 * n14 - n22 * n33 * n14 - n23 * n13 * n24 + n12 * n33 * n24 + n22 * n13 * n34 - n12 * n23 * n34) * idet;
-
-	ret[1][0] = ret[0][1];
-	ret[1][1] = (2.0 * n13 * n34 * n14 - n14 * n33 * n14 - n11 * n34 * n34 - n13 * n13 * n44 + n11 * n33 * n44) * idet;
-	ret[1][2] = (n14 * n23 * n14 - n12 * n34 * n14 - n14 * n13 * n24 + n11 * n34 * n24 + n12 * n13 * n44 - n11 * n23 * n44) * idet;
-	ret[1][3] = (n12 * n33 * n14 - n13 * n23 * n14 + n13 * n13 * n24 - n11 * n33 * n24 - n12 * n13 * n34 + n11 * n23 * n34) * idet;
-
-	ret[2][0] = ret[0][2];
-	ret[2][1] = ret[1][2];
-    ret[2][2] = (2.0 * n12 * n24 * n14 - n14 * n22 * n14 - n11 * n24 * n24 - n12 * n12 * n44 + n11 * n22 * n44) * idet;
-	ret[2][3] = (n13 * n22 * n14 - n12 * n23 * n14 - n13 * n12 * n24 + n11 * n23 * n24 + n12 * n12 * n34 - n11 * n22 * n34) * idet;
-
-	ret[3][0] = ret[0][3];
-	ret[3][1] = ret[1][3];
-	ret[3][2] = ret[2][3];
-	ret[3][3] = (2.0 * n12 * n23 * n13 - n13 * n22 * n13 - n11 * n23 * n23 - n12 * n12 * n33 + n11 * n22 * n33) * idet;
-
-	return ret;
-}
 
 // Valid from 1000 to 40000 K (and additionally 0 for pure full white)
 vec3 colorTemperatureToRGB(const in float temperature){
@@ -241,67 +249,79 @@ mat3 rotY(float ang)
 /// KERR
 ////////////////////////////////////
 
-mat4 G(vec4 q)
-{
-    float Q = 0.0; // charge
-    //Kerr metric in Kerr-Schild coordinates with spin along Y axis
-    vec3 p = q.yzw;
-    float rho = dot(p,p) - a*a;
-    float r2 = 0.5*(rho + sqrt(rho*rho + 4.0*a*a*p.y*p.y));  // Changed p.z → p.y
-    float r = sqrt(r2);
-    
-    vec4 k = vec4(1, 
-        (r*p.x + a*p.z)/(r2 + a*a),   // Changed p.y → p.z
-        p.y/r,                         // Changed p.z/r → p.y/r
-        (r*p.z - a*p.x)/(r2 + a*a));  // Changed (r*p.y - a*p.x) → (r*p.z - a*p.x)
-    
-    float f = smoothstep(cdist*0.5, 0.0, r)*r2*(2.0*m*r - Q*Q)/(r2*r2 + a*a*p.y*p.y);  // Changed p.z → p.y
-    return f*mat4(k.x*k, k.y*k, k.z*k, k.w*k)+diag(vec4(-1,1,1,1));    
-}
-
-//vector to momentum at point q
 vec4 Vec2P(vec3 v, vec3 x)
 {
-    return 2.0*G(vec4(0.0, x))*vec4(1.0, v); 
+    vec4 q = vec4(0.0, x);
+
+    KerrSchildData data =
+        getKerrSchildData(q);
+
+    return 2.0 *
+        metricMul(
+            data,
+            vec4(1.0, v)
+        );
 }
 
 vec4 P2Vec(vec4 p, vec4 q)
 {
-    return inverse_sym(G(q))*p;
+    KerrSchildData data = getKerrSchildData(q);
+    return inverseMetricMul(data, p);
 }
 bool variDT(vec4 P, vec4 q, out bool blackholeHit)
 {
-    //Kerr metric in Kerr-Schild coordinates 
-    vec3 p = q.yzw;
-    float rho = dot(p,p) - a*a;
-    float r2 = 0.5*(rho + sqrt(rho*rho + 4.0*a*a*p.y*p.y));  // Changed p.z → p.y
-    float r = sqrt(r2);
-    float diskInfluence = horizonRadius;
-    dt = mix(inputData.stepSizeMin, inputData.stepSizeMax, pow(max(r - diskInfluence, 0.0)/cdist, 1.0));
-    
-    if(r < horizonRadius * 0.8 && a <= 1.0)
+    KerrSchildData data = getKerrSchildData(q);
+    float r = data.r;
+
+    float t =
+        max(r - horizonRadius, 0.0) /
+        cdist;
+
+    dt = mix(
+        inputData.stepSizeMin,
+        inputData.stepSizeMax,
+        t
+    );
+
+    if (r < horizonRadius * 0.8)
     {
         blackholeHit = true;
         return true;
     }
 
-    if(length(q.yzw) > cdist || length(P) > 45.0) 
+    const float activeRadius = cdist * 0.5;
+
+    if (
+        length(q.yzw) > activeRadius ||
+        length(P) > 45.0
+    )
     {
         blackholeHit = false;
         return true;
     }
+
     return false;
 }
-//lagrangian
-float L(vec4 qt, mat4 g)
+
+float metricQuadratic(KerrSchildData data, vec4 v)
 {
-    return dot(g*qt,qt);
+    float minkowski =
+        -v.x * v.x +
+         v.y * v.y +
+         v.z * v.z +
+         v.w * v.w;
+
+    float kv = dot(data.kCov, v);
+
+    return minkowski +
+           data.f * kv * kv;
 }
 
+//lagrangian
 float L(vec4 qt, vec4 q)
 {
-    mat4 g = G(q);
-    return L(qt, g);
+    KerrSchildData data = getKerrSchildData(q);
+    return metricQuadratic(data, qt);
 }
 
 
@@ -326,18 +346,64 @@ bool getRay(vec2 uv, out vec3 ro, out vec3 rd)
 //step
 mat2x4 dhstep(in mat2x4 s, float dt)
 {
-    vec4 p = s[0], q = s[1];
-    
-    mat4 g = G(q);
-    mat4 ginv = inverse_sym(g);//slow
-    vec4 qt = ginv*p;
-    
-    vec4 dHdq = -(vec4(L(qt,q+dq.yxxx),L(qt,q+dq.xyxx),L(qt,q+dq.xxyx),L(qt,q+dq.xxxy))-L(qt, g))/eps; 
-    
+    vec4 p = s[0];
+    vec4 q = s[1];
+
+    // Base Kerr-Schild metric
+    KerrSchildData base = getKerrSchildData(q);
+
+    // qt = g^(-1) * p
+    vec4 qt = inverseMetricMul(base, p);
+
+    // L at current position
+    float L0 = metricQuadratic(base, qt);
+
+    // ------------------------------------------------
+    // Spatial derivatives only.
+    //
+    // q.x = time
+    // q.y = x
+    // q.z = y
+    // q.w = z
+    //
+    // Kerr/Kerr-Newman is stationary, therefore:
+    // dH/dt = 0
+    // ------------------------------------------------
+
+    KerrSchildData metricX =
+        getKerrSchildData(
+            q + vec4(0.0, eps, 0.0, 0.0)
+        );
+
+    KerrSchildData metricY =
+        getKerrSchildData(
+            q + vec4(0.0, 0.0, eps, 0.0)
+        );
+
+    KerrSchildData metricZ =
+        getKerrSchildData(
+            q + vec4(0.0, 0.0, 0.0, eps)
+        );
+
+    float Lx = metricQuadratic(metricX, qt);
+    float Ly = metricQuadratic(metricY, qt);
+    float Lz = metricQuadratic(metricZ, qt);
+
+    vec4 dHdq = vec4(
+        0.0,
+        -(Lx - L0) / eps,
+        -(Ly - L0) / eps,
+        -(Lz - L0) / eps
+    );
+
     mat2x4 dqp;
-    dqp[0] = -dHdq*dt;
-    dqp[1] = 2.0*ginv*p*dt;
-    
+
+    dqp[0] = -dHdq * dt;
+
+    // qt == g^-1 * p already,
+    // so don't calculate it again.
+    dqp[1] = 2.0 * qt * dt;
+
     return dqp;
 }
 
@@ -601,9 +667,18 @@ void computeVolumetric(vec4 Q, vec3 seg, vec3 segDir, float ds, inout vec3 L, in
 }
 void traceRay(vec3 cp, vec3 rd, out vec2 warp, out vec3 L, out float T)
 {
+    float activeRadius = cdist * 0.5;
+
+    float t0 =
+        sphIntersect(
+            cp,
+            rd,
+            vec4(0.0, 0.0, 0.0, activeRadius)
+        );
+
+    if (t0 > 0.0 && t0 < 1e10)
     {
-        float t0 = sphIntersect(cp, rd, vec4(0,0,0,cdist));
-        if(t0 > 0.0 && t0 < 1e10) cp += rd*t0;
+        cp += rd * t0;
     }
 
 

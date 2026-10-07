@@ -93,222 +93,312 @@ vec3 hitCenter = vec3(0.0);
 float hitRadius = 0.0;
 
 
-// Helper function to convert Cartesian to spherical coordinates
-vec2 cartesianToSpherical(vec3 pos) {
-    float r = length(pos);
-    float theta = acos(pos.y / r);
-    float phi = atan(pos.z, pos.x);
-    return vec2(theta, phi);
-}
 
-float distanceFromCenter(vec4 position)
+
+
+
+
+
+struct KerrSchildData
 {
-    vec3 pos = vec3(position.y, position.z, position.w);
-    return length(pos);
-}
+    vec4 kCov;
+    vec4 kCon;
+    float f;
+    float r;
+};
 
-vec3 getRealPosition(vec4 position)
+vec4 minkowskiMul(vec4 v)
 {
-    return vec3(position.y, position.z, position.w);
+    return vec4(-v.x, v.y, v.z, v.w);
 }
 
-
-mat4 diag(vec4 a)
+KerrSchildData getKerrSchildData(vec4 q)
 {
-    return 
-    mat4(a.x,0,0,0,
-         0,a.y,0,0,
-         0,0,a.z,0,
-         0,0,0,a.w);
-}
-float sphIntersect(in vec3 ro, in vec3 rd, in vec4 sph)
-{
-    vec3 oc = ro - sph.xyz;
-    float b = dot(oc, rd);
-    float c = dot(oc, oc) - sph.w * sph.w;
-    float h = b * b - c;
-    if (h < 0.0)
-        return 1e10;
-    return -b - sqrt(h);
-}
-/*
-//optimized inverse of symmetric matrix
-mat4 inverse_sym(mat4 m) {
-	float n11 = m[0][0], n12 = m[1][0], n13 = m[2][0], n14 = m[3][0];
-	float n22 = m[1][1], n23 = m[2][1], n24 = m[3][1];
-	float n33 = m[2][2], n34 = m[3][2];
-	float n44 = m[3][3];
+    KerrSchildData data;
 
-	float t11 = 2.0 * n23 * n34 * n24 - n24 * n33 * n24 - n22 * n34 * n34 - n23 * n23 * n44 + n22 * n33 * n44;
-	float t12 = n14 * n33 * n24 - n13 * n34 * n24 - n14 * n23 * n34 + n12 * n34 * n34 + n13 * n23 * n44 - n12 * n33 * n44;
-	float t13 = n13 * n24 * n24 - n14 * n23 * n24 + n14 * n22 * n34 - n12 * n24 * n34 - n13 * n22 * n44 + n12 * n23 * n44;
-	float t14 = n14 * n23 * n23 - n13 * n24 * n23 - n14 * n22 * n33 + n12 * n24 * n33 + n13 * n22 * n34 - n12 * n23 * n34;
-
-	float det = n11 * t11 
-    + n12 * t12 
-    + n13 * t13 
-    + n14 * t14;
-	float idet = 1.0f / det;
-
-	mat4 ret;
-
-	ret[0][0] = t11 * idet;
-	ret[0][1] = (n24 * n33 * n14 - n23 * n34 * n14 - n24 * n13 * n34 + n12 * n34 * n34 + n23 * n13 * n44 - n12 * n33 * n44) * idet;
-	ret[0][2] = (n22 * n34 * n14 - n24 * n23 * n14 + n24 * n13 * n24 - n12 * n34 * n24 - n22 * n13 * n44 + n12 * n23 * n44) * idet;
-	ret[0][3] = (n23 * n23 * n14 - n22 * n33 * n14 - n23 * n13 * n24 + n12 * n33 * n24 + n22 * n13 * n34 - n12 * n23 * n34) * idet;
-
-	ret[1][0] = ret[0][1];
-	ret[1][1] = (2.0 * n13 * n34 * n14 - n14 * n33 * n14 - n11 * n34 * n34 - n13 * n13 * n44 + n11 * n33 * n44) * idet;
-	ret[1][2] = (n14 * n23 * n14 - n12 * n34 * n14 - n14 * n13 * n24 + n11 * n34 * n24 + n12 * n13 * n44 - n11 * n23 * n44) * idet;
-	ret[1][3] = (n12 * n33 * n14 - n13 * n23 * n14 + n13 * n13 * n24 - n11 * n33 * n24 - n12 * n13 * n34 + n11 * n23 * n34) * idet;
-
-	ret[2][0] = ret[0][2];
-	ret[2][1] = ret[1][2];
-    ret[2][2] = (2.0 * n12 * n24 * n14 - n14 * n22 * n14 - n11 * n24 * n24 - n12 * n12 * n44 + n11 * n22 * n44) * idet;
-	ret[2][3] = (n13 * n22 * n14 - n12 * n23 * n14 - n13 * n12 * n24 + n11 * n23 * n24 + n12 * n12 * n34 - n11 * n22 * n34) * idet;
-
-	ret[3][0] = ret[0][3];
-	ret[3][1] = ret[1][3];
-	ret[3][2] = ret[2][3];
-	ret[3][3] = (2.0 * n12 * n23 * n13 - n13 * n22 * n13 - n11 * n23 * n23 - n12 * n12 * n33 + n11 * n22 * n33) * idet;
-
-	return ret;
-}
-*/
-
-
-//optimized inverse of symmetric matrix
-mat4 inverse_sym(mat4 m) {
-	float n11 = m[0][0], n12 = m[1][0], n13 = m[2][0], n14 = m[3][0];
-	float n22 = m[1][1], n23 = m[2][1], n24 = m[3][1];
-	float n33 = m[2][2], n34 = m[3][2];
-	float n44 = m[3][3];
-
-	float t11 = 2.0 * n23 * n34 * n24 - n24 * n33 * n24 - n22 * n34 * n34 - n23 * n23 * n44 + n22 * n33 * n44;
-
-	float idet = 1.0f / (
-        n11 * t11
-        + n12 * (n14 * n33 * n24 - n13 * n34 * n24 - n14 * n23 * n34 + n12 * n34 * n34 + n13 * n23 * n44 - n12 * n33 * n44)
-        + n13 * (n13 * n24 * n24 - n14 * n23 * n24 + n14 * n22 * n34 - n12 * n24 * n34 - n13 * n22 * n44 + n12 * n23 * n44) 
-        + n14 * (n14 * n23 * n23 - n13 * n24 * n23 - n14 * n22 * n33 + n12 * n24 * n33 + n13 * n22 * n34 - n12 * n23 * n34)
-    );
-
-	mat4 ret;
-
-	ret[0][0] = t11 * idet;
-	ret[0][1] = (n24 * n33 * n14 - n23 * n34 * n14 - n24 * n13 * n34 + n12 * n34 * n34 + n23 * n13 * n44 - n12 * n33 * n44) * idet;
-	ret[0][2] = (n22 * n34 * n14 - n24 * n23 * n14 + n24 * n13 * n24 - n12 * n34 * n24 - n22 * n13 * n44 + n12 * n23 * n44) * idet;
-	ret[0][3] = (n23 * n23 * n14 - n22 * n33 * n14 - n23 * n13 * n24 + n12 * n33 * n24 + n22 * n13 * n34 - n12 * n23 * n34) * idet;
-
-	ret[1][0] = ret[0][1];
-	ret[1][1] = (2.0 * n13 * n34 * n14 - n14 * n33 * n14 - n11 * n34 * n34 - n13 * n13 * n44 + n11 * n33 * n44) * idet;
-	ret[1][2] = (n14 * n23 * n14 - n12 * n34 * n14 - n14 * n13 * n24 + n11 * n34 * n24 + n12 * n13 * n44 - n11 * n23 * n44) * idet;
-	ret[1][3] = (n12 * n33 * n14 - n13 * n23 * n14 + n13 * n13 * n24 - n11 * n33 * n24 - n12 * n13 * n34 + n11 * n23 * n34) * idet;
-
-	ret[2][0] = ret[0][2];
-	ret[2][1] = ret[1][2];
-    ret[2][2] = (2.0 * n12 * n24 * n14 - n14 * n22 * n14 - n11 * n24 * n24 - n12 * n12 * n44 + n11 * n22 * n44) * idet;
-	ret[2][3] = (n13 * n22 * n14 - n12 * n23 * n14 - n13 * n12 * n24 + n11 * n23 * n24 + n12 * n12 * n34 - n11 * n22 * n34) * idet;
-
-	ret[3][0] = ret[0][3];
-	ret[3][1] = ret[1][3];
-	ret[3][2] = ret[2][3];
-	ret[3][3] = (2.0 * n12 * n23 * n13 - n13 * n22 * n13 - n11 * n23 * n23 - n12 * n12 * n33 + n11 * n22 * n33) * idet;
-
-	return ret;
-}
-
-// Valid from 1000 to 40000 K (and additionally 0 for pure full white)
-vec3 colorTemperatureToRGB(const in float temperature){
-  // Values from: http://blenderartists.org/forum/showthread.php?270332-OSL-Goodness&p=2268693&viewfull=1#post2268693   
-  mat3 m = (temperature <= 6500.0) ? mat3(vec3(0.0, -2902.1955373783176, -8257.7997278925690),
-	                                      vec3(0.0, 1669.5803561666639, 2575.2827530017594),
-	                                      vec3(1.0, 1.3302673723350029, 1.8993753891711275)) : 
-	 								 mat3(vec3(1745.0425298314172, 1216.6168361476490, -8257.7997278925690),
-   	                                      vec3(-2666.3474220535695, -2173.1012343082230, 2575.2827530017594),
-	                                      vec3(0.55995389139931482, 0.70381203140554553, 1.8993753891711275)); 
-  return mix(clamp(vec3(m[0] / (vec3(clamp(temperature, 1000.0, 40000.0)) + m[1]) + m[2]), vec3(0.0), vec3(1.0)), vec3(1.0), smoothstep(1000.0, 0.0, temperature));
-}
-
-mat3 rotY(float ang)
-{
-    float c = cos(ang);
-    float s = sin(ang);
-    return mat3(
-        c, 0, -s,
-        0, 1,  0,
-        s, 0,  c
-    );
-}
-
-
-////////////////////////////////////
-/// KERR
-////////////////////////////////////
-
-mat4 G(vec4 q)
-{
-    float Q = 0.0; // charge
-    //Kerr metric in Kerr-Schild coordinates with spin along Y axis
     vec3 p = q.yzw;
-    float rho = dot(p,p) - a*a;
-    float r2 = 0.5*(rho + sqrt(rho*rho + 4.0*a*a*p.y*p.y));  // Changed p.z → p.y
+
+    float a2 = a * a;
+    float rho = dot(p, p) - a2;
+
+    float r2 = 0.5 * (
+        rho +
+        sqrt(max(
+            rho * rho +
+            4.0 * a2 * p.y * p.y,
+            0.0
+        ))
+    );
+
+    r2 = max(r2, 1e-10);
+
     float r = sqrt(r2);
-    
-    vec4 k = vec4(1, 
-        (r*p.x + a*p.z)/(r2 + a*a),   // Changed p.y → p.z
-        p.y/r,                         // Changed p.z/r → p.y/r
-        (r*p.z - a*p.x)/(r2 + a*a));  // Changed (r*p.y - a*p.x) → (r*p.z - a*p.x)
-    
-    float f = smoothstep(cdist*0.5, 0.0, r)*r2*(2.0*m*r - Q*Q)/(r2*r2 + a*a*p.y*p.y);  // Changed p.z → p.y
-    return f*mat4(k.x*k, k.y*k, k.z*k, k.w*k)+diag(vec4(-1,1,1,1));    
+    float denom = r2 + a2;
+
+    vec4 kCov = vec4(
+        1.0,
+        (r * p.x + a * p.z) / denom,
+        p.y / r,
+        (r * p.z - a * p.x) / denom
+    );
+
+    vec4 kCon = vec4(
+        -kCov.x,
+         kCov.y,
+         kCov.z,
+         kCov.w
+    );
+
+    // Keep the Kerr-Newman charge term.
+    // Replace this with inputData.charge when charge is exposed in the SSBO.
+    float charge = 0.0;
+    float charge2 = charge * charge;
+
+    float sigma =
+        r2 * r2 +
+        a2 * p.y * p.y;
+
+    float metricWindow =
+        1.0 - smoothstep(0.0, cdist * 0.5, r);
+
+    float f =
+        metricWindow *
+        r2 *
+        (2.0 * m * r - charge2) /
+        sigma;
+
+    data.kCov = kCov;
+    data.kCon = kCon;
+    data.f = f;
+    data.r = r;
+
+    return data;
 }
 
-//vector to momentum at point q
+vec4 metricMul(KerrSchildData data, vec4 v)
+{
+    vec4 etaV = minkowskiMul(v);
+    float kv = dot(data.kCov, v);
+
+    return etaV +
+           data.f * data.kCov * kv;
+}
+
+vec4 inverseMetricMul(KerrSchildData data, vec4 p)
+{
+    vec4 etaP = minkowskiMul(p);
+    float kp = dot(data.kCon, p);
+
+    return etaP -
+           data.f * data.kCon * kp;
+}
+
+float metricQuadratic(KerrSchildData data, vec4 v)
+{
+    float minkowski =
+        -v.x * v.x +
+         v.y * v.y +
+         v.z * v.z +
+         v.w * v.w;
+
+    float kv = dot(data.kCov, v);
+
+    return minkowski +
+           data.f * kv * kv;
+}
+
 vec4 Vec2P(vec3 v, vec3 x)
 {
-    return 2.0*G(vec4(0.0, x))*vec4(1.0, v); 
+    vec4 q = vec4(0.0, x);
+
+    KerrSchildData data =
+        getKerrSchildData(q);
+
+    return 2.0 *
+        metricMul(
+            data,
+            vec4(1.0, v)
+        );
 }
 
 vec4 P2Vec(vec4 p, vec4 q)
 {
-    return inverse_sym(G(q))*p;
+    KerrSchildData data = getKerrSchildData(q);
+    return inverseMetricMul(data, p);
 }
+
 bool variDT(vec4 P, vec4 q, out bool blackholeHit)
 {
-    //Kerr metric in Kerr-Schild coordinates 
-    vec3 p = q.yzw;
-    float rho = dot(p,p) - a*a;
-    float r2 = 0.5*(rho + sqrt(rho*rho + 4.0*a*a*p.y*p.y));  // Changed p.z → p.y
-    float r = sqrt(r2);
-    float diskInfluence = horizonRadius;
-    dt = mix(inputData.stepSizeMin, inputData.stepSizeMax, pow(max(r - diskInfluence, 0.0)/cdist, 1.0));
-    
-    if(r < horizonRadius * 0.8 && a <= 1.0)
+    KerrSchildData data = getKerrSchildData(q);
+    float r = data.r;
+
+    float t =
+        max(r - horizonRadius, 0.0) /
+        cdist;
+
+    dt = mix(
+        inputData.stepSizeMin,
+        inputData.stepSizeMax,
+        t
+    );
+
+    if (r < horizonRadius * 0.8)
     {
         blackholeHit = true;
         return true;
     }
 
-    if(length(q.yzw) > cdist || length(P) > 45.0) 
+    const float activeRadius = cdist * 0.5;
+
+    if (
+        length(q.yzw) > activeRadius ||
+        length(P) > 45.0
+    )
     {
         blackholeHit = false;
         return true;
     }
+
     return false;
 }
-//lagrangian
-float L(vec4 qt, mat4 g)
+
+mat2x4 dhstep(in mat2x4 s, float dt)
 {
-    return dot(g*qt,qt);
+    vec4 p = s[0];
+    vec4 q = s[1];
+
+    KerrSchildData base = getKerrSchildData(q);
+
+    vec4 qt = inverseMetricMul(base, p);
+
+    float L0 = metricQuadratic(base, qt);
+
+    // Kerr/Kerr-Newman is stationary, so dH/dt = 0.
+    // Only spatial finite differences are needed.
+    KerrSchildData metricX =
+        getKerrSchildData(
+            q + vec4(0.0, eps, 0.0, 0.0)
+        );
+
+    KerrSchildData metricY =
+        getKerrSchildData(
+            q + vec4(0.0, 0.0, eps, 0.0)
+        );
+
+    KerrSchildData metricZ =
+        getKerrSchildData(
+            q + vec4(0.0, 0.0, 0.0, eps)
+        );
+
+    float Lx = metricQuadratic(metricX, qt);
+    float Ly = metricQuadratic(metricY, qt);
+    float Lz = metricQuadratic(metricZ, qt);
+
+    vec4 dHdq = vec4(
+        0.0,
+        -(Lx - L0) / eps,
+        -(Ly - L0) / eps,
+        -(Lz - L0) / eps
+    );
+
+    mat2x4 dqp;
+
+    dqp[0] = -dHdq * dt;
+    dqp[1] = 2.0 * qt * dt;
+
+    return dqp;
 }
 
-float L(vec4 qt, vec4 q)
-{
-    mat4 g = G(q);
-    return L(qt, g);
+
+vec2 cartesianToSpherical(vec3 pos) {
+
+    float r = length(pos);
+
+    float theta = acos(pos.y / r);
+
+    float phi = atan(pos.z, pos.x);
+
+    return vec2(theta, phi);
+
 }
 
+float distanceFromCenter(vec4 position)
+
+{
+
+    vec3 pos = vec3(position.y, position.z, position.w);
+
+    return length(pos);
+
+}
+
+vec3 getRealPosition(vec4 position)
+
+{
+
+    return vec3(position.y, position.z, position.w);
+
+}
+
+float sphIntersect(in vec3 ro, in vec3 rd, in vec4 sph)
+
+{
+
+    vec3 oc = ro - sph.xyz;
+
+    float b = dot(oc, rd);
+
+    float c = dot(oc, oc) - sph.w * sph.w;
+
+    float h = b * b - c;
+
+    if (h < 0.0)
+
+        return 1e10;
+
+    return -b - sqrt(h);
+
+}
+
+vec3 colorTemperatureToRGB(const in float temperature){
+
+  // Values from: http://blenderartists.org/forum/showthread.php?270332-OSL-Goodness&p=2268693&viewfull=1#post2268693   
+
+  mat3 m = (temperature <= 6500.0) ? mat3(vec3(0.0, -2902.1955373783176, -8257.7997278925690),
+
+                                          vec3(0.0, 1669.5803561666639, 2575.2827530017594),
+
+                                          vec3(1.0, 1.3302673723350029, 1.8993753891711275)) : 
+
+                                     mat3(vec3(1745.0425298314172, 1216.6168361476490, -8257.7997278925690),
+
+                                          vec3(-2666.3474220535695, -2173.1012343082230, 2575.2827530017594),
+
+                                          vec3(0.55995389139931482, 0.70381203140554553, 1.8993753891711275)); 
+
+  return mix(clamp(vec3(m[0] / (vec3(clamp(temperature, 1000.0, 40000.0)) + m[1]) + m[2]), vec3(0.0), vec3(1.0)), vec3(1.0), smoothstep(1000.0, 0.0, temperature));
+
+}
+
+mat3 rotY(float ang)
+
+{
+
+    float c = cos(ang);
+
+    float s = sin(ang);
+
+    return mat3(
+
+        c, 0, -s,
+
+        0, 1,  0,
+
+        s, 0,  c
+
+    );
+
+}
 
 bool getRay(vec2 uv, out vec3 ro, out vec3 rd)
 {
@@ -326,28 +416,9 @@ bool getRay(vec2 uv, out vec3 ro, out vec3 rd)
     );
 
     return true;
+
 }
 
-//step
-mat2x4 dhstep(in mat2x4 s, float dt)
-{
-    vec4 p = s[0], q = s[1];
-    
-    mat4 g = G(q);
-    mat4 ginv = inverse_sym(g);//slow
-    vec4 qt = ginv*p;
-    
-    vec4 dHdq = -(vec4(L(qt,q+dq.yxxx),L(qt,q+dq.xyxx),L(qt,q+dq.xxyx),L(qt,q+dq.xxxy))-L(qt, g))/eps; 
-    
-    mat2x4 dqp;
-    dqp[0] = -dHdq*dt;
-    dqp[1] = 2.0*ginv*p*dt;
-    
-    return dqp;
-}
-
-
-//runge kutta 4th order integration scheme
 void hstepRK4(inout vec4 p, inout vec4 q)
 {    
     float dt1 = dt*clamp(1.0 / length(p),inputData.stepSizeMin,inputData.stepSizeMax);
@@ -361,10 +432,10 @@ void hstepRK4(inout vec4 p, inout vec4 q)
     state += (k1 + 2.0*k2 + 2.0*k3 + k4)/6.0;
 
     p = state[0];
+
     q = state[1];
+
 }
-
-
 
 vec2 directionToEquirectangularUV(vec3 direction)
 {
@@ -436,7 +507,6 @@ float computeTransmittance(vec3 position, vec3 Ld) {
     return T;
 }
 
-// Double-lobed Henyey-Greenstein phase function
 float doubleLobedHG(float cosTheta, float gForward, float gBackward, float lobeWeight) {
     float g1 = gForward;
     float g2 = gBackward;
@@ -450,53 +520,98 @@ float doubleLobedHG(float cosTheta, float gForward, float gBackward, float lobeW
     return mix(phase2, phase1, lobeWeight);
 }
 
-void sampleDisk(vec3 p, vec3 rayDir, float stepSize, float time, inout vec3 emission, inout float T)
+
+void sampleDisk(
+    vec3 p,
+    vec3 rayDir,
+    float stepSize,
+    float time,
+    float density,
+    float Tsh,
+    inout vec3 emission,
+    inout float T
+)
 {
-    
-    float density = sampleDensity(p);
-    if (density < 0.1) return;
-
     vec3 lightDir = normalize(p);
-    float Tsh = computeTransmittance(p, lightDir);
 
-    float phase = doubleLobedHG(dot(lightDir, -rayDir), inputData.disk_AnisotropyForward, inputData.disk_AnisotropyBackward, inputData.disk_LobeWeight);
+    float phase = doubleLobedHG(
+        dot(lightDir, -rayDir),
+        inputData.disk_AnisotropyForward,
+        inputData.disk_AnisotropyBackward,
+        inputData.disk_LobeWeight
+    );
 
-    float softenedDensity = pow(density, inputData.disk_Brightness);
+    float softenedDensity = pow(
+        density,
+        inputData.disk_Brightness
+    );
+
     float scat = softenedDensity * stepSize;
 
     float r = length(p);
 
     float dist2 = dot(-p, -p);
-    float atten = inputData.disk_LightIntensity / (max(dist2, 0.001) * 0.06);
 
-    float tRad = clamp((r - inputData.disk_InnerRadius) / (inputData.disk_OuterRadius - inputData.disk_InnerRadius), 0.0, 1.0);
-    vec3 sampleColor = inputData.color.rgb * (1.0 - tRad);
+    float atten =
+        inputData.disk_LightIntensity /
+        (max(dist2, 0.001) * 0.06);
 
-    float saturation = pow(1.0 - tRad, inputData.disk_LightFalloff);
+    float tRad = clamp(
+        (r - inputData.disk_InnerRadius) /
+        (inputData.disk_OuterRadius - inputData.disk_InnerRadius),
+        0.0,
+        1.0
+    );
+
+    vec3 sampleColor =
+        inputData.color.rgb *
+        (1.0 - tRad);
+
+    float saturation = pow(
+        1.0 - tRad,
+        inputData.disk_LightFalloff
+    );
+
     sampleColor *= saturation;
 
-    vec3 toCam = normalize(inputData.camPos - p);
-    vec3 tangentDir = normalize(vec3(-p.z, 0.0, p.x));
+    vec3 toCam =
+        normalize(inputData.camPos - p);
 
-    float v = inputData.disk_RotationSpeed / pow(r, 1.5);
-    vec3 vel = tangentDir * v;
+    vec3 tangentDir =
+        normalize(vec3(-p.z, 0.0, p.x));
 
-    float relVel = -dot(normalize(vel), toCam);
-    float dopplerBoost = 1.0 + inputData.disk_DopplerStrength * relVel;
+    float v =
+        inputData.disk_RotationSpeed /
+        pow(r, 1.5);
+
+    vec3 vel =
+        tangentDir * v;
+
+    float relVel =
+        -dot(normalize(vel), toCam);
+
+    float dopplerBoost =
+        1.0 +
+        inputData.disk_DopplerStrength *
+        relVel;
 
     sampleColor *= dopplerBoost;
 
-    emission += T * Tsh * atten * sampleColor * phase * scat;
+    emission +=
+        T *
+        Tsh *
+        atten *
+        sampleColor *
+        phase *
+        scat;
 
-    T *= exp(-pow(density, inputData.disk_ExpoFactor) * stepSize);
-   
-  /*  
-    // Hot spots and flares
-    float flareNoise = texture(noiseMap, p * 0.3 + time * 0.5).r;
-    if (flareNoise > 0.85 && temperatureParam > 0.6) {
-        density *= 1.0 + (flareNoise - 0.85) * 5.0;
-    }
-    */
+    T *= exp(
+        -pow(
+            density,
+            inputData.disk_ExpoFactor
+        ) *
+        stepSize
+    );
 }
 
 bool segmentIntersectsSphere(vec3 segStart, vec3 segEnd, vec3 sphereCenter, float sphereRadius) {
@@ -528,227 +643,438 @@ bool segmentIntersectsSphere(vec3 segStart, vec3 segEnd, vec3 sphereCenter, floa
 }
 
 bool interceptObject(vec3 P, vec3 dir) {
+
     for (int i = 0; i < objectData.objectCount; ++i) {
+
         vec3 center = objectData.objects[i].position;
+
         float radius = objectData.objects[i].radius;
+
         if (segmentIntersectsSphere(P, P+dir, center, radius)) {
+
             // Store color - you'll need to add color to Object struct!
+
             objectColor = objectData.objects[i].color;  // Temp orange color
+
             hitCenter = center;
+
             hitRadius = radius;
+
             return true;
+
         }
+
     }
+
     return false;
+
 }
 
 float raySphereIntersect(vec3 ro, vec3 rd, vec3 sphereCenter, float sphereRadius)
+
 {
+
     vec3 oc = ro - sphereCenter;
-    
+
+
+
     float b = dot(oc, rd);
+
     float c = dot(oc, oc) - sphereRadius * sphereRadius;
+
     float discriminant = b * b - c;
-    
+
+
+
     if (discriminant < 0.0) return -1.0;
-    
+
+
+
     float t = -b - sqrt(discriminant);
+
     if (t < 0.0) t = -b + sqrt(discriminant);
-    
+
+
+
     return t < 0.0 ? -1.0 : t;
+
 }
 
-void computeVolumetric(vec4 Q, vec3 seg, vec3 segDir, float ds, inout vec3 L, inout float T)
+
+void computeVolumetric(
+    vec3 start,
+    vec3 seg,
+    vec3 segDir,
+    float ds,
+    inout vec3 L,
+    inout float T
+)
 {
-        // Check if we're in the disk region
-    const float innerR = inputData.disk_InnerRadius * 0.8;
-    const float outerR = inputData.disk_OuterRadius * 1.2;
-    const float maxH = inputData.disk_Height * 5.0;
+    const float innerR =
+        inputData.disk_InnerRadius * 0.8;
 
-    // March through the segment
-    for (int s = 0; s < inputData.volSubsteps; ++s) {
-        float tMid = (float(s) + stepNoise) / float(inputData.volSubsteps);
-        vec3 pMid = Q.yzw + seg * tMid;
-        
-        vec2 xz = vec2(pMid.x, pMid.z);
-        float rperp = length(xz);
-        float h = abs(pMid.y);
+    const float outerR =
+        inputData.disk_OuterRadius * 1.2;
 
-        if (rperp >= innerR && rperp <= outerR && h <= maxH) {
-            sampleDisk(pMid, segDir, ds, inputData.time, L, T);
+    const float maxH =
+        inputData.disk_Height * 5.0;
+
+    // Compute the expensive shadow march at most once
+    // for all useful volume samples in this geodesic segment.
+    float cachedShadow = -1.0;
+
+    for (int s = 0; s < inputData.volSubsteps; ++s)
+    {
+        float tMid =
+            (float(s) + stepNoise) /
+            float(inputData.volSubsteps);
+
+        vec3 pMid =
+            start + seg * tMid;
+
+        vec2 xz =
+            vec2(pMid.x, pMid.z);
+
+        float rperp =
+            length(xz);
+
+        float h =
+            abs(pMid.y);
+
+        if (
+            rperp >= innerR &&
+            rperp <= outerR &&
+            h <= maxH
+        )
+        {
+            float density =
+                sampleDensity(pMid);
+
+            if (density < 0.1)
+            {
+                continue;
+            }
+
+            if (cachedShadow < 0.0)
+            {
+                vec3 lightDir =
+                    normalize(pMid);
+
+                cachedShadow =
+                    computeTransmittance(
+                        pMid,
+                        lightDir
+                    );
+            }
+
+            sampleDisk(
+                pMid,
+                segDir,
+                ds,
+                inputData.time,
+                density,
+                cachedShadow,
+                L,
+                T
+            );
         }
     }
 }
+
+
+
 void traceRay(vec3 cp, vec3 rd, out vec2 warp)
 {
+    const float activeRadius = cdist * 0.5;
+
+    float t0 =
+        sphIntersect(
+            cp,
+            rd,
+            vec4(0.0, 0.0, 0.0, activeRadius)
+        );
+
+    if (t0 > 0.0 && t0 < 1e10)
     {
-        float t0 = sphIntersect(cp, rd, vec4(0,0,0,cdist));
-        if(t0 > 0.0 && t0 < 1e10) cp += rd*t0;
+        cp += rd * t0;
     }
 
-
-    vec4 Q = vec4(0., cp);
+    vec4 Q = vec4(0.0, cp);
     vec4 P = normalize(Vec2P(rd, Q.yzw));
 
-    //float p0 = P.x;
-
-    
     bool shouldTerminate = false;
     bool tempBlackHoleHit = false;
-    vec4 prevQ;
 
-    for (int i = 0; i < inputData.maxSteps; ++i) {
-
-        prevQ = Q;
+    for (int i = 0; i < inputData.maxSteps; ++i)
+    {
         hstepRK4(P, Q);
 
-        if (variDT(P,Q, tempBlackHoleHit)) 
-        {   
+        if (variDT(P, Q, tempBlackHoleHit))
+        {
             shouldTerminate = true;
             break;
         }
-
     }
 
-    vec4 qt = P2Vec(P,Q);
+    vec4 qt = P2Vec(P, Q);
     rd = normalize(qt.yzw);
-    vec2 warpedUV = directionToEquirectangularUV(rd);
-    vec2 finalWarpSend = shouldTerminate && tempBlackHoleHit ? vec2(-1.0, 0.0) : warpedUV;
-    
+
+    vec2 warpedUV =
+        directionToEquirectangularUV(rd);
+
+    vec2 finalWarpSend =
+        shouldTerminate && tempBlackHoleHit
+            ? vec2(-1.0, 0.0)
+            : warpedUV;
 
     warp = finalWarpSend;
-    
 }
 
 
 vec4 sampleBackground(vec3 direction)
+
 {
+
     vec4 color = vec4(0.0);
 
+
+
     vec2 uv = directionToEquirectangularUV(direction);
-        
+
+
+
     color = texture(sphereMapTexture, uv);
 
+
+
     return color;
+
 }
 
-// from http://www.java-gaming.org/index.php?topic=35123.0
 vec4 cubic(float v){
+
     vec4 n = vec4(1.0, 2.0, 3.0, 4.0) - v;
+
     vec4 s = n * n * n;
+
     float x = s.x;
+
     float y = s.y - 4.0 * s.x;
+
     float z = s.z - 4.0 * s.y + 6.0 * s.x;
+
     float w = 6.0 - x - y - z;
+
     return vec4(x, y, z, w) * (1.0/6.0);
+
 }
 
 vec4 textureBicubic(sampler2D tex, vec2 texCoords){
 
+
+
    vec2 texSize = vec2(textureSize(tex, 0));
+
    vec2 invTexSize = 1.0 / texSize;
-   
+
+
+
    texCoords = texCoords * texSize - 0.5;
 
-   
+
+
+
+
     vec2 fxy = fract(texCoords);
+
     texCoords -= fxy;
 
+
+
     vec4 xcubic = cubic(fxy.x);
+
     vec4 ycubic = cubic(fxy.y);
 
+
+
     vec4 c = texCoords.xxyy + vec2 (-0.5, +1.5).xyxy;
-    
+
+
+
     vec4 s = vec4(xcubic.xz + xcubic.yw, ycubic.xz + ycubic.yw);
+
     vec4 offset = c + vec4 (xcubic.yw, ycubic.yw) / s;
-    
+
+
+
     offset *= invTexSize.xxyy;
-    
+
+
+
     // Clamp to valid texture coordinates
+
    offset = clamp(offset, vec4(0.0), vec4(1.0).xxyy);
 
+
+
     vec4 sample0 = texture(tex, offset.xz);
+
     vec4 sample1 = texture(tex, offset.yz);
+
     vec4 sample2 = texture(tex, offset.xw);
+
     vec4 sample3 = texture(tex, offset.yw);
 
+
+
     float sx = s.x / (s.x + s.y);
+
     float sy = s.z / (s.z + s.w);
 
+
+
     return mix(
+
        mix(sample3, sample2, sx), mix(sample1, sample0, sx)
+
     , sy);
+
 }
 
 vec4 sampleDirectionBilinear(sampler2D tex, vec2 uv) {
+
     // Standard bilinear is fine - just sample the texture
+
     return texture(tex, uv);
+
 }
 
 bool isAtBlackHoleEdge(vec4 q, out float r) {
+
     vec3 p = q.yzw;
+
     float rho = dot(p, p) - a * a;
+
     float r2 = 0.5 * (rho + sqrt(rho * rho + 4.0 * a * a * p.y * p.y));
+
     r = sqrt(r2);
-    
+
+
+
     // Define "edge" as within 5-10% of the event horizonz
+
     float edgeThickness = horizonRadius * 0.1; // 10% tolerance
+
     float edgeMin = horizonRadius - edgeThickness * 0.5;
+
     float edgeMax = horizonRadius + edgeThickness * 0.5;
-    
+
+
+
     return r >= edgeMin && r <= edgeMax;
+
 }
 
 vec3 srgbToLinear(vec3 c)
+
 {
+
     return pow(c, vec3(2.2));
+
 }
 
 void main() {
 
+
+
     ivec2 pixelCoord = ivec2(gl_GlobalInvocationID.xy);
+
+
 
     ivec2 size = imageSize(outputImage);
 
+
+
     if (pixelCoord.x >= size.x || pixelCoord.y >= size.y) return;
+
     vec3 cp, rd;
+
     // Calculate UV coordinates (0.0 to 1.0)
+
     vec2 uv = (vec2(pixelCoord) + 0.5) / vec2(size);
 
 
+
+
+
     if (!getRay(uv, cp, rd)) return;
+
     m = inputData.mass;
+
     a = inputData.rotationSpeed * m;
+
     horizonRadius = m + sqrt(m * m - a * a);
+
     float intersect = raySphereIntersect(cp, rd, vec3(0.0), horizonRadius * 2.8 * inputData.intersectHigh);
+
     float lowIntersect = raySphereIntersect(cp, rd, vec3(0.0), horizonRadius * 2.5* inputData.intersectLow);
+
     bool needsHighRes = (intersect > 0.0 && !(lowIntersect > 0.0));
 
+
+
     vec2 warp;
+
     if (needsHighRes)
+
     {
+
         {
+
         vec2 noiseUV = fract(pixelCoord.xy / 64.0 + inputData.time * 0.1);
+
         stepNoise = texture(blueNoiseTexture, noiseUV).r;
+
         }
 
+
+
         traceRay(cp, rd, warp);
+
     }else
+
     {
+
         vec4 warpData = textureBicubic(directionTexture, uv);
+
         warp = warpData.xy;
+
     }
+
     vec3 background = vec3(0.0);
+
     if (warp != vec2(-1.0, 0.0)) 
+
     {
+
         background = texture(sphereMapTexture, warp).xyz;
+
         background = background - vec3(0.05);
+
     }
-    
+
+
+
     vec4 volumeData = textureBicubic(volumeTexture, uv);
+
     vec3 L = volumeData.rgb;
+
     float T = volumeData.a;
+
     // Composite: accumulated light over background
+
     vec3 fcol = L + T * background;
+
     imageStore(outputImage, pixelCoord, vec4(fcol, 1.0));
+
 }
