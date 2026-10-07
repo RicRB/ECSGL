@@ -242,7 +242,7 @@ private:
 	{
 		auto it = pools.find(typeid(ComponentType));
 		if (it != pools.end())
-			return dynamic_cast<Pool<ComponentType>*>(it->second.get());
+			return static_cast<Pool<ComponentType>*>(it->second.get());
 		else
 			throw std::runtime_error("Pool does not exist" + std::string(typeid(ComponentType).name()));
 	}
@@ -256,5 +256,14 @@ private:
 			// cast pool into base pool and store it in map
 			pools[typeid(ComponentType)] = std::make_unique<Pool<ComponentType>>();
 		}
+	}
+
+	bool IsAlive(Entity entity) const {
+		if (entity.entityID >= entities->size())
+			return false;
+
+		const Entity& current = (*entities)[entity.entityID];
+
+		return current.entityID != ECS_INVALID_ID && current.version == entity.version;
 	}
 };

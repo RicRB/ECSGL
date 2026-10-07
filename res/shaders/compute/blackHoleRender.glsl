@@ -699,6 +699,10 @@ bool isAtBlackHoleEdge(vec4 q, out float r) {
     return r >= edgeMin && r <= edgeMax;
 }
 
+vec3 srgbToLinear(vec3 c)
+{
+    return pow(c, vec3(2.2));
+}
 
 void main() {
 
@@ -738,6 +742,7 @@ void main() {
     if (warp != vec2(-1.0, 0.0)) 
     {
         background = texture(sphereMapTexture, warp).xyz;
+        background = background - vec3(0.05);
     }
     
     vec4 volumeData = textureBicubic(volumeTexture, uv);
