@@ -1,6 +1,6 @@
 # ECSGL
 
-A work in progress OpenGL/Vulkan game engine using a custom entity-component system in C++. This project is purely made for my own enjoyment and for learning purposes so do not expect anything crazy.
+A work in progress OpenGL/Vulkan game engine using a custom entity-component system in C++. This project is purely made for my own enjoyment and for learning purposes so do not expect anything crazy documented or anything. I'm using this as a learning sandbox.
 
 ## Features
 
