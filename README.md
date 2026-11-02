@@ -1,4 +1,5 @@
 # ECSGL
+![Image](/docs/images/bh.png)
 
 A work in progress OpenGL/Vulkan game engine using a custom entity-component system in C++. This project is purely made for my own enjoyment and for learning purposes so do not expect anything crazy professional, documented or anything. I'm using this as a learning sand  box.
 
