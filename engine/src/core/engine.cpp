@@ -82,6 +82,7 @@ void Engine::LoadScene(const std::string& scenePath)
 
 void Engine::cleanup()
 {
+	registry.cleanupSystems();
 	resourceManager.unloadAll();
 	graphicsAPI->cleanup();
 }

@@ -66,7 +66,7 @@ struct MemoryPool {
 			return;
 		}
 		destroyedIndices.push(index);
-		pool[index].~T();
+		pool[index] = T{};
 	}
 
 	T& operator[](const MemoryHandle& handle) {
@@ -100,7 +100,7 @@ struct MemoryPool {
 	void clear() {
 		for (size_t i = 0; i < allocationPointer; i++)
 		{
-			pool[i].~T();
+			pool[i] = T{};
 		}
 		allocationPointer = 0;
 		while (!destroyedIndices.empty()) destroyedIndices.pop();

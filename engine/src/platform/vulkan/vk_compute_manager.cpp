@@ -23,15 +23,22 @@ VulkanComputeManager::VulkanComputeManager(VkDevice device, VkPhysicalDevice phy
 	// Get the queue
 	vkGetDeviceQueue(m_device, queueFamilyIndex, 0, &m_computeQueue);
 }
+VkFence VulkanComputeManager::getOrCreateFence(Fence* fence)
+{
+	VulkanFence* vulkanFence = static_cast<VulkanFence*>(fence);
+	if (vulkanFence->m_fence == VK_NULL_HANDLE)
+	{
+		VkFenceCreateInfo fenceInfo{};
+		fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+		vkCreateFence(m_device, &fenceInfo, nullptr, &vulkanFence->m_fence);
+		vulkanFence->m_device = m_device;
+	}
+	return vulkanFence->m_fence;
+}
+
 void VulkanComputeManager::dispatchComputeShader(ComputeShaderData& computeShaderData, DescriptorSet* set, Fence* fence, uint32_t threadsX, uint32_t threadsY, uint32_t threadsZ)
 {
-	VkFence& vkFence = ((VulkanFence*)fence)->m_fence;
-	((VulkanFence*)fence)->m_device = m_device;
-	// Submission time
-	VkFenceCreateInfo fenceInfo = {};
-	fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-	vkCreateFence(m_device, &fenceInfo, nullptr, &vkFence);
-
+	VkFence vkFence = getOrCreateFence(fence);
 
 	VkCommandBuffer commandBuffer = VkUtils::beginSingleTimeCommands(m_device, m_commandPool);
 	VkProgram* vkProgram = static_cast<VkProgram*>(computeShaderData.program.get());
@@ -59,13 +66,7 @@ void VulkanComputeManager::dispatchComputeShader(ComputeShaderData& computeShade
 
 void VulkanComputeManager::dispatchComputeShaderAsync(ComputeShaderData& computeShaderData, DescriptorSet* set, Fence* fence, uint32_t threadsX, uint32_t threadsY, uint32_t threadsZ)
 {
-	VkFence& vkFence = ((VulkanFence*)fence)->m_fence;
-	((VulkanFence*)fence)->m_device = m_device;
-	// Submission time
-	VkFenceCreateInfo fenceInfo = {};
-	fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-	vkCreateFence(m_device, &fenceInfo, nullptr, &vkFence);
-
+	VkFence vkFence = getOrCreateFence(fence);
 
 	VkCommandBuffer commandBuffer = VkUtils::beginSingleTimeCommands(m_device, m_commandPool);
 	VkProgram* vkProgram = static_cast<VkProgram*>(computeShaderData.program.get());

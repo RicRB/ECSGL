@@ -9,6 +9,7 @@ class VulkanComputeManager : public ComputeManager {
 	VkPhysicalDevice m_physicalDevice;
 	VkCommandPool m_commandPool;
 	VkQueue m_computeQueue;
+	VkFence getOrCreateFence(Fence* fence);
 public:
 	VulkanComputeManager(VkDevice device, VkPhysicalDevice physicalDevice);
 	~VulkanComputeManager() = default;

@@ -236,6 +236,15 @@ public:
 			system->onGui();
 		}
 	}
+
+	void cleanupSystems()
+	{
+		for (const auto& system : systems)
+		{
+			system->cleanup();
+		}
+		systems.clear();
+	}
 private:
 	template <typename ComponentType>
 	Pool<ComponentType>* GetPool()
