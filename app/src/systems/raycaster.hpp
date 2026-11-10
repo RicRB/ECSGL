@@ -142,6 +142,7 @@ public:
 
 	NoiseParams noiseParams;
 	Buffer noiseParamsBuffer;
+	bool noiseDirty = false;
 
 	struct BlurParams {
 		int mode = 1; // 0 = downsample, 1 = upsample
@@ -320,21 +321,29 @@ public:
 		{
 		case(0): // WAIT FOR RAYMARCHING PASS TO BE DONE
 			if (!dispatcher->isDone()) return;
-			currentPass = (currentPass + 1) % 2;
+			currentPass = 1;
 			textureUsedByShader = (textureUsedByShader + 1) % 2;
 
-			updateData();
 			upscaleVolume(glm::vec2((float)fullResX,(float)fullResY));
+			break;
+		case(1): // WAIT FOR UPSCALE PASS TO BE DONE
+			if (!upscaleDispatcher->isDone()) return;
+			currentPass = 2;
+
+			updateData();
 			//blur();
 			renderDispatcher->setTexture("outputImage", textures[textureUsedByShader]);
 			renderDispatcher->dispatch(renderGroupCountX, renderGroupCountY, 1);
 			break;
-		case(1): // WAIT FOR RENDER PASS TO BE DONE
+		case(2): // WAIT FOR RENDER PASS TO BE DONE
 			if (!renderDispatcher->isDone()) return;
-			currentPass = (currentPass + 1) % 2;
+			currentPass = 0;
 
 			updateData();
-			generateNoiseMap();
+			if (noiseDirty) {
+				noiseDirty = false;
+				generateNoiseMap();
+			}
 			engine::GetRegistry().AssignComponent<Material>(entity, materials[textureUsedByShader]);
 			dispatcher->dispatch(groupCountX, groupCountY, 1);
 			break;
@@ -375,11 +384,11 @@ public:
 		}
 
 		if (ImGui::CollapsingHeader("Noise", ImGuiTreeNodeFlags_DefaultOpen)) {
-			ImGui::DragFloat("Scale", &noiseParams.scale);
-			ImGui::DragInt("tileSize", &noiseParams.tileSize);
-			ImGui::DragFloat("Boost", &noiseParams.boost, 0.1f);
-			ImGui::DragInt("Octaves", &noiseParams.octaves);
-			ImGui::DragFloat("Gain", &noiseParams.gain, 0.1f);
+			noiseDirty |= ImGui::DragFloat("Scale", &noiseParams.scale);
+			noiseDirty |= ImGui::DragInt("tileSize", &noiseParams.tileSize);
+			noiseDirty |= ImGui::DragFloat("Boost", &noiseParams.boost, 0.1f);
+			noiseDirty |= ImGui::DragInt("Octaves", &noiseParams.octaves);
+			noiseDirty |= ImGui::DragFloat("Gain", &noiseParams.gain, 0.1f);
 			ImGui::DragFloat("NoiseScale", &data.noiseScale, 0.01f);
 			ImGui::DragFloat("NoiseOffset", &data.noiseOffset, 0.1f);
 		}
@@ -450,7 +459,7 @@ public:
 		blurParams.texelSize = 1.0f / outputRes;
 
 		engine::GetBufferManager().updateBuffer(blurParamsBuffer, &blurParams, sizeof(BlurParams));
-		upscaleDispatcher->dispatchAndWait(renderGroupCountX, renderGroupCountY, 1);
+		upscaleDispatcher->dispatch(renderGroupCountX, renderGroupCountY, 1);
 	}
 
 	void blur()
