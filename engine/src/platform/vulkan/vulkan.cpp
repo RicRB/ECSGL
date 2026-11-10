@@ -1630,7 +1630,14 @@ void Vulkan::createImage(uint32_t width, uint32_t height, uint32_t depth, VkForm
 	imageInfo.tiling = tiling;
 	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 	imageInfo.usage = usage;
-	imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	uint32_t families[] = { indices.graphicsFamily.value(), indices.computeFamily.value() };
+	if (families[0] != families[1]) {
+		imageInfo.sharingMode = VK_SHARING_MODE_CONCURRENT;
+		imageInfo.queueFamilyIndexCount = 2;
+		imageInfo.pQueueFamilyIndices = families;
+	} else {
+		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	}
 	imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 	imageInfo.flags = 0;
 

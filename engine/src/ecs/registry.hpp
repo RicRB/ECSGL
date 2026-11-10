@@ -8,6 +8,8 @@
 #include <memory>
 #include <typeindex>
 #include <iostream>
+#include <string>
+#include <stdexcept>
 class Registry
 {
 public:
@@ -40,6 +42,10 @@ public:
 	template <typename ComponentType>
 	void AssignComponent(Entity entity, ComponentType component)
 	{
+		if (!IsAlive(entity))
+		{
+			throw std::runtime_error("AssignComponent: entity " + std::to_string(entity.entityID) + " is not alive");
+		}
 		// check if component pool exists
 		if (pools.find(typeid(component)) == pools.end())
 		{
@@ -52,6 +58,7 @@ public:
 	template <typename ComponentType>
 	void RemoveComponent(Entity entity)
 	{
+		if (!IsAlive(entity)) return;
 		if (pools.find(typeid(ComponentType)) != pools.end())
 		{
 			pools[typeid(ComponentType)]->RemoveComponent(entity);
@@ -61,15 +68,15 @@ public:
 	template <typename ComponentType>
 	ComponentType& GetComponent(Entity entity)
 	{
-		if (pools.find(typeid(ComponentType)) != pools.end())
+		if (!IsAlive(entity))
 		{
-			// GetPool() and return component
-			return GetPool<ComponentType>()->GetComponent(entity);
+			throw std::runtime_error("GetComponent: entity " + std::to_string(entity.entityID) + " is not alive");
 		}
-		else
+		if (!ComponentExists<ComponentType>(entity))
 		{
-			throw std::exception("Component does not exist");
+			throw std::runtime_error("GetComponent: entity " + std::to_string(entity.entityID) + " has no " + typeid(ComponentType).name());
 		}
+		return GetPool<ComponentType>()->GetComponent(entity);
 	}
 
 	template <typename Type, typename... OtherTypes>
@@ -101,14 +108,10 @@ public:
 	template <typename ComponentType>
 	bool ComponentExists(Entity entity)
 	{
-		if (pools.find(typeid(ComponentType)) != pools.end())
-		{
-			return GetPool<ComponentType>()->ComponentExists(entity);
-		}
-		else
-		{
-			throw std::exception("Component does not exist");
-		}
+		if (!IsAlive(entity)) return false;
+		auto it = pools.find(typeid(ComponentType));
+		if (it == pools.end()) return false;
+		return static_cast<Pool<ComponentType>*>(it->second.get())->ComponentExists(entity);
 	}
 	Entity GetEntity(uint32_t entityID) const
 	{
@@ -135,6 +138,7 @@ public:
 
 	void DestroyEntity(Entity entity)
 	{
+		if (!IsAlive(entity)) return;
 		destroyed.push(entity.entityID);
 		(*entities)[entity.entityID].entityID = ECS_INVALID_ID;
 		(*entities)[entity.entityID].version++;
