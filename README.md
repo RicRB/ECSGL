@@ -1,6 +1,7 @@
 # ECSGL
+![Image](/docs/images/bh.png)
 
-A work in progress OpenGL/Vulkan game engine using a custom entity-component system in C++. This project is purely made for my own enjoyment and for learning purposes so do not expect anything crazy.
+A work in progress OpenGL/Vulkan game engine using a custom entity-component system in C++. This project is purely made for my own enjoyment and for learning purposes so do not expect anything crazy professional, documented or anything. I'm using this as a learning sand  box.
 
 ## Features
 
@@ -12,6 +13,8 @@ A work in progress OpenGL/Vulkan game engine using a custom entity-component sys
 - Resource management system
 - Configurable rendering system
 - Scene graph for parent-child transformation (AND ONLY FOR THAT)
+- Compute shaders
+- A Kerr-newman black hole simulation [Link to the project blog](https://ricardoramirez.dev/projects/Kerr-Newman-simulation) 
 - And more to come..
 ## Dependencies
 
