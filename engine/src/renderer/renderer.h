@@ -5,6 +5,9 @@ class Renderer
 {
 public:
 private:
+	std::vector<MeshData*> meshes;
+	std::vector<MaterialData*> materials;
+	std::vector<glm::mat4x4> modelMatrices;
 public:
 	Renderer();
 	~Renderer();

@@ -88,43 +88,7 @@ public:
 			std::cout << std::endl;
 			return View<Type, OtherTypes...>();
 		}
-		// Initialize pool Sizes queue
-		auto poolSizes = std::queue<std::pair<unsigned int, type_info>>();
-		// View 
-		View<Type, OtherTypes...> view;
-
-		// Store a pair of smallest size POol and its type
-		std::pair<std::type_index, unsigned int> smallestSize = std::make_pair<std::type_index, unsigned int>(typeid(Type), pools[typeid(Type)]->GetSize());
-		// iterate through other types and check if they are smaller than the current smallest pool
-		(..., (pools[typeid(OtherTypes)]->GetSize() < smallestSize.second ?
-			(smallestSize = std::make_pair(std::type_index(typeid(OtherTypes)), GetPool<OtherTypes>()->GetSize())) :
-			smallestSize));
-
-		// Get Entities of smallest pool and check which ones have all the components needed
-		std::vector<Entity> entities;
-		for (auto& pool : pools)
-		{
-			if (pool.first == smallestSize.first)
-			{
-				entities = pool.second->GetEntities();
-			}
-		}
-		// Check if entities have all the components and then store them in the view
-		using tupleType = std::tuple<std::vector<Entity>, std::vector<Type*>, std::vector<OtherTypes*>...>;
-		tupleType componentTuples;
-		for (auto& entity : entities)
-		{
-			// Check if Component exists in entity
-			if ((... && ComponentExists<OtherTypes>(entity)))
-			{
-				// Add Entity and its components to tuple
-				std::get<0>(componentTuples).push_back(entity);
-				std::get<1>(componentTuples).push_back(&GetComponent<Type>(entity));
-				(..., std::get<std::vector<OtherTypes*>>(componentTuples).push_back(&GetComponent<OtherTypes>(entity)));
-			}
-		}
-		view.SetData(componentTuples);
-		return view;
+		return View<Type, OtherTypes...>(GetPool<Type>(), GetPool<OtherTypes>()...);
 	}
 
 
@@ -146,17 +110,10 @@ public:
 			throw std::exception("Component does not exist");
 		}
 	}
-	const std::vector<Entity> GetActiveEntities()
+	Entity GetEntity(uint32_t entityID) const
 	{
-		std::vector<Entity> activeEntities;
-		for (unsigned int i = 0; i < entities->size(); i++)
-		{
-			if ((*entities)[i].entityID != ECS_INVALID_ID)
-			{
-				activeEntities.push_back((*entities)[i]);
-			}
-		}
-		return activeEntities;
+		if (entityID >= entities->size()) return Entity();
+		return (*entities)[entityID];
 	}
 	Entity CreateEntity()
 	{

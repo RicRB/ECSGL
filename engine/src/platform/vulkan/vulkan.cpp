@@ -467,6 +467,9 @@ void Vulkan::cleanup()
 {
 	vkDeviceWaitIdle(device);
 
+	computeManager.reset();
+	bufferManager.reset();
+
 	if (isImGuiInitialized) {
 		ImGui_ImplVulkan_Shutdown();
 		ImGui_ImplGlfw_Shutdown();
@@ -484,8 +487,10 @@ void Vulkan::cleanup()
 
 	vkDestroyRenderPass(device, renderPass, nullptr);
 
+	for (VkSemaphore semaphore : renderFinishedSemaphores) {
+		vkDestroySemaphore(device, semaphore, nullptr);
+	}
 	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-		vkDestroySemaphore(device, renderFinishedSemaphores[i], nullptr);
 		vkDestroySemaphore(device, imageAvailableSemaphores[i], nullptr);
 		vkDestroyFence(device, inFlightFences[i], nullptr);
 	}
@@ -531,6 +536,10 @@ void Vulkan::unloadComputeShader(ComputeShaderData* computeShaderData)
 	if (program->pipelineLayout != VK_NULL_HANDLE) {
 		vkDestroyPipelineLayout(device, program->pipelineLayout, nullptr);
 		program->pipelineLayout = VK_NULL_HANDLE;
+	}
+	if (program->descriptorSetLayout != VK_NULL_HANDLE) {
+		vkDestroyDescriptorSetLayout(device, program->descriptorSetLayout, nullptr);
+		program->descriptorSetLayout = VK_NULL_HANDLE;
 	}
 }
 
@@ -1147,6 +1156,7 @@ void Vulkan::createComputePipeline(const char* name, const std::string& computeS
 	if (vkCreateComputePipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, computePipeline) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create compute pipeline!");
 	}
+	vkDestroyShaderModule(device, computeShaderModule, nullptr);
 }
 
 VkShaderModule Vulkan::createShaderModule(const std::vector<uint32_t>& code)
@@ -1344,6 +1354,20 @@ void Vulkan::recreateSwapChain()
 	createImageViews();
 	createDepthResources();
 	createFramebuffers();
+
+	if (renderFinishedSemaphores.size() != swapChainImages.size()) {
+		for (VkSemaphore semaphore : renderFinishedSemaphores) {
+			vkDestroySemaphore(device, semaphore, nullptr);
+		}
+		renderFinishedSemaphores.resize(swapChainImages.size());
+		VkSemaphoreCreateInfo semaphoreInfo{};
+		semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+		for (VkSemaphore& semaphore : renderFinishedSemaphores) {
+			if (vkCreateSemaphore(device, &semaphoreInfo, nullptr, &semaphore) != VK_SUCCESS) {
+				throw std::runtime_error("failed to create renderFinished semaphore for swapchain image!");
+			}
+		}
+	}
 }
 
 void Vulkan::createVertexBuffer(const std::vector<Vertex>& vertices, VkVertexBuffer* vertexBuffer) {

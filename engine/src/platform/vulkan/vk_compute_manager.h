@@ -12,7 +12,7 @@ class VulkanComputeManager : public ComputeManager {
 	VkFence getOrCreateFence(Fence* fence);
 public:
 	VulkanComputeManager(VkDevice device, VkPhysicalDevice physicalDevice);
-	~VulkanComputeManager() = default;
+	~VulkanComputeManager() override;
 	void dispatchComputeShader(ComputeShaderData& computeShaderData, DescriptorSet* set, Fence* fence, uint32_t threadsX, uint32_t threadsY, uint32_t threadsZ) override;
 	void dispatchComputeShaderAsync(ComputeShaderData& computeShaderData, DescriptorSet* set, Fence* fence, uint32_t threadsX, uint32_t threadsY, uint32_t threadsZ) override;
 	void setBuffer(DescriptorSet* set, BufferData* buffer, int binding) override;

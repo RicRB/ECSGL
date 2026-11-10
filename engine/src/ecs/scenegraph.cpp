@@ -17,16 +17,16 @@ void SceneGraph::ParentEntity(Entity child, Entity parent)
 
 Entity SceneGraph::GetParent(Registry& registry, Entity child)
 {
-	auto entities = registry.GetActiveEntities();
-	return (*sceneGraph)[child.entityID].parent == ECS_INVALID_ID ? Entity() : entities[(*sceneGraph)[child.entityID].parent];
+	return registry.GetEntity((*sceneGraph)[child.entityID].parent);
 }
 std::vector<Entity> SceneGraph::GetChildren(Registry& registry, Entity parent)
 {
-	auto entities = registry.GetActiveEntities();
+	const std::vector<uint32_t>& childIDs = (*sceneGraph)[parent.entityID].children;
 	std::vector<Entity> children;
-	for (auto entityID : (*sceneGraph)[parent.entityID].children)
+	children.reserve(childIDs.size());
+	for (uint32_t entityID : childIDs)
 	{
-		children.push_back(entities[entityID]);
+		children.push_back(registry.GetEntity(entityID));
 	}
 	return children;
 }

@@ -23,14 +23,6 @@ public:
 		array = other.array;
 		mSize = other.mSize;
 	}
-	const std::vector<T> vector() const {
-		std::vector<T> vec;
-		for (unsigned int i = 0; i < mSize; i++)
-		{
-			vec.push_back(array[i]);
-		}
-		return vec;
-	}
 	void push_back(T element) {
 		if (full())
 			throw std::overflow_error("Array is full");
@@ -103,7 +95,6 @@ public:
 	virtual void clear(){}
 	virtual void RemoveComponent(Entity entity) {}
 	virtual bool ComponentExists(Entity entity) { return false; }
-	virtual const std::vector<Entity> GetEntities() const { return std::vector<Entity>(); }
 	virtual const unsigned int GetSize() const { return MAX_ENTITIES+1; }
 };
 
@@ -177,28 +168,15 @@ public:
 	}
 	ComponentType& GetComponent(Entity entity)
 	{
-		if (ComponentExists(entity))
-		{
-			return componentList[entityIndices[entity.entityID]];
-		}
-		throw std::out_of_range("Component does not exist");
-	}
-	std::vector<std::pair<Entity&, ComponentType&>> GetComponents()
-	{
-		std::vector<std::pair<Entity&, ComponentType&>> components;
-		for (int i = 0; i < componentList.mSize+1; i++)
-		{
-			components.push_back(std::make_pair(entityList[i], componentList[i]));
-		}
-		return components;
+		return componentList[entityIndices[entity.entityID]];
 	}
 	const bool ComponentExists(Entity entity) const
 	{
 		return entityIndices[entity.entityID] != INVALID_INDEX;
 	}
-	const std::vector<Entity> GetEntities() const
-	{
-		return entityList.vector();
+	const Entity* entities() const 
+	{ 
+		return entityList.array.data(); 
 	}
 	const unsigned int GetSize() const
 	{

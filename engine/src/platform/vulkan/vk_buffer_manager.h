@@ -11,7 +11,7 @@ class VkBufferManager : public BufferManager {
 
 public:
 	VkBufferManager(VkDevice device, VkPhysicalDevice physicalDevice);
-	~VkBufferManager() = default;
+	~VkBufferManager() override;
 public:
 	Buffer createBuffer(const BufferDescription& desc) override;
 	void destroyBuffer(Buffer buffer) override;

@@ -1,5 +1,6 @@
 #include "resource_manager.h"
 #include <sstream>
+#include <stdexcept>
 #include "stb_image/stb_image.h"
 #include "components/lights.h"
 #include "renderer/vertex_buffer_layout.h"
@@ -27,12 +28,17 @@ Shader ResourceManager::LoadShader(const std::string& vertexShaderPath, const st
 	shader.sourceHash = hasher(shader.vertexSource + shader.fragmentSource);
     shader.alwaysRender = info.alwaysRender;
 
-    graphics::GetGraphicsAPI()->compileShader(
-		std::to_string(static_cast<uint32_t>(shaderHandle)).c_str(),
-		shader.vertexSource,
-		shader.fragmentSource,
-		&shader
-	);
+    try {
+        graphics::GetGraphicsAPI()->compileShader(
+            std::to_string(static_cast<uint32_t>(shaderHandle)).c_str(),
+            shader.vertexSource,
+            shader.fragmentSource,
+            &shader
+        );
+    }
+    catch (const std::exception& e) {
+        throw std::runtime_error("Failed to compile shader " + vertexShaderPath + " / " + fragmentShaderPath + ":\n" + e.what());
+    }
 
 	return Shader(shaderHandle);
 }
@@ -45,6 +51,9 @@ ComputeShader ResourceManager::LoadComputeShader(const std::string& computeShade
     std::stringstream ss;
     // Compute
     std::ifstream computeStream(computeShaderPath);
+    if (!computeStream.is_open()) {
+        throw std::runtime_error("Failed to open compute shader " + computeShaderPath);
+    }
     while (std::getline(computeStream, line))
     {
         ss << line << '\n';
@@ -54,10 +63,15 @@ ComputeShader ResourceManager::LoadComputeShader(const std::string& computeShade
     std::hash<std::string> hasher;
     computeShader.sourceHash = hasher(computeShader.source);
 
-    graphics::GetGraphicsAPI()->compileComputeShader(
-        "main",
-        &computeShader
-	);
+    try {
+        graphics::GetGraphicsAPI()->compileComputeShader(
+            "main",
+            &computeShader
+        );
+    }
+    catch (const std::exception& e) {
+        throw std::runtime_error("Failed to compile compute shader " + computeShaderPath + ":\n" + e.what());
+    }
 	return ComputeShader(computeShaderHandle);
 }
 
@@ -89,20 +103,25 @@ Texture ResourceManager::LoadTexture(const std::string& path, TextureUsage usage
         }
     }
 
+    stbi_set_flip_vertically_on_load(1); // play with it if upside down
+    int width, height, channels;
+    unsigned char* pixels = stbi_load(path.c_str(), &width, &height, &channels, 4);
+    if (!pixels) {
+        throw std::runtime_error("Failed to load texture " + path + ": " + stbi_failure_reason());
+    }
+
     auto textureHandle = m_textures->allocate();
 	m_textureHandles.emplace(path, textureHandle);
     auto& textureData = m_textures->at(textureHandle);
-    stbi_set_flip_vertically_on_load(1); // play with it if upside down
-    textureData.pixels = stbi_load(path.c_str(), &textureData.width, &textureData.height, &textureData.bpp, 4);
+    textureData.pixels = pixels;
+    textureData.width = width;
+    textureData.height = height;
     textureData.usage = usage;
     textureData.depth = 1;
     textureData.bpp = 4;
     textureData.format = TextureFormat::R8G8B8A8_UNORM;
-    if (textureData.pixels)
-        graphics::GetGraphicsAPI()->loadTexture(&textureData);
-
-	if (textureData.pixels)
-		stbi_image_free(textureData.pixels);
+    graphics::GetGraphicsAPI()->loadTexture(&textureData);
+    stbi_image_free(textureData.pixels);
     return Texture(textureHandle);
 }
 
@@ -131,6 +150,9 @@ Texture ResourceManager::LoadEmptyTexture(TextureCreateInfo& createInfo)
 Mesh ResourceManager::LoadOBJ(const std::string& filepath)
 {
     std::fstream fstream(filepath);
+    if (!fstream.is_open()) {
+        throw std::runtime_error("Failed to open mesh " + filepath);
+    }
     Mesh meshComponent = ProcessMesh(fstream);
     return meshComponent;
 }
@@ -157,8 +179,13 @@ void ResourceManager::unloadAll()
 	{
         graphics::GetGraphicsAPI()->unloadTexture(&texture);
 	}
+	for (auto& computeShader : *m_computeShaders)
+	{
+        graphics::GetGraphicsAPI()->unloadComputeShader(&computeShader);
+	}
 
     m_shaders->clear();
+	m_computeShaders->clear();
 	m_materials->clear();
 	m_meshes->clear();
 	m_textures->clear();
@@ -204,6 +231,9 @@ void ResourceManager::ParseShader(std::string& parseDestination, const std::stri
     std::stringstream ss[2];
     // Vertex
     std::ifstream vertexStream(shaderPath);
+    if (!vertexStream.is_open()) {
+        throw std::runtime_error("Failed to open shader " + shaderPath);
+    }
     while (std::getline(vertexStream, line))
     {
         ss[0] << line << '\n';

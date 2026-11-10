@@ -7,6 +7,15 @@ VkBufferManager::VkBufferManager(VkDevice device, VkPhysicalDevice physicalDevic
 	bufferPool = std::make_unique<MemoryPool<VulkanBuffer, 256>>();
 }
 
+VkBufferManager::~VkBufferManager()
+{
+	for (VulkanBuffer& vkBuffer : *bufferPool)
+	{
+		if (vkBuffer.buffer != VK_NULL_HANDLE) vkDestroyBuffer(device, vkBuffer.buffer, nullptr);
+		if (vkBuffer.memory != VK_NULL_HANDLE) vkFreeMemory(device, vkBuffer.memory, nullptr);
+	}
+}
+
 Buffer VkBufferManager::createBuffer(const BufferDescription& desc)
 {
 	Buffer buffer;

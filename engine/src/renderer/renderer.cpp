@@ -2,8 +2,8 @@
 #include "components/lights.h"
 #include "components/camera.h"
 #include "imgui/imgui.h"
-#include <set>
 #include <array>
+#include <algorithm>
 #include "core/engine.h"
 Renderer::Renderer()
 {
@@ -27,84 +27,60 @@ void Renderer::DrawElements(Registry& registry, ResourceManager& resourceManager
 	cameraTransform.setCaching(false);
 	Camera& cameraComponent = registry.GetComponent<Camera>(camera);
 
-	const size_t entityCount = currentView.size();
-	std::vector<MeshData*> meshes;
-	meshes.reserve(entityCount);
-	std::vector<MaterialData*> materials;
-	materials.reserve(entityCount);
+	meshes.clear();
+	materials.clear();
+	modelMatrices.clear();
 
-	std::vector<Transform*>& transforms = currentView.GetComponents<Transform>();
-
-	std::vector<glm::mat4x4> modelMatrices;
-	modelMatrices.reserve(entityCount);
-	
-	std::set<ShaderDataHandle> usedShaders;
-	std::unordered_map<ShaderDataHandle, std::vector<size_t>> shaderEntities;
-	for (size_t i = 0; i < currentView.size(); i++)
-	{
-		auto material = currentView.GetComponent<Material>(i);
-		// view.GetComponent<Material>
-		// SORTING BY SHADER TO MINIMIZE STATE CHANGES
-		auto shaderHandle = (*resourceManager.m_materials)[material->handle].shaderHandle;
-		if (usedShaders.find(shaderHandle) == usedShaders.end())
-		{
-			usedShaders.insert(shaderHandle);
-			shaderEntities[shaderHandle] = std::vector<size_t>();
-		}
-		shaderEntities[shaderHandle].push_back(i);
-		meshes.emplace_back(&(*resourceManager.m_meshes)[currentView.GetComponent<Mesh>(i)->handle]);
-		materials.emplace_back(&resourceManager.m_materials->at(currentView.GetComponent<Material>(i)->handle));
-		modelMatrices.emplace_back(registry.GetLocalToWorldMatrix(currentView.GetEntity(i)) * transforms[i]->getMatrix());
-	}
-
-	// GLOBAL UNIFORM OBJECT
+	// get our normal objects
+	currentView.each([&](Entity entity, Transform& transform, Mesh& mesh, Material& material) {
+		meshes.emplace_back(&(*resourceManager.m_meshes)[mesh.handle]);
+		materials.emplace_back(&resourceManager.m_materials->at(material.handle));
+		modelMatrices.emplace_back(registry.GetLocalToWorldMatrix(entity) * transform.getMatrix());
+	});
+	std::reverse(meshes.begin(), meshes.end());
+	std::reverse(materials.begin(), materials.end());
+	std::reverse(modelMatrices.begin(), modelMatrices.end());
 
 	GlobalUBO globalUniformObject;
 	globalUniformObject.dirLightCount = 0;
 	globalUniformObject.pointLightCount = 0;
 
-	if (registry.PoolExists<DirectionalLight>()) {
-		auto dirView = registry.GetView<DirectionalLight>();
-		auto dirLightsView = dirView.GetComponents<DirectionalLight>();
-		for (size_t i = 0; i < dirView.size(); i++)
-		{
-			auto dirLight = dirLightsView[i];
-			DirectionLightUniform& ubo = globalUniformObject.dirLights[i];
-			ubo.direction = glm::vec4(dirLight->direction, 1.0);
-			ubo.ambient = glm::vec4(dirLight->ambient, 1.0);
-			ubo.diffuse = glm::vec4(dirLight->diffuse, 1.0);
-			ubo.specular = glm::vec4(dirLight->specular, 1.0);
+	constexpr uint32_t maxDirLights = sizeof(GlobalUBO::dirLights) / sizeof(DirectionLightUniform);
+	constexpr uint32_t maxPointLights = sizeof(GlobalUBO::pointLights) / sizeof(PointLightUniform);
 
-			globalUniformObject.dirLights[globalUniformObject.dirLightCount] = ubo;
-		}
-		globalUniformObject.pointLightCount = static_cast<uint32_t>(dirView.size());
+	// get our lights
+	if (registry.PoolExists<DirectionalLight>()) {
+		registry.GetView<DirectionalLight>().each([&](Entity entity, DirectionalLight& dirLight) {
+			if (globalUniformObject.dirLightCount >= maxDirLights) return;
+			DirectionLightUniform& ubo = globalUniformObject.dirLights[globalUniformObject.dirLightCount++];
+			ubo.direction = glm::vec4(dirLight.direction, 1.0);
+			ubo.ambient = glm::vec4(dirLight.ambient, 1.0);
+			ubo.diffuse = glm::vec4(dirLight.diffuse, 1.0);
+			ubo.specular = glm::vec4(dirLight.specular, 1.0);
+		});
 	}
 
+	// get our point lights
 	if (registry.PoolExists<PointLight>()) {
-		auto pointView = registry.GetView<PointLight, Transform>();
-		auto pointLightsView = pointView.GetComponents<PointLight>();
-		auto pointTransforms = pointView.GetComponents<Transform>();
-		for (size_t i = 0; i < pointView.size(); i++)
-		{
-			PointLightUniform ubo;
-			glm::mat4 localToWorld = registry.GetLocalToWorldMatrix(std::get<0>(pointView[i]));
-			ubo.position = localToWorld * glm::vec4(pointTransforms[i]->getPosition(), 1.0);
-			ubo.constant = pointLightsView[i]->constant;
-			ubo.linear = pointLightsView[i]->linear;
-			ubo.quadratic = pointLightsView[i]->quadratic;
-			ubo.ambient = glm::vec4(pointLightsView[i]->ambient, 1.0);
-			ubo.diffuse = glm::vec4(pointLightsView[i]->diffuse, 1.0);
-			ubo.specular = glm::vec4(pointLightsView[i]->specular, 1.0);
-
-			globalUniformObject.pointLights[i] = ubo;
-		}
-		globalUniformObject.pointLightCount = static_cast<uint32_t>(pointView.size());
+		registry.GetView<PointLight, Transform>().each([&](Entity entity, PointLight& pointLight, Transform& transform) {
+			if (globalUniformObject.pointLightCount >= maxPointLights) return;
+			PointLightUniform& ubo = globalUniformObject.pointLights[globalUniformObject.pointLightCount++];
+			glm::mat4 localToWorld = registry.GetLocalToWorldMatrix(entity);
+			ubo.position = localToWorld * glm::vec4(transform.getPosition(), 1.0);
+			ubo.intensity = pointLight.intensity;
+			ubo.constant = pointLight.constant;
+			ubo.linear = pointLight.linear;
+			ubo.quadratic = pointLight.quadratic;
+			ubo.ambient = glm::vec4(pointLight.ambient, 1.0);
+			ubo.diffuse = glm::vec4(pointLight.diffuse, 1.0);
+			ubo.specular = glm::vec4(pointLight.specular, 1.0);
+		});
 	}
 
 	FrameDrawData frameDrawData{ cameraTransform.viewMatrix(),
 		cameraComponent.projection,
 		&globalUniformObject,
-		currentView.size(),
+		static_cast<int>(modelMatrices.size()),
 		modelMatrices,
 		meshes,
 		materials,

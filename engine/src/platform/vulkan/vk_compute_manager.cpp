@@ -23,6 +23,12 @@ VulkanComputeManager::VulkanComputeManager(VkDevice device, VkPhysicalDevice phy
 	// Get the queue
 	vkGetDeviceQueue(m_device, queueFamilyIndex, 0, &m_computeQueue);
 }
+
+VulkanComputeManager::~VulkanComputeManager()
+{
+	VkUtils::pendingCommands.clear();
+	vkDestroyCommandPool(m_device, m_commandPool, nullptr);
+}
 VkFence VulkanComputeManager::getOrCreateFence(Fence* fence)
 {
 	VulkanFence* vulkanFence = static_cast<VulkanFence*>(fence);

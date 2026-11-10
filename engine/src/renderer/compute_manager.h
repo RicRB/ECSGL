@@ -7,6 +7,7 @@
 
 class ComputeManager {
 public:
+	virtual ~ComputeManager() = default;
 	virtual void dispatchComputeShader(ComputeShaderData& computeShaderData, DescriptorSet* set, Fence* fence, uint32_t threadsX, uint32_t threadsY, uint32_t threadsZ) = 0;
 	virtual void dispatchComputeShaderAsync(ComputeShaderData& computeShaderData, DescriptorSet* set, Fence* fence, uint32_t threadsX, uint32_t threadsY, uint32_t threadsZ) = 0;
 	virtual void setBuffer(DescriptorSet* set, BufferData* buffer, int binding) = 0;
