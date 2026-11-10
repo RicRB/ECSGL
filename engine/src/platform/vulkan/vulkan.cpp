@@ -306,10 +306,11 @@ void Vulkan::drawFrame(FrameDrawData& frameDrawData)
 		if (materials[i] != lastMaterial) {
 			// descriptor sets
 			lastMaterial = materials[i];
+			uint32_t globalOffset = currentFrame * static_cast<uint32_t>(globalUniformBuffer.bufferSize);
 			uint32_t dynamicOffset = currentFrame * static_cast<uint32_t>(std::static_pointer_cast<VkUniformBuffer>(materials[i]->uniformBuffer)->bufferSize);
-			uint32_t dynamicOffsets[] = { 0, dynamicOffset };
+			uint32_t dynamicOffsets[] = { globalOffset, dynamicOffset };
 			VkDescriptorSet descriptorSets[] = { globalDescriptorSet, std::static_pointer_cast<VulkanDescriptorSet>(materials[i]->descriptorSet)->set};
-			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, program->pipelineLayout, 0, 2, descriptorSets, 1, dynamicOffsets);
+			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, program->pipelineLayout, 0, 2, descriptorSets, 2, dynamicOffsets);
 		}
 		// push constants
 		PushConstants pushConstants;
@@ -1430,7 +1431,7 @@ void Vulkan::createDescriptorSetLayouts()
 	// global 
 	VkDescriptorSetLayoutBinding guboLayoutBinding{};
 	guboLayoutBinding.binding = 0;
-	guboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	guboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
 	guboLayoutBinding.descriptorCount = 1;
 	guboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT; // add frag for fragment uniforms
 	guboLayoutBinding.pImmutableSamplers = nullptr; // Optional
@@ -1475,7 +1476,7 @@ void Vulkan::createDescriptorSetLayouts()
 void Vulkan::createGlobalUniformBuffer()
 {
 	createUniformBuffer(&globalUniformBuffer, sizeof(GlobalUBO));
-	createDescriptorSet(&globalUniformBuffer, &globalDescriptorSetLayout, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &globalDescriptorSet);
+	createDescriptorSet(&globalUniformBuffer, &globalDescriptorSetLayout, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, &globalDescriptorSet);
 	updateUniformBufferData(&globalUniformBuffer, &globalUBO);
 }
 
@@ -1483,7 +1484,7 @@ void Vulkan::createDescriptorPool()
 {
 	VkDescriptorPoolSize poolSizes[5];
 	poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-	poolSizes[0].descriptorCount = MAX_MATERIALS;
+	poolSizes[0].descriptorCount = MAX_MATERIALS + 1; // FOR OUR GLOBAL UBO
 	poolSizes[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	poolSizes[1].descriptorCount = MAX_FRAMES_IN_FLIGHT;
 	poolSizes[2].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;

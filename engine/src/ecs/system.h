@@ -5,12 +5,12 @@ public:
 	System() = default;
 	virtual ~System() = default;
 	// called once 
-	virtual void start() = 0;
+	virtual void start() {}
 	// Called once per frame
-	virtual void update() = 0;
-	virtual void onGui() = 0;
+	virtual void update() {}
+	virtual void onGui() {}
 	// Called when the system is cleaned up
-	virtual void cleanup() = 0;
+	virtual void cleanup() {}
 	// Returns the name of the system
 	virtual const char* getName() const = 0;
 };
