@@ -6,5 +6,31 @@ TODO:
 
 
 TODO:
-- ECS fix views, fix invalidation of entityIDs.
+- Figure out program's descriptorSetLayout (we need a vector of them depending on the shaderreflection we get)
 - graphics or physics????
+
+
+QUICK FIXES:
+- Validation layer check (vulkan.cpp ~75): shadowed loop var compares name to itself, rename + move check before vkCreateInstance
+- Drop deviceFeatures.geometryShader requirement in isPhysicalDeviceSuitable
+- Remove/log-once the std::cout spam in Registry::GetView
+- 1x1 white default texture bound in LoadMaterial so no material has an empty sampler
+- Delete unused ComputeShaderData::descriptorSet, throw in createDescriptorSet(Program*) if layout is null
+- createDescriptorSetLayoutFromReflection should use VkUtils::getVkDescriptorType instead of its own switch
+- Merge duplicated dispatchComputeShader / dispatchComputeShaderAsync recording code
+- updateBuffer ignores its size param
+- vkCmdDrawIndexed uses vertexCount as index count, store an indexCount
+
+BUG:
+- DestroyEntity doesn't touch the scene graph: children keep the dead parent's ID and get re-parented to whatever reuses it. Destroy or unparent children + clear the entity's HierarchyData
+
+STRUCTURAL:
+- Descriptor set layouts from reflection (see TODO above): VkProgram gets std::vector<VkDescriptorSetLayout> setLayouts, group bindings by set, reflect graphics shaders too
+- Fullscreen triangle pass for compute output, removes the quad entity + material swapping, becomes the post-processing hook
+- Upload batching: beginUploadBatch/endUploadBatch so loading does one submit + one wait
+
+NEW FEATURES (in order):
+- Reflection-driven descriptors first (unlocks normal maps, PBR, shadows, multi-texture materials)
+- Post-processing pass: HDR + tonemapping
+- Instancing: per-object SSBO + sort draws by pipeline/material
+- Then physics as an ECS system: Rigidbody + Collider, fixed timestep, sphere/AABB first
